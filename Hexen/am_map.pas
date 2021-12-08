@@ -596,7 +596,7 @@ begin
   m_w := FTOM(f_w);
   m_h := FTOM(f_h);
 
-  if gamestate =  gs_level then
+  if gamestate = GS_LEVEL then
   begin
     // find player to center on initially
     pnum := consoleplayer;
@@ -1634,7 +1634,7 @@ begin
     inc(their_color);
     p := @players[i];
 
-    if (deathmatch <> 0) and (not singledemo) and (p <> plr) then
+    if (deathmatch <> 0) and not singledemo and (p <> plr) then
       continue;
 
     if not playeringame[i] then

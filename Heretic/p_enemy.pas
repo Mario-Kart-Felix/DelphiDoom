@@ -118,7 +118,7 @@ procedure A_Sor2DthInit(actor: Pmobj_t);
 
 procedure A_Sor2DthLoop(actor: Pmobj_t);
 
-procedure A_SorZap(actor: Pmobj_t); 
+procedure A_SorZap(actor: Pmobj_t);
 
 procedure A_SorRise(actor: Pmobj_t);
 
@@ -493,7 +493,7 @@ begin
   begin
     result := false; // do not attack yet
     exit;
-  end;                                
+  end;
 
   // OPTIMIZE: get this from a global checksight
   dist := P_AproxDistance(actor.x - actor.target.x, actor.y - actor.target.y) -
@@ -979,7 +979,7 @@ begin
       exit;
   end;
 
-  A_SeeSound(actor);
+  A_SeeSound1(actor);
   // go into chase state
   P_SetMobjState(actor, statenum_t(actor.info.seestate));
 end;
@@ -1044,7 +1044,7 @@ begin
   // check for melee attack
   if (actor.info.meleestate <> 0) and P_CheckMeleeRange(actor) then
   begin
-    A_AttackSound(actor);
+    A_AttackSound1(actor);
     P_SetMobjState(actor, statenum_t(actor.info.meleestate));
     exit;
   end;
@@ -1108,7 +1108,7 @@ begin
 
   // make active sound
   if P_Random < 3 then
-    A_ActiveSound(actor);
+    A_ActiveSound1(actor);
 end;
 
 procedure A_Chase(actor: Pmobj_t);
@@ -1136,7 +1136,7 @@ end;
 
 procedure A_Pain(actor: Pmobj_t);
 begin
-  A_PainSound(actor);
+  A_PainSound1(actor);
 end;
 
 //----------------------------------------------------------------------------
@@ -1174,7 +1174,7 @@ begin
     S_StartSound(actor, Ord(sfx_kgtat2));
     exit;
   end;
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
   // Throw axe
   if (actor._type = Ord(MT_KNIGHTGHOST)) or (P_Random < 40) then
   begin // Red axe
@@ -1236,7 +1236,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
   if P_CheckMeleeRange(actor) then
     P_DamageMobj(actor.target, actor, actor, 5 + (P_Random and 7));
 end;
@@ -1261,7 +1261,7 @@ begin
 
   dest := actor.target;
   actor.flags := actor.flags or MF_SKULLFLY;
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
   A_FaceTarget(actor);
   an := actor.angle  shr ANGLETOFINESHIFT;
   actor.momx := FixedMul(12 * FRACUNIT, finecosine[an]);
@@ -1286,7 +1286,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
   if P_CheckMeleeRange(actor) then
   begin
     P_DamageMobj(actor.target, actor, actor, 5 + (P_Random and 7));
@@ -1497,7 +1497,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   if P_CheckMeleeRange(actor) then
   begin
@@ -1605,14 +1605,14 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   if P_CheckMeleeRange(actor) then
   begin
     P_DamageMobj(actor.target, actor, actor, HITDICE(8));
     exit;
   end;
-  
+
   if actor.health > (actor.info.spawnhealth div 3) * 2 then
   begin // Spit one fireball
     P_SpawnMissile(actor, actor.target, Ord(MT_SRCRFX1));
@@ -1739,7 +1739,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   if P_CheckMeleeRange(actor) then
   begin
@@ -2063,7 +2063,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   if P_CheckMeleeRange(actor) then
     P_DamageMobj(actor.target, actor, actor, HITDICE(3))
@@ -2245,7 +2245,7 @@ begin
     exit;
   end;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   A_FaceTarget(actor);
   P_SpawnMissile(actor, actor.target, missiletype);
@@ -2280,7 +2280,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   if P_CheckMeleeRange(actor) then
   begin
@@ -2330,7 +2330,7 @@ begin
   if actor.target = nil then
     exit;
 
-  A_AttackSound(actor);
+  A_AttackSound1(actor);
 
   if P_CheckMeleeRange(actor) then
   begin

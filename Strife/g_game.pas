@@ -46,13 +46,13 @@ uses
   d_player,
   d_ticcmd;
 
-// 
+//
 // GAME
 //
 
 procedure G_DeathMatchSpawnPlayer(playernum: integer);
 
-procedure G_InitNew(skill:skill_t; map: integer);
+procedure G_InitNew(skill: skill_t; map: integer);
 
 // Can be called by the startup code or M_Responder.
 // A normal game starts at map 1,
@@ -129,6 +129,8 @@ var
 
 // JVAL Jump
   key_jump: integer;
+// JVAL: 20211101 - Crouch
+  key_crouch: integer;
 
 // JVAL 20191207 Key bindings for weapon change
   key_weapon0: integer = Ord('1');
@@ -169,6 +171,7 @@ var
   joybuse: integer;
   joybspeed: integer;
   joybjump: integer;
+  joybcrouch: integer;  // JVAL: 20211101 - Crouch
   joyblleft: integer;
   joyblright: integer;
 
@@ -245,6 +248,7 @@ var
   autorunmode: boolean = false;
   keepcheatsinplayerreborn: boolean = false;
   allowplayerjumps: boolean = true;
+  allowplayercrouch: boolean = true;
 
 procedure G_StartFinale;
 
@@ -273,7 +277,7 @@ var
   gamekeydown: array[0..NUMKEYS - 1] of boolean;
   mousebuttons: PBooleanArray;
   joybuttons: PBooleanArray;
-  
+
 implementation
 
 uses
@@ -543,6 +547,7 @@ var
   imousex: integer;
   imousey: integer;
   player: Pplayer_t;
+  cmd_jump, cmd_crouch: byte;
 begin
   base := I_BaseTiccmd;    // empty, or external driver
 
@@ -860,13 +865,34 @@ begin
     if allowplayerjumps and (gamekeydown[key_jump] or (usejoystick and joybuttons[joybjump])) then
     begin
       if players[consoleplayer].oldjump <> 0 then
-        cmd.jump := 1
+        cmd_jump := 1
       else
-        cmd.jump := 2
+        cmd_jump := 2
       end
     else
-      cmd.jump := 0;
-    players[consoleplayer].oldjump := cmd.jump;
+      cmd_jump := 0;
+    players[consoleplayer].oldjump := cmd_jump;
+    // JVAL: 20211101 - Crouch
+    // allowplayercrouch variable controls if we accept input for crouching
+    if cmd_jump = 0 then
+    begin
+      if allowplayercrouch and (gamekeydown[key_crouch] or (usejoystick and joybuttons[joybcrouch])) then
+      begin
+        if players[consoleplayer].oldcrouch <> 0 then
+          cmd_crouch := 2
+        else
+          cmd_crouch := 1
+        end
+      else
+        cmd_crouch := 0;
+    end
+    else
+      cmd_crouch := 0;
+    players[consoleplayer].oldcrouch := cmd_crouch;
+
+    cmd.jump_crouch :=
+      ((cmd_jump shl CMD_JUMP_SHIFT) and CMD_JUMP_MASK) +
+      ((cmd_crouch shl CMD_CROUCH_SHIFT) and CMD_CROUCH_MASK);
   end;
 
   // special buttons
@@ -988,7 +1014,7 @@ begin
   end;
 
   // any other key pops up menu if in demos
-  if (gameaction = ga_nothing) and (not singledemo) and
+  if (gameaction = ga_nothing) and not singledemo and
      (demoplayback or (gamestate = GS_DEMOSCREEN)) then
   begin
     if (ev._type = ev_keydown) or
@@ -1197,7 +1223,7 @@ begin
         players[consoleplayer]._message := msg;
       end;
 
-      if netgame and (not netdemo) and ((gametic mod ticdup) = 0) then
+      if netgame and not netdemo and (gametic mod ticdup = 0) then
       begin
         if (gametic > BACKUPTICS) and
            (consistancy[i][buf] <> cmd.consistancy) then
@@ -1507,7 +1533,7 @@ var
 // G_RiftExitLevel
 //
 // haleyjd 20100824: [STRIFE] New function
-// * Called from some exit linedefs to exit to a specific riftspot in the 
+// * Called from some exit linedefs to exit to a specific riftspot in the
 //   given destination map.
 //
 procedure G_RiftExitLevel(map, spot: integer; angle: angle_t);
@@ -1668,7 +1694,7 @@ begin
   if deathmatch = 0 then
   begin
     // [STRIFE]: transfer saved powerups
-    players[0].mo.flags := players[0].mo.flags and (not (MF_SHADOW or MF_MVIS));
+    players[0].mo.flags := players[0].mo.flags and not (MF_SHADOW or MF_MVIS);
     if temp_shadow then
       players[0].mo.flags := players[0].mo.flags or MF_SHADOW;
     if temp_mvis then
@@ -1766,6 +1792,7 @@ begin
   end;
 
   savegameversion := VERSION; // Assume current version
+  savegameversionhack := 0;
 
   len := M_ReadFile(loadpath, pointer(savebuffer));
   save_p := PByteArray(integer(savebuffer) + SAVESTRINGSIZE);
@@ -1801,6 +1828,13 @@ begin
         savegameversion := VERSION204
       else if vsaved = 'version 205' then
         savegameversion := VERSION205
+      else if vsaved = 'version 206' then
+        savegameversion := VERSION206
+      else if vsaved = 'version 001' then
+      begin
+        savegameversion := VERSION206;
+        savegameversionhack := 1;
+      end
       else
       begin
         I_Warning('G_DoLoadGame(): Saved game is from an unsupported version: %s!'#13#10, [vsaved]);
@@ -1865,7 +1899,7 @@ begin
     R_ExecuteSetViewSize;
 
   P_LevelInfoChangeMusic;
-    
+
   // draw the pattern into the back screen
 {$IFNDEF OPENGL}
   R_FillBackScreen;
@@ -1955,7 +1989,7 @@ begin
   save_p := PByteArray(integer(save_p) + SAVESTRINGSIZE);
   name2 := '';
 
-  savegameversion := VERSION; 
+  savegameversion := VERSION;
   sprintf(name2, 'version %d', [VERSION]);
   memcpy(save_p, @name2[1], VERSIONSIZE);
   save_p := PByteArray(integer(save_p) + VERSIONSIZE);
@@ -2340,10 +2374,10 @@ begin
   cmd.angleturn := PSmallInt(demo_p)^;
   demo_p := @demo_p[2];
 
-  cmd.buttons := demo_p[0] and (not BT_SPECIAL);
+  cmd.buttons := demo_p[0] and not BT_SPECIAL;
   demo_p := @demo_p[1];
 
-  cmd.buttons2 := demo_p[0] and (not BT_SPECIAL);
+  cmd.buttons2 := demo_p[0] and not BT_SPECIAL;
   demo_p := @demo_p[1];
 
   cmd.inventory := PInteger(demo_p)^;
@@ -2353,7 +2387,7 @@ begin
   demo_p := @demo_p[1];
   cmd.lookleftright := demo_p[0];
   demo_p := @demo_p[1];
-  cmd.jump := demo_p[0];
+  cmd.jump_crouch := demo_p[0];
   demo_p := @demo_p[1];
 
   // JVAL Smooth Look Up/Down
@@ -2423,7 +2457,7 @@ begin
   PSmallInt(demo_p)^ := cmd.angleturn;
   demo_p := @demo_p[2];
 
-  demo_p[0] := cmd.buttons and (not BT_SPECIAL);
+  demo_p[0] := cmd.buttons and not BT_SPECIAL;
   demo_p := @demo_p[1];
 
   demo_p[0] := cmd.buttons2;
@@ -2438,7 +2472,7 @@ begin
   demo_p[0] := cmd.lookleftright;
   demo_p := @demo_p[1];
 
-  demo_p[0] := cmd.jump;
+  demo_p[0] := cmd.jump_crouch;
   demo_p := @demo_p[1];
 
   // JVAL Smooth Look Up/Down

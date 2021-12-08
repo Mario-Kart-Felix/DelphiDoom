@@ -74,6 +74,8 @@ procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; const damage: integer);
 
 procedure P_RadiusAttackEx(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
 
+procedure P_RadiusAttackPlayer(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
+
 function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
 
 procedure P_SlideMove(mo: Pmobj_t);
@@ -91,6 +93,7 @@ var
   tmceilingz: fixed_t;
   tmdropoffz: fixed_t;
   tmfloorpic: integer;
+  tmbounceline: Pline_t;
 
 var
   spechit: Pline_tPArray = nil;  // JVAL Now spechit is dynamic
@@ -103,7 +106,7 @@ var
 
 // haleyjd 20110203: [STRIFE] New global
 // "blockingline" tracks the linedef responsible for blocking motion of an mobj
-// for purposes of doing impact special activation by missiles. Suspiciously 
+// for purposes of doing impact special activation by missiles. Suspiciously
 // similar to the solution used by Raven in Heretic and Hexen.
   blockingline: Pline_t;
 
@@ -122,7 +125,7 @@ var
 
 function P_CheckPositionZ(thing: Pmobj_t; height: fixed_t): boolean;
 
-// JVAL: 3d Floors move from implementation section to interface  
+// JVAL: 3d Floors move from implementation section to interface
 var
   tmthing: Pmobj_t;
   tmx: fixed_t; // JVAL: Slopes - move from implementation section to interface
@@ -137,6 +140,7 @@ uses
   info_h,
   info,
   info_common,
+  info_rnd,
   p_setup,
   p_maputl,
   p_inter,
@@ -180,6 +184,20 @@ begin
 
   // JVAL: 20210209 - MF3_EX_THRUACTORS flag - does not colide with actors
   if (tmthing.flags3_ex and MF3_EX_THRUACTORS <> 0) or (thing.flags3_ex and MF3_EX_THRUACTORS <> 0) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (tmthing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(thing._type) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (thing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(tmthing._type) then
   begin
     result := true;
     exit;
@@ -364,6 +382,7 @@ begin
   if ld.backsector = nil then
   begin
     result := false;  // one sided line
+    tmbounceline := ld;
     exit;
   end;
 
@@ -376,6 +395,7 @@ begin
       if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
       begin
         result := false;  // explicitly blocking everything
+        tmbounceline := ld;
         exit;
       end;
     end;
@@ -385,6 +405,7 @@ begin
        (tmthing.flags and MF_FLOAT = 0) then
     begin
       result := false;  // block monsters only
+      tmbounceline := ld;
       exit;
     end;
 
@@ -392,6 +413,7 @@ begin
     if (ld.flags and ML_BLOCKFLOATERS <> 0) and (tmthing.flags and MF_FLOAT <> 0) then
     begin
       result := false;  // block floaters only
+      tmbounceline := ld;
       exit;
     end;
 
@@ -447,13 +469,13 @@ begin
     exit;
   end;
 
-  // JVAL: VERSION 206 
+  // JVAL: VERSION 206
   if ld.flags and ML_NOCLIP <> 0 then
   begin
     result := true;
     exit;
   end;
-  
+
   if P_BoxOnLineSide(@tmbbox, ld) <> -1 then
   begin
     result := true;
@@ -474,6 +496,7 @@ begin
   if ld.backsector = nil then
   begin
     result := false;  // one sided line
+      tmbounceline := ld;
     exit;
   end;
 
@@ -486,6 +509,7 @@ begin
       if ld.flags and ML_BLOCKING <> 0 then
       begin
         result := false;  // explicitly blocking everything
+        tmbounceline := ld;
         exit;
       end;
     end;
@@ -495,6 +519,7 @@ begin
        (tmthing.flags and MF_FLOAT = 0) then
     begin
       result := false;  // block monsters only
+      tmbounceline := ld;
       exit;
     end;
 
@@ -502,6 +527,7 @@ begin
     if (ld.flags and ML_BLOCKFLOATERS <> 0) and (tmthing.flags and MF_FLOAT <> 0) then
     begin
       result := false;  // block floaters only
+      tmbounceline := ld;
       exit;
     end;
 
@@ -638,6 +664,20 @@ begin
     exit;
   end;
 
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (tmthing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(thing._type) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (thing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(tmthing._type) then
+  begin
+    result := true;
+    exit;
+  end;
+
   // JVAL: 20210209 - MF3_EX_THRUSPECIES flag - does not colide with same species (also inheritance)
   if tmthing.flags3_ex and MF3_EX_THRUSPECIES <> 0 then
   begin
@@ -706,7 +746,10 @@ begin
     end;
 
     // villsa [STRIFE] updated to strife version
-    if (tmthing.target <> nil) and (tmthing.target._type = thing._type) then
+    if (tmthing.target <> nil) and (
+       (tmthing.target._type = thing._type) or
+       // JVAL: 20211126 - Inherited actors do not hurt each other
+       (Info_GetInheritance(tmthing.target.info) = Info_GetInheritance(thing.info))) then
     begin
       // Don't hit same species as originator.
       if thing = tmthing.target then
@@ -731,6 +774,20 @@ begin
       exit;
     end;
 
+    if tmthing.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
+    if tmthing.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
     // haleyjd 09/01/10: [STRIFE] Spectral check:
     // Missiles cannot hit SPECTRAL entities unless the missiles are also
     // flagged as SPECTRAL.
@@ -741,7 +798,9 @@ begin
     end;
 
     // damage / explode
-    if tmthing.flags3_ex and MF3_EX_DOOMDAMAGE <> 0 then
+    if tmthing.flags3_ex and MF3_EX_ABSOLUTEDAMAGE <> 0 then
+      damage := tmthing.info.damage
+    else if tmthing.flags3_ex and MF3_EX_DOOMDAMAGE <> 0 then
       damage := ((P_Random mod 8) + 1) * tmthing.info.damage
     else
     // haleyjd 09/01/10: [STRIFE] Modified missile damage formula
@@ -772,7 +831,7 @@ begin
   // check for special pickup
   if thing.flags and MF_SPECIAL <> 0 then
   begin
-    solid := (thing.flags and MF_SOLID) <> 0;
+    solid := thing.flags and MF_SOLID <> 0;
     if tmthing.player <> nil then   // villsa [STRIFE] no longer checks MF_PICKUP flag
     begin
       // can remove thing
@@ -781,7 +840,7 @@ begin
     result := not solid;
   end
   else
-    result := (thing.flags and MF_SOLID) = 0;
+    result := thing.flags and MF_SOLID = 0;
 end;
 
 //
@@ -824,6 +883,8 @@ var
   bx: integer;
   by: integer;
   newsubsec: Psubsector_t;
+  newsec: Psector_t;
+  msec: Psector_t;
   r: fixed_t;
 begin
   tmthing := thing;
@@ -839,6 +900,7 @@ begin
   tmbbox[BOXLEFT] := x - r;
 
   newsubsec := R_PointInSubsector(x, y);
+  newsec := newsubsec.sector;
 
   // [STRIFE] clear blockingline (see P_XYMovement, P_BlockLinesIterator)
   blockingline := nil;
@@ -849,9 +911,22 @@ begin
   // Any contacted lines the step closer together
   // will adjust them.
   // JVAL 20191209 - Fix 3d floor problems with A_SpawnItem & A_SpawnItemEx
-  tmdropoffz := P_3dFloorHeight(newsubsec.sector, x, y, thing.z); // JVAL: Slopes
+  tmdropoffz := P_3dFloorHeight(newsec, x, y, thing.z); // JVAL: Slopes
   tmfloorz := tmdropoffz;
-  tmceilingz := P_3dCeilingHeight(newsubsec.sector, x, y, thing.z) + P_SectorJumpOverhead(newsubsec.sector);
+  tmceilingz := P_3dCeilingHeight(newsec, x, y, thing.z) + P_SectorJumpOverhead(newsubsec.sector);
+
+  tmbounceline := nil;
+
+  if newsec.midsec >= 0 then
+  begin
+    msec := @sectors[newsec.midsec];
+    if thing.z < msec.ceilingheight then
+      tmfloorpic := newsec.floorpic
+    else
+      tmfloorpic := msec.ceilingpic
+  end
+  else
+    tmfloorpic := newsec.floorpic;
 
   inc(validcount);
   numspechit := 0;
@@ -1507,7 +1582,7 @@ var
 
   aimslope: fixed_t;
 
-// JVAL: 3d floors : Moved from P_Sight  
+// JVAL: 3d floors : Moved from P_Sight
   bottomslope: fixed_t; // slopes to top and bottom of target
   topslope: fixed_t;
 
@@ -2012,7 +2087,7 @@ begin
   //WAS can't use for than one special line in a row
   //jff 3/21/98 NOW multiple use allowed with enabling line flag
 
-  result := (not G_NeedsCompatibilityMode) and ((li.flags and ML_PASSUSE) <> 0);
+  result := not G_NeedsCompatibilityMode and ((li.flags and ML_PASSUSE) <> 0);
 end;
 
 // JVAL: mobjs interaction
@@ -2109,6 +2184,7 @@ var
   bombsource: Pmobj_t;
   bombspot: Pmobj_t;
   bombdamage: integer;
+  bombradius: integer;
 
 
 //
@@ -2161,6 +2237,20 @@ begin
 
   if bombsource <> nil then
   begin
+    if bombsource.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
+    if bombsource.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
     if thing.player = nil then
       if bombsource.info.doomednum > 0 then
       begin
@@ -2299,6 +2389,105 @@ begin
 
 end;
 
+function PIT_RadiusAttackPlayer(thing: Pmobj_t): boolean;
+var
+  dx: fixed_t;
+  dy: fixed_t;
+  dist: fixed_t;
+  cl: fixed_t;
+  damage: integer;
+begin
+  if thing.player = nil then
+  begin
+    result := true;
+    exit;
+  end;
+
+  dx := abs(thing.x - bombspot.x);
+  dy := abs(thing.y - bombspot.y);
+
+  if dx > dy then
+    dist := dx
+  else
+    dist := dy;
+  dist := FixedInt(dist - thing.radius);
+
+  if dist < 0 then
+    dist := 0;
+
+  if dist >= bombradius then
+  begin
+    result := true; // out of range
+    exit;
+  end;
+
+  if bombsource.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+    if thing.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+    begin
+      result := true;
+      exit;
+    end;
+
+  if bombsource.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+    if thing.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+    begin
+      result := true;
+      exit;
+    end;
+
+  if P_CheckSight(thing, bombspot) then
+  begin
+    // must be in direct path
+    if bombradius = 0 then
+      P_DamageMobj(thing, bombspot, bombsource, bombdamage)
+    else
+    begin
+      cl := FixedDiv((bombradius - dist) * FRACUNIT, bombradius * FRACUNIT);
+      damage := FixedInt(FixedMul(bombdamage * FRACUNIT, cl));
+      if damage < 1 then
+        damage := 1;
+      P_DamageMobj(thing, bombspot, bombsource, damage);
+    end;
+  end;
+
+  result := true;
+end;
+
+procedure P_RadiusAttackPlayer(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
+var
+  x: integer;
+  y: integer;
+  xl: integer;
+  xh: integer;
+  yl: integer;
+  yh: integer;
+  dist: fixed_t;
+begin
+  dist := distance * FRACUNIT;
+  if internalblockmapformat then
+  begin
+    yh := MapBlockIntY(int64(spot.y) + int64(dist) - int64(bmaporgy));
+    yl := MapBlockIntY(int64(spot.y) - int64(dist) - int64(bmaporgy));
+    xh := MapBlockIntX(int64(spot.x) + int64(dist) - int64(bmaporgx));
+    xl := MapBlockIntX(int64(spot.x) - int64(dist) - int64(bmaporgx));
+  end
+  else
+  begin
+    yh := MapBlockInt(spot.y + dist - bmaporgy);
+    yl := MapBlockInt(spot.y - dist - bmaporgy);
+    xh := MapBlockInt(spot.x + dist - bmaporgx);
+    xl := MapBlockInt(spot.x - dist - bmaporgx);
+  end;
+
+  bombspot := spot;
+  bombsource := source;
+  bombdamage := damage;
+  bombradius := distance;
+
+  for y := yl to yh do
+    for x := xl to xh do
+      P_BlockThingsIterator(x, y, PIT_RadiusAttackPlayer);
+end;
 
 //
 // SECTOR HEIGHT CHANGING
@@ -2340,7 +2529,7 @@ begin
     result := true;
     exit;
   end;
-  
+
   // crunch bodies to giblets
   if thing.health <= 0 then
   begin
@@ -2355,7 +2544,7 @@ begin
 
     A_BodyParts(thing); // villsa [STRIFE] spit out meat/junk stuff
 
-    thing.flags := thing.flags and (not MF_SOLID);
+    thing.flags := thing.flags and not MF_SOLID;
     thing.height := 0;
     thing.radius := 0;
 
@@ -2740,7 +2929,7 @@ begin
     else
       node := node.m_tnext;
   end;
-  
+
 end;
 
 //----------------------------------------------------------------------------

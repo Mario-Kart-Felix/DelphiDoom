@@ -169,15 +169,9 @@ type
   Pbutton_t = ^button_t;
 
 const
- // max # of wall switches in a level
-  MAXSWITCHES = 50;
-
- // 4 players, 4 buttons each at once, max.
-   MAXBUTTONS = 16;
-
- // 1 second, in ticks. 
-   BUTTONTIME = 35;
-
+  MAXSWITCHES = 50; // max # of wall switches in a level
+  MAXBUTTONS = 16;  // 4 players, 4 buttons each at once, max.
+  BUTTONTIME = 35;  // 1 second, in ticks.
 
 type
 //
@@ -331,6 +325,10 @@ type
   );
 
 function P_FindSectorFromLineTag2(line: Pline_t; var start: integer): integer;
+
+const
+  ORIG_FRICTION = $E800;          // original value
+  CROUCH_FRICTION_FACTOR = 1536;  // JVAL: 20211101 - Crouch
 
 implementation
 
@@ -936,7 +934,7 @@ begin
         EV_DoCeiling(line, crushAndRaise);
         line.special := 0;
       end;
-  
+
     30:
       begin
         // Raise floor to shortest texture height

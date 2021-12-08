@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 // DESCRIPTION:
-//  Play functions, animation, global header. 
+//  Play functions, animation, global header.
 //
 //------------------------------------------------------------------------------
 //  Site  : http://sourceforge.net/projects/delphidoom/
@@ -49,6 +49,9 @@ const
 // Player VIEWHEIGHT
   PVIEWHEIGHT = 48 * FRACUNIT;
 
+// JVAL: 20211101 - Crouch
+  PMAXCROUCHHEIGHT = 18 * FRACUNIT;
+
 // mapblocks are used to check movement
 // against lines and things
   MAPBLOCKUNITS = 128;
@@ -68,6 +71,8 @@ const
 
   USERANGEINT = 64;
   USERANGE = USERANGEINT * FRACUNIT;
+  USETHINGRANGEINT = 96;
+  USETHINGRANGE = USETHINGRANGEINT * FRACUNIT;
   MELEERANGE = 64 * FRACUNIT;
   MISSILERANGE = (32 * 64) * FRACUNIT;
 

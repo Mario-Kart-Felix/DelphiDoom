@@ -3,7 +3,7 @@
 //  DelphiDoom: A modified and improved DOOM engine for Windows
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -76,6 +76,8 @@ var
   tran_filter_pct: integer = 66;
   use_fog: boolean = false;
   fog_density: integer = 100; // 200
+  use_white_fog: boolean = true;
+  white_fog_density: integer = 200;
   gl_nearclip: integer = 5;
   gl_tex_filter_string: string;
   gl_tex_filter: integer;
@@ -129,7 +131,7 @@ const
 var
   gl_tex_format_string: string;
   gl_tex_format: integer = GL_RGBA8;
-  gl_fakecontrast: boolean; 
+  gl_fakecontrast: boolean;
 
 type
   tex_format_lookup_t = record
@@ -173,7 +175,7 @@ const
   MAP_SCALE = MAP_COEFF * FRACUNIT;
   FLATUVSCALE = FRACUNIT * 64.0;
 
-const  
+const
   COORDMIN = -1.0E38;
   COORDMAX =  1.0E38;
 

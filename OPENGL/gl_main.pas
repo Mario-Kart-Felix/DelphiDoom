@@ -69,8 +69,7 @@ var
 var
   h_DC: HDC;    // Global device context
   h_RC: HGLRC;  // OpenGL rendering context
-  hMainWnd: HWND = 0;
-  
+
 var
   gl_initialized: boolean = false;
 
@@ -106,6 +105,7 @@ uses
   r_main,
   mt_utils,
   i_displaymodes,
+  i_mainwindow,
   i_input,
   i_system,
   m_argv,
@@ -195,7 +195,7 @@ begin
       h_RC := 0;
     end;
   end;
-  
+
   // Attemps to release the device context
   if ((h_DC > 0) and (ReleaseDC(hMainWnd, h_DC) = 0)) then
   begin

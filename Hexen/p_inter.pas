@@ -94,8 +94,6 @@ procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 
 function P_SpawnDroppedMobj(x, y, z: fixed_t; _type: integer): Pmobj_t;
 
-procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
-
 procedure P_DamageMobj(target: Pmobj_t; inflictor: Pmobj_t; source: Pmobj_t; damage: integer);
 
 procedure P_FallingDamage(player: Pplayer_t);
@@ -145,6 +143,7 @@ uses
   g_game,
   p_mobj,
   p_obituaries,
+  p_3dfloors,
   p_pspr,
   p_pspr_h,
   p_tick,
@@ -1542,7 +1541,7 @@ begin
         P_TryPickupWeaponPiece(player, PCLASS_MAGE, WPIECE3, special);
         exit;
       end;
-      
+
   else
     I_Error('P_SpecialThing(): Unknown gettable thing (sprite number = %d', [special.sprite]);
   end;
@@ -1593,9 +1592,13 @@ var
   pl: Pplayer_t;
   item: integer;
   gibhealth: integer;
+  zpos: integer;
 begin
-  target.flags := target.flags and not (MF_SHOOTABLE or MF_FLOAT or MF_SKULLFLY or MF_NOGRAVITY);
-  target.flags3_ex := target.flags3_ex and (not MF3_EX_BOUNCE);
+  target.flags := target.flags and not (MF_SHOOTABLE or MF_FLOAT or MF_SKULLFLY);
+  if target.flags3_ex and MF3_EX_NOGRAVITYDEATH = 0 then
+    target.flags := target.flags and not MF_NOGRAVITY;
+
+  target.flags3_ex := target.flags3_ex and not MF3_EX_BOUNCE;
   target.flags := target.flags or MF_CORPSE or MF_DROPOFF;
   target.flags2 := target.flags2 and not MF2_PASSMOBJ;
   target.height := _SHR2(target.height);
@@ -1896,8 +1899,13 @@ begin
   if item <= 0 then
     Exit;
 
-  if Psubsector_t(target.subsector).sector.midsec >= 0 then // JVAL: 3d Floors
+  if target.flags4_ex and MF4_EX_ABSOLUTEDROPITEMPOS <> 0 then
     P_SpawnDroppedMobj(target.x, target.y, target.z, item)
+  else if Psubsector_t(target.subsector).sector.midsec >= 0 then // JVAL: 3d Floors
+  begin
+    zpos := P_3dFloorHeight(target);
+    P_SpawnDroppedMobj(target.x, target.y, zpos, item)
+  end
   else
     P_SpawnDroppedMobj(target.x, target.y, ONFLOORZ, item);
 end;
@@ -1938,6 +1946,26 @@ begin
   if target.flags2_ex and MF2_EX_NODAMAGE <> 0 then
   begin
     exit;
+  end;
+
+  if inflictor <> nil then
+  begin
+    if inflictor.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+        exit;
+      if target.flags3_ex and MF3_EX_FREEZEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
+    if inflictor.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+        exit;
+      if target.flags4_ex and MF4_EX_FLAMEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
   end;
 
   if target.health <= 0 then
@@ -2233,7 +2261,7 @@ begin
     P_Obituary(target, inflictor, source);
     exit;
   end;
-  if (P_Random < target.info.painchance) and
+  if (P_Random < target.painchance) and
      (target.flags and MF_SKULLFLY = 0) then
   begin
     if (inflictor <> nil) and

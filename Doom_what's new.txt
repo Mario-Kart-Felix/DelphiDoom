@@ -1,4 +1,108 @@
+Fixed flags in A_ChangeVelocity() ACTORDEF function.
+Export info tables to Pascal.
+Added ExportInfoPascal, InfoExportPascal, ExportInfoPascalBI, InfoExportPascalBI, ExportInfoPascalBuiltIn & InfoExportPascalBuiltIn console commands.
+Added SaveInfoPascal, InfoSavePascal, SaveInfoPascalBI, InfoSavePascalBI, SaveInfoPascalBuiltIn & InfoSavePascalBuiltIn console commands.
+Added MF3_EX_ABSOLUTEDAMAGE mobj flag.
+Added MF3_EX_NOGRAVITYDEATH mobj flag. When set, does not remove the MF_NOGRAVITY flag on death.
+Fixed MF2_EX_CANTLEAVEFLOORPIC flag behaviour.
+Removed generalized sector consts for forcefields.
+Fixed uncapped framerate bug for floor & ceiling offsets.
+Added "A_PlayerHurtExplode(damage: integer; radius: integer);" ACTORDEF function.
+Added A_SetPushable() & A_UnSetPushable() ACTORDEF functions.
+DEHACHED can use weapon & ammo mnemonic names.
+ACTORDEF can override the existing weapons (WEAPON keyword).
+Added DEH_PrintWeapondef & PrintWeapondef console commands, print current weapons as ACTORDEF script.
+Added DEH_SaveWeapondef & SaveWeapondef console commands, save current weapons as ACTORDEF script.
+Hold attack state for weapon refire.
+Corrected ACTORDEF parsing of "goto" keyword at the end of the actor/weapon declaration.
+Added MF3_EX_FREEZEDAMAGE & MF3_EX_NOFREEZEDAMAGE mobj flags.
+Added MF3_EX_FREEZEDAMAGERESIST mobj flag. When true it takes half damage from MF3_EX_FREEZEDAMAGE missiles.
+Added MF3_EX_FLAMEDAMAGE, MF3_EX_NOFLAMEDAMAGE & MF4_EX_FLAMEDAMAGERESIST mobj flags.
+Added MF4_EX_THRUMONSTERS flag, does not collide with monsters.
+Player crouching.
+Key bindings menu now has 3 submenus.
+Variable mobj painchance.
+Added A_SetPainChance() ACTORDEF function.
+Added GetActorPainChance() & SetActorPainChance() PascalScript functions.
+ACTORDEF does not require the "Stop" keyword in states.
+Can use SKY1 texture on other episodes if SKY2, SKY3 etc not found.
+Added the TICRATE const in states parameters evaluation.
+Added the LEVELTIME, GAMEEPISODE, GAMEMAP & LEVELNAME variables in states parameters evaluation.
+Fixed glitch in large flats multithreading software rendering.
+Fog sectors (lightlevel > 255).
+Fog strength can be configured individually for normal & white fog sectors (OpenGL).
+Added GetSectorInterpolate() & SetSectorInterpolate() PascalScript functions.
+Added GetSectorFog() & SetSectorFog() PascalScript functions. Added ::fog property in sector class.
+Fixed Integer/float tolerance examines negative values in DEHACKED & ACTORDEF.
+SpriteDX & SpriteDY mobj fields. Can be accessed by ACTORDEF & PascalScript.
+Added A_SetSpriteDX & A_SetSpriteDY ACTORDEF function.
+::spriteDX & ::spriteDY fields are available in ACTORDEF function parameters evaluation.
+Added GetActorSpriteDX, SetActorSpriteDX, GetActorSpriteDY, SetActorSpriteDY, GetMobjInfoSpriteDX & GetMobjInfoSpriteDY Pascalscript functions.
+Added ExportInfoPascalConstBI, InfoExportPascalConstBI, SaveInfoPascalConstBI, InfoSavePascalConstBI console commands. Save mobjinfo as Pascal const declaration.
+Added ExportInfoPascalConst, InfoExportPascalConst, SaveInfoPascalConst, InfoSavePascalConst console commands. Save mobjinfo as Pascal const declaration.
+Bug fix: Reset extra player fields when spawning player.
+Added SXF_DROPPED/SIXF_DROPPED flag in A_SpawnItemXX ACTORDEF functions. Mark spawned items as MF_DROPPED. 
+Improved hash efficiency for string evaluation in ACTORDEF function parameters.
+Fixed behavior of A_CountdownArg() ACTORDEF function.
+Added MF4_EX_ABSOLUTEDROPITEMPOS mobj flag. Spawns dropped item in actual z of the actor.
+ACTORDEF can accept boolean values in quotes.
+Added ACTORDEF functions to play predefined sounds:
+ -A_SeeSound
+ -A_PainSound
+ -A_AttackSound
+ -A_MeleeSound
+ -A_DeathSound
+ -A_ActiveSound
+Distinct screenshot filenames for Chex Quest & Hacx.
+Accurate MF3_EX_WALLBOUNCE mechanics.
+Added "A_MatchTargetZ(zspeed: integer; threshold: integer; maxmomz: integer)" ACTORDEF function.
+Added DEH_PrintStateOwners, PrintStateOwners, DEH_SaveStateOwners & SaveStateOwners console commands.
+Fixed bug that could rarely cause infinite loop in DEHACKED lumps, also now recognizes correctly multiple SUBMITNEWFRAMES commands in DEHACKED.
+Inherited actors do not hurt each other.
+Green & blood color gibs.
+r_fakecontrast console variable will add contrast to ALL perpendicular lines.
+Added A_SimpleDialog(dialoglump1: string; dialoglump2..) ACTORDEF function.
+Display correctly character #0 in end text.
+Safe check for light columns in software rendering.
+The "gameskill" can be accessed by ACTORDEF parameters evaluation.
+Added check for vanilla E2M7 linedef flags.
+Use the native monitor resolution as default in software rendering mode.
+
+Version 2.0.6 build 729 - (20211011)
+-----------------------
 Allow MODELDEF declarations without texture.
+Added MOD, S3M, IT & XM track music format support.
+Shows an I_DevWarning if sound channel can not be found.
+Fixed potential doublicate mobj key while loading saved game.
+Overlay functions as mobj codepointers:
+  - A_OverlayClear;
+  - A_OverlayDrawPatch(ticks: Integer; patchname: string; x, y: Integer);
+  - A_OverlayDrawPatchStretched(ticks: Integer; patchname: string; x1, y1, x2, y2: Integer);
+  - A_OverlayDrawPixel(ticks: Integer; red, green, blue: byte; x, y: Integer);
+  - A_OverlayDrawRect(ticks: Integer; red, green, blue: byte; x1, y1, x2, y2: Integer);
+  - A_OverlayDrawLine(ticks: Integer; red, green, blue: byte; x1, y1, x2, y2: Integer);
+  - A_OverlayDrawText(ticks: Integer; txt: string; align: Integer; x, y: Integer);
+  - A_OverlayDrawLeftText(ticks: Integer; txt: string; x, y: Integer);
+  - A_OverlayDrawRightText(ticks: Integer; txt: string; x, y: Integer);
+  - A_OverlayDrawCenterText(ticks: Integer; txt: string; x, y: Integer);
+Bug fix: Does not load twice default state names in case of missing STATEDEF lump.
+Fixed UTF16 loading problem.
+Fixed ddmodel rendering when the game is paused.
+Holds up to 2047 bytes for enviroment variables (eg DOOMWADPATH).
+Added r_blitmultiplier console variable. Default value is 1. Higher values can correct choppy look when interpolation is disabled but with performance penalty.
+Fixed potential memory corruption problem in R_MakeSpans().
+Support for "IDFA Armor" & "IDFA Armor Class" names in Dehacked.
+Support for "IDKFA Armor" & "IDKFA Armor Class" names in Dehacked.
+Support for "MAX SOULSPHERE" name in Dehacked.
+Friction field in ACTORDEF & Dehacked.
+Added A_SetFriction() ACTORDEF function.
+Friction available in PascalScript. Added GetActorFriction(), SetActorFriction() & GetMobjInfoFriction PascalScript functions.
+FastMM upgrated to ver. 4.993.
+Bug fix: Corrected potential issue while loading text files.
+Corrected transparent voxel & sprite rendering in invulnerability mode.
+Added uselightboostgodmode console variable. When true (default) the glow lights are drawned in invulnerability mode. 
+ZDoom compatibility constants for A_SpawnItemEx() & A_CustomMissile() ACTORDEF functions.
+Actor friction is available in ACTORDEF functions parameters.
 
 Version 2.0.6 build 728 - (20210219)
 -----------------------

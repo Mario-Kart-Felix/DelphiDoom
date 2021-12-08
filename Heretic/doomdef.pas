@@ -22,8 +22,8 @@
 //  02111-1307, USA.
 //
 // DESCRIPTION:
-//  Internally used data structures for virtually everything, 
-//  key definitions, lots of other stuff. 
+//  Internally used data structures for virtually everything,
+//  key definitions, lots of other stuff.
 //
 //------------------------------------------------------------------------------
 //  Site  : http://sourceforge.net/projects/delphidoom/
@@ -54,7 +54,8 @@ const
   VERSION204 = 204;
   VERSION205 = 205;
   VERSION206 = 206;
-  VERSION = VERSION206;
+  VERSION207 = 207;
+  VERSION = VERSION207;
 {$IFDEF OPENGL}
   VERSIONSLOPES = VERSION115;
 {$ENDIF}
@@ -92,7 +93,7 @@ const
   // MIN RENDERING DIMENTIONS
   MINWIDTH = 160;
   MINHEIGHT = 100;
-  
+
 var
 // Rendering Engine Screen Dimentions
   SCREENWIDTH: integer;

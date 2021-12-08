@@ -438,7 +438,7 @@ begin
             AM_Drawer;
           if {$IFNDEF OPENGL}wipe or {$ENDIF}((viewheight <> SCREENHEIGHT) and viewfullscreen) then
             redrawsbar := true
-          else if menuactivestate or (inhelpscreensstate and (not inhelpscreens)) then
+          else if menuactivestate or (inhelpscreensstate and not inhelpscreens) then
             redrawsbar := true; // just put away the help screen
           viewfullscreen := viewheight = SCREENHEIGHT;
           if viewfullscreen then
@@ -495,7 +495,7 @@ begin
     begin
       if scaledviewwidth <> SCREENWIDTH then
       begin
-        if menuactive or menuactivestate or (not viewactivestate) or C_IsConsoleActive then
+        if menuactive or menuactivestate or not viewactivestate or C_IsConsoleActive then
         begin
           borderdrawcount := 3;
           popupactivestate := false;
@@ -2035,8 +2035,10 @@ begin
     //  and we use the first WAD we find
     filename := findfile('*.wad');
     if filename <> '' then
+    begin
       I_Warning('Loading unspecified wad file: %s'#13#10, [filename]);
-    D_AddFile(filename);
+      D_AddFile(filename);
+    end;
     if W_InitMultipleFiles(wadfiles) = 0 then
       I_Error('W_InitMultipleFiles(): no files found');
   end;
@@ -2052,6 +2054,10 @@ begin
     isdemoversion := true;
   end;
 
+  {$IFNDEF FPC}
+  SUC_Progress(39);
+  {$ENDIF}
+
   printf('W_AutoLoadPakFiles: Autoload required pak files.'#13#10);
   W_AutoLoadPakFiles;
 
@@ -2059,20 +2065,25 @@ begin
   SUC_Progress(40);
   {$ENDIF}
 
+  printf('SC_Init: Initializing script engine.'#13#10);
+  SC_Init;
+
+  {$IFNDEF FPC}
+  SUC_Progress(41);
+  {$ENDIF}
+
   printf('DEH_Init: Initializing dehacked subsystem.'#13#10);
-  DEH_Init;
   SC_DefaultStatedefLump;
+  DEH_Init;
 
   if M_CheckParm('-internalgamedef') = 0 then
     if not DEH_ParseLumpName('GAMEDEF') then
       I_Warning('DEH_ParseLumpName(): GAMEDEF lump not found, using defaults.'#13#10);
 
   {$IFNDEF FPC}
-  SUC_Progress(41);
+  SUC_Progress(42);
   {$ENDIF}
 
-  printf('SC_Init: Initializing script engine.'#13#10);
-  SC_Init;
   // JVAL: PascalScript
   printf('PS_Init: Initializing pascal script compiler.'#13#10);
   PS_Init;
@@ -2100,8 +2111,8 @@ begin
   {$ENDIF}
 
   if M_CheckParm('-nowaddehacked') = 0 then
-    if not DEH_ParseLumpName('DEHACKED') then
-      printf('DEH_ParseLumpName: DEHACKED lump not found.'#13#10);
+    if not DEH_ParseLumpNames('DEHACKED') then
+      printf('DEH_ParseLumpName: DEHACKED lump(s) not found.'#13#10);
 
   // JVAL Adding dehached files
   D_AddDEHFiles('-deh');
@@ -2238,7 +2249,7 @@ begin
   // Check for -file in shareware
   // JVAL
   // Allow modified games if -devparm is specified, for debuging reasons
-  if modifiedgame and (not devparm) then
+  if modifiedgame and not devparm then
   begin
     err_shown := false;
     if gamemode = shareware then
@@ -2359,7 +2370,7 @@ begin
   {$IFNDEF FPC}
   SUC_Progress(86);
   {$ENDIF}
-  
+
   savepathtemp := M_SafeFilePath(M_SaveFileName(''), 'strfsav8.ssg');
   printf('M_ClearTmp: Clear temporary save directory.'#13#10);
   M_ClearTmp;
@@ -2371,7 +2382,7 @@ begin
   printf('S_Init: Setting up sound.'#13#10);
   S_Init(snd_SfxVolume, snd_MusicVolume, snd_VoiceVolume);
 
-  
+
 
   {$IFNDEF FPC}
   SUC_Progress(90);

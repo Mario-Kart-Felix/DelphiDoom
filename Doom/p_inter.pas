@@ -63,6 +63,7 @@ procedure P_CmdSuicide;
 
 var
   p_maxhealth: integer = 200;
+  p_maxsoulsphere: integer = 200;
   p_soulspherehealth: integer = 100;
   p_megaspherehealth: integer = 200;
   p_medikithealth: integer = 25;
@@ -84,6 +85,7 @@ uses
   g_game,
   p_mobj,
   p_obituaries,
+  p_3dfloors,
   p_pspr,
   ps_main, // JVAL: Script Events
   r_defs,
@@ -428,8 +430,8 @@ begin
     Ord(SPR_SOUL):
       begin
         player.health := player.health + p_soulspherehealth;
-        if player.health > p_maxhealth then
-          player.health := p_maxhealth;
+        if player.health > p_maxsoulsphere then
+          player.health := p_maxsoulsphere;
         player.mo.health := player.health;
         player._message := GOTSUPER;
         if not oldsharewareversion then
@@ -779,11 +781,12 @@ procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 var
   item: integer;
   gibhealth: integer;
+  zpos: integer;
 begin
   target.flags := target.flags and not (MF_SHOOTABLE or MF_FLOAT or MF_SKULLFLY);
   target.flags3_ex := target.flags3_ex and not MF3_EX_BOUNCE;
 
-  if target._type <> Ord(MT_SKULL) then
+  if (target._type <> Ord(MT_SKULL)) and (target.flags3_ex and MF3_EX_NOGRAVITYDEATH = 0) then
     target.flags := target.flags and not MF_NOGRAVITY;
 
   target.flags := target.flags or (MF_CORPSE or MF_DROPOFF);
@@ -890,8 +893,13 @@ begin
   if item <= 0 then
     Exit;
 
-  if Psubsector_t(target.subsector).sector.midsec >= 0 then // JVAL: 3d Floors
+  if target.flags4_ex and MF4_EX_ABSOLUTEDROPITEMPOS <> 0 then
     P_SpawnDroppedMobj(target.x, target.y, target.z, item)
+  else if Psubsector_t(target.subsector).sector.midsec >= 0 then // JVAL: 3d Floors
+  begin
+    zpos := P_3dFloorHeight(target);
+    P_SpawnDroppedMobj(target.x, target.y, zpos, item)
+  end
   else
     P_SpawnDroppedMobj(target.x, target.y, ONFLOORZ, item);
 end;
@@ -917,7 +925,7 @@ var
 begin
   if target.flags and MF_SHOOTABLE = 0 then
   begin
-  // 19/9/2009 JVAL: Display a warning message for debugging 
+  // 19/9/2009 JVAL: Display a warning message for debugging
     I_DevWarning('P_DamageMobj(): Trying to damage unshootable mobj "%s"'#13#10, [target.info.name]);
 //    target.tics := -1;
     exit; // shouldn't happen...
@@ -938,6 +946,26 @@ begin
     target.momx := 0;
     target.momy := 0;
     target.momz := 0;
+  end;
+
+  if inflictor <> nil then
+  begin
+    if inflictor.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+        exit;
+      if target.flags3_ex and MF3_EX_FREEZEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
+    if inflictor.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+        exit;
+      if target.flags4_ex and MF4_EX_FLAMEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
   end;
 
   player := target.player;
@@ -1036,7 +1064,7 @@ begin
     exit;
   end;
 
-  if (P_Random < target.info.painchance) and
+  if (P_Random < target.painchance) and
      ((target.flags and MF_SKULLFLY) = 0) then
   begin
     target.flags := target.flags or MF_JUSTHIT; // fight back!

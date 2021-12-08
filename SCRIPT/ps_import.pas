@@ -243,9 +243,17 @@ begin
   baseproclist.Add('function GetActorArg5(const key: LongWord): integer;', @PS_GetActorArg5);
   baseproclist.Add('procedure SetActorArg5(const key: LongWord; const value: integer);', @PS_SetActorArg5);
   baseproclist.Add('function GetActorWeaveIndexXY(const key: LongWord): Integer;);', @PS_GetActorWeaveIndexXY);
-  baseproclist.Add('procedure SetActorWeaveIndexXY(const key: LongWord; const value: Integer););', @PS_SetActorWeaveIndexXY);
+  baseproclist.Add('procedure SetActorWeaveIndexXY(const key: LongWord; const value: Integer);', @PS_SetActorWeaveIndexXY);
   baseproclist.Add('function GetActorWeaveIndexZ(const key: LongWord): Integer;);', @PS_GetActorWeaveIndexZ);
-  baseproclist.Add('procedure SetActorWeaveIndexZ(const key: LongWord; const value: Integer););', @PS_SetActorWeaveIndexZ);
+  baseproclist.Add('procedure SetActorWeaveIndexZ(const key: LongWord; const value: Integer);', @PS_SetActorWeaveIndexZ);
+  baseproclist.Add('function GetActorFriction(const key: LongWord): Integer;);', @PS_GetActorFriction);
+  baseproclist.Add('procedure SetActorFriction(const key: LongWord; const value: Integer););', @PS_SetActorFriction);
+  baseproclist.Add('function GetActorPainChance(const key: LongWord): Integer;);', @PS_GetActorPainChance);
+  baseproclist.Add('procedure SetActorPainChance(const key: LongWord; const value: Integer);', @PS_SetActorPainChance);
+  baseproclist.Add('function GetActorSpriteDX(const key: LongWord): Integer;);', @PS_GetActorSpriteDX);
+  baseproclist.Add('procedure SetActorSpriteDX(const key: LongWord; const value: Integer);', @PS_SetActorSpriteDX);
+  baseproclist.Add('function GetActorSpriteDY(const key: LongWord): Integer;);', @PS_GetActorSpriteDY);
+  baseproclist.Add('procedure SetActorSpriteDY(const key: LongWord; const value: Integer);', @PS_SetActorSpriteDY);
   baseproclist.Add('function GetActorCustomParam(const key: LongWord; const parm: string): integer;', @PS_GetActorCustomParam);
   baseproclist.Add('procedure SetActorCustomParam(const key: LongWord; const parm: string; const value: integer);', @PS_SetActorCustomParam);
   baseproclist.Add('function CheckActorFlag(const key: LongWord; const flag: LongWord): boolean;', @PS_CheckActorFlag);
@@ -389,6 +397,10 @@ begin
   baseproclist.Add('procedure SetSectorRippleFloor(const sec: Integer; const rpl: Boolean);', @PS_SetSectorRippleFloor);
   baseproclist.Add('function GetSectorRippleCeiling(const sec: Integer): Boolean;', @PS_GetSectorRippleCeiling);
   baseproclist.Add('procedure SetSectorRippleCeiling(const sec: Integer; const rpl: Boolean);', @PS_SetSectorRippleCeiling);
+  baseproclist.Add('function GetSectorInterpolate(const sec: Integer): Boolean;', @PS_GetSectorInterpolate);
+  baseproclist.Add('procedure SetSectorInterpolate(const sec: Integer; const intpl: Boolean);', @PS_SetSectorInterpolate);
+  baseproclist.Add('function GetSectorFog(const sec: Integer): Boolean;', @PS_GetSectorFog);
+  baseproclist.Add('procedure SetSectorFog(const sec: Integer; const fog: Boolean);', @PS_SetSectorFog);
   baseproclist.Add('function GetSectorGravity(const sec: Integer): fixed_t;', @PS_GetSectorGravity);  // JVAL: sector gravity (VERSION 204)
   baseproclist.Add('procedure SetSectorGravity(const sec: Integer; const grav: fixed_t);', @PS_SetSectorGravity); // JVAL: sector gravity (VERSION 204)
   baseproclist.Add('function GetSectorMidSector(const sec: Integer): Integer;', @PS_GetSectorMidSector);
@@ -496,8 +508,8 @@ begin
   baseproclist.Add('function GetMobjInfoMinMissileChance(const typ: integer): integer;', @PS_GetMobjInfoMinMissileChance);
   baseproclist.Add('function GetMobjInfoPushFactor(const typ: integer): integer;', @PS_GetMobjInfoPushFactor);
   baseproclist.Add('function GetMobjInfoScale(const typ: integer): integer;', @PS_GetMobjInfoScale);
-  {$IFDEF DOOM_OR_STRIFE}
   baseproclist.Add('function GetMobjInfoInteractState(const typ: integer): integer;', @PS_GetMobjInfoInteractState);
+  {$IFDEF DOOM_OR_STRIFE}
   baseproclist.Add('function GetMobjInfoMissileHeight(const typ: integer): integer;', @PS_GetMobjInfoMissileHeight);
   {$ENDIF}
   baseproclist.Add('function GetMobjInfoFloatSpeed(const typ: integer): integer;', @PS_GetMobjInfoFloatSpeed);
@@ -513,6 +525,9 @@ begin
   baseproclist.Add('function GetMobjInfoMaxTargetRange(const typ: integer): integer;', @PS_GetMobjInfoMaxTargetRange);
   baseproclist.Add('function GetMobjInfoWeaveIndexXY(const typ: integer): integer;', @PS_GetMobjInfoWeaveIndexXY);
   baseproclist.Add('function GetMobjInfoWeaveIndexZ(const typ: integer): integer;', @PS_GetMobjInfoWeaveIndexZ);
+  baseproclist.Add('function GetMobjInfoFriction(const typ: integer): integer;', @PS_GetMobjInfoFriction);
+  baseproclist.Add('function GetMobjInfoSpriteDX(const dx: integer): integer;', @PS_GetMobjInfoSpriteDX);
+  baseproclist.Add('function GetMobjInfoSpriteDY(const dy: integer): integer;', @PS_GetMobjInfoSpriteDY);
 // ------------------------------ GAME -----------------------------------------
   {$IFDEF HEXEN}
   baseproclist.Add('procedure G_Completed(map, position: integer);', @G_Completed);
@@ -557,6 +572,8 @@ begin
   baseproclist.Add('function key_strafe: integer;', @PS_key_strafe);
   baseproclist.Add('function key_speed: integer;', @PS_key_speed);
   baseproclist.Add('function key_jump: integer;', @PS_key_jump);
+  // JVAL: 20211101 - Crouch
+  baseproclist.Add('function key_crouch: integer;', @PS_key_crouch);
   baseproclist.Add('function key_weapon0: integer;', @PS_key_weapon0);
   baseproclist.Add('function key_weapon1: integer;', @PS_key_weapon1);
   baseproclist.Add('function key_weapon2: integer;', @PS_key_weapon2);
@@ -598,6 +615,8 @@ begin
   baseproclist.Add('function joybuse: integer;', @PS_joybuse);
   baseproclist.Add('function joybspeed: integer;', @PS_joybspeed);
   baseproclist.Add('function joybjump: integer;', @PS_joybjump);
+  // JVAL: 20211101 - Crouch
+  baseproclist.Add('function joybcrouch: integer;', @PS_joybcrouch);
   baseproclist.Add('function joyblleft: integer;', @PS_joyblleft);
   baseproclist.Add('function joyblright: integer;', @PS_joyblright);
 // ------------------------------- MAP -----------------------------------------
@@ -771,7 +790,7 @@ begin
       Inc(flgcount);
     end;
 
-    // mobj flags3_ex
+    // mobj flags4_ex
     flgcount := 160;
     for i := 0 to mobj_flags4_ex.Count - 1 do
     begin
@@ -909,8 +928,6 @@ begin
     Sender.AddConstant('FRICTION_SHIFT', uT_integer).Value.ts32 := 8;
     Sender.AddConstant('PUSH_MASK', uT_integer).Value.ts32 := $200;
     Sender.AddConstant('PUSH_SHIFT', uT_integer).Value.ts32 := 9;
-    Sender.AddConstant('FORCEFIELD_MASK', uT_integer).Value.ts32 := $400;
-    Sender.AddConstant('FORCEFIELD_SHIFT', uT_integer).Value.ts32 := 10;
 
     Sender.AddConstant('CGENFLOORBASE', uT_integer).Value.ts32 := $6000;
     Sender.AddConstant('CGENCEILINGBASE', uT_integer).Value.ts32 := $4000;

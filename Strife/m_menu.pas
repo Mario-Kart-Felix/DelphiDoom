@@ -164,6 +164,7 @@ type
     lastOn: smallint;           // last item user was on in menu
     itemheight: integer;
     texturebk: boolean;
+    runonselect: boolean;
   end;
 
 procedure M_ClearMenus;
@@ -195,6 +196,8 @@ var
 procedure M_SizeDisplay(choice: integer);
 
 procedure M_SetKeyboardMoveMode(const mode: integer);
+
+procedure M_SetupNextMenu(menudef: Pmenu_t);
 
 implementation
 
@@ -1037,8 +1040,25 @@ type
 var
   OptionsDisplayOpenGLFilterMenu: array[0..Ord(optglfilter_end) - 1] of menuitem_t;
   OptionsDisplayOpenGLFilterDef: menu_t;
-{$ENDIF}
 
+// OpenGL Fog Options
+type
+  optionsopenglfog_e = (
+    od_glf_use_fog,
+    od_glf_fog_density,
+    od_glf_filler1,
+    od_glf_filler2,
+    od_glf_use_white_fog,
+    od_glf_white_fog_density,
+    od_glf_filler3,
+    od_glf_filler4,
+    optglfog_end
+  );
+
+var
+  OptionsDisplayOpenGLFogMenu: array[0..Ord(optglfog_end) - 1] of menuitem_t;
+  OptionsDisplayOpenGLFogDef: menu_t;
+{$ENDIF}
 
 type
 //
@@ -1131,6 +1151,7 @@ type
 //
   compatibility_e = (
     cmp_allowplayerjumps,
+    cmp_allowplayercrouch,
     cmp_keepcheatsinplayerrebord,
     cmp_spawnrandommonsters,
     cmp_gldefs_as_lightdef,
@@ -1196,6 +1217,8 @@ type
     kb_strafeleft,
     kb_straferight,
     kb_jump,
+    // JVAL: 20211101 - Crouch
+    kb_crouch,
     kb_fire,
     kb_use,
     kb_strafe,
@@ -1252,6 +1275,7 @@ const
     (text: 'Strafe left'; pkey: @key_strafeleft),
     (text: 'Strafe right'; pkey: @key_straferight),
     (text: 'Jump'; pkey: @key_jump),
+    (text: 'Crouch'; pkey: @key_crouch),  // JVAL: 20211101 - Crouch
     (text: 'Fire'; pkey: @key_fire),
     (text: 'Use'; pkey: @key_use),
     (text: 'Strafe'; pkey: @key_strafe),
@@ -1905,6 +1929,7 @@ begin
     key_right := KEY_RIGHTARROW;
     key_left := KEY_LEFTARROW;
     key_jump := Ord('a');
+    key_crouch := Ord('s');
     key_fire := KEY_RCTRL;
     key_use := Ord(' ');
     key_strafe := KEY_RALT;
@@ -1935,6 +1960,7 @@ begin
     key_right := KEY_RIGHTARROW;
     key_left := KEY_LEFTARROW;
     key_jump := Ord('e');
+    key_crouch := Ord('r');
     key_fire := KEY_RCTRL;
     key_use := Ord(' ');
     key_strafe := KEY_RALT;
@@ -1964,7 +1990,8 @@ begin
     key_straferight := 102;
     key_right := KEY_RIGHTARROW;
     key_left := KEY_LEFTARROW;
-    key_jump := Ord('a');
+    key_jump := Ord('r');
+    key_crouch := Ord('t');
     key_fire := KEY_RCTRL;
     key_use := Ord(' ');
     key_strafe := KEY_RALT;
@@ -1997,6 +2024,7 @@ begin
      (key_right = KEY_RIGHTARROW) and
      (key_left = KEY_LEFTARROW) and
      (key_jump = Ord('a')) and
+     (key_crouch = Ord('s')) and // JVAL: 20211101 - Crouch
      (key_fire = KEY_RCTRL) and
      (key_use = Ord(' ')) and
      (key_strafe = KEY_RALT) and
@@ -2029,6 +2057,7 @@ begin
      (key_right = KEY_RIGHTARROW) and
      (key_left = KEY_LEFTARROW) and
      (key_jump = Ord('e')) and
+     (key_crouch = Ord('r')) and // JVAL: 20211101 - Crouch
      (key_fire = KEY_RCTRL) and
      (key_use = Ord(' ')) and
      (key_strafe = KEY_RALT) and
@@ -2060,7 +2089,8 @@ begin
      (key_straferight = 102) and
      (key_right = KEY_RIGHTARROW) and
      (key_left = KEY_LEFTARROW) and
-     (key_jump = Ord('a')) and
+     (key_jump = Ord('r')) and
+     (key_crouch = Ord('t')) and // JVAL: 20211101 - Crouch
      (key_fire = KEY_RCTRL) and
      (key_use = Ord(' ')) and
      (key_strafe = KEY_RALT) and
@@ -2368,6 +2398,11 @@ end;
 procedure M_OptionsDisplayOpenGLFilter(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLFilterDef);
+end;
+
+procedure M_OptionsDisplayOpenGLFog(choice: integer);
+begin
+  M_SetupNextMenu(@OptionsDisplayOpenGLFogDef);
 end;
 {$ENDIF}
 
@@ -2765,6 +2800,65 @@ begin
 
   ppos := M_WriteText(OptionsDisplayOpenGLFilterDef.x, OptionsDisplayOpenGLFilterDef.y + OptionsDisplayOpenGLFilterDef.itemheight * Ord(od_glf_texture_filter), 'Filter: ');
   M_WriteWhiteText(ppos.x, ppos.y, gl_tex_filter_string);
+end;
+
+const
+  NUMFOGDENSITIES = 20;
+
+var
+  fogdensities: array[0..NUMFOGDENSITIES - 1] of Integer = (
+    25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500
+  );
+
+procedure _ChangeFogDensity(choice: integer; var density: integer);
+begin
+  density := GetIntegerInRange(density, fogdensities[0], fogdensities[NUMFOGDENSITIES - 1]);
+  if choice = 0 then
+    density := density - 25
+  else
+    density := density + 25;
+  density := GetIntegerInRange(density, fogdensities[0], fogdensities[NUMFOGDENSITIES - 1]);
+end;
+
+procedure M_ChangeFogDensity(choice: integer);
+begin
+  _ChangeFogDensity(choice, fog_density);
+end;
+
+procedure M_ChangeWhiteFogDensity(choice: integer);
+begin
+  _ChangeFogDensity(choice, white_fog_density);
+end;
+
+function _fog_thermo_index(const density: integer): integer;
+var
+  i: integer;
+  dist: integer;
+  mx: integer;
+begin
+  mx := MAXINT;
+  result := 0;
+  for i := 0 to NUMFOGDENSITIES - 1 do
+  begin
+    dist := abs(density - fogdensities[i]);
+    if dist < mx then
+    begin
+      result := i;
+      mx := dist;
+    end;
+  end;
+end;
+
+procedure M_DrawOptionsDisplayOpenGLFog;
+begin
+  M_DrawDisplayOptions;
+
+  M_DrawThermo(
+    OptionsDisplayOpenGLFogDef.x, OptionsDisplayOpenGLFogDef.y + OptionsDisplayOpenGLFogDef.itemheight * (Ord(od_glf_fog_density) + 1),
+    25, _fog_thermo_index(fog_density), NUMFOGDENSITIES);
+  M_DrawThermo(
+    OptionsDisplayOpenGLFogDef.x, OptionsDisplayOpenGLFogDef.y + OptionsDisplayOpenGLFogDef.itemheight * (Ord(od_glf_white_fog_density) + 1),
+    25, _fog_thermo_index(white_fog_density), NUMFOGDENSITIES);
 end;
 {$ENDIF}
 
@@ -3541,6 +3635,17 @@ begin
         if currentMenu.menuitems[i].alphaKey = Chr(ch) then
         begin
           itemOn := i;
+
+          // JVAL: 20211126 - Handle runonselect flag
+          // This is for simple dialogs, or any other use in the future
+          if currentMenu.runonselect then
+            if Assigned(currentMenu.menuitems[itemOn].routine) and
+              (currentMenu.menuitems[itemOn].status = 1) then
+            begin
+              currentMenu.lastOn := itemOn;
+              currentMenu.menuitems[itemOn].routine(itemOn);
+            end;
+
           M_StartSound(nil, Ord(sfx_swtchn));
           result := true;
           exit;
@@ -3549,6 +3654,17 @@ begin
         if currentMenu.menuitems[i].alphaKey = Chr(ch) then
         begin
           itemOn := i;
+
+          // JVAL: 20211126 - Handle runonselect flag
+          // This is for simple dialogs, or any other use in the future
+          if currentMenu.runonselect then
+            if Assigned(currentMenu.menuitems[itemOn].routine) and
+              (currentMenu.menuitems[itemOn].status = 1) then
+            begin
+              currentMenu.lastOn := itemOn;
+              currentMenu.menuitems[itemOn].routine(itemOn);
+            end;
+
           M_StartSound(nil, Ord(sfx_swtchn));
           result := true;
           exit;
@@ -5002,11 +5118,11 @@ begin
 
   inc(pmi);
   pmi.status := 1;
-  pmi.name := '!Use fog';
-  pmi.cmd := 'use_fog';
-  pmi.routine := @M_BoolCmd;
-  pmi.pBoolVal := @use_fog;
-  pmi.alphaKey := 'u';
+  pmi.name := '!Fog...';
+  pmi.cmd := '';
+  pmi.routine := @M_OptionsDisplayOpenGLFog;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'f';
 
   {$IFDEF DEBUG}
   inc(pmi);
@@ -5201,7 +5317,7 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @gl_linear_hud;
   pmi.alphaKey := 'l';
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 //OptionsDisplayOpenGLFilterDef
   OptionsDisplayOpenGLFilterDef.numitems := Ord(optglfilter_end); // # of menu items
@@ -5214,6 +5330,85 @@ begin
   OptionsDisplayOpenGLFilterDef.lastOn := 0; // last item user was on in menu
   OptionsDisplayOpenGLFilterDef.itemheight := LINEHEIGHT2;
   OptionsDisplayOpenGLFilterDef.texturebk := true;
+
+////////////////////////////////////////////////////////////////////////////////
+//OptionsDisplayOpenGLFogMenu
+  pmi := @OptionsDisplayOpenGLFogMenu[0];
+  pmi.status := 1;
+  pmi.name := '!Normal fog';
+  pmi.cmd := 'use_fog';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @use_fog;
+  pmi.alphaKey := 'n';
+
+  inc(pmi);
+  pmi.status := 2;
+  pmi.name := '!Normal fog density';
+  pmi.cmd := '';
+  pmi.routine := @M_ChangeFogDensity;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'n';
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!White sector fog';
+  pmi.cmd := 'use_white_fog';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @use_white_fog;
+  pmi.alphaKey := 'w';
+
+  inc(pmi);
+  pmi.status := 2;
+  pmi.name := '!White fog density';
+  pmi.cmd := '';
+  pmi.routine := @M_ChangeWhiteFogDensity;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'w';
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+////////////////////////////////////////////////////////////////////////////////
+//OptionsDisplayOpenGLFogDef
+  OptionsDisplayOpenGLFogDef.numitems := Ord(optglfog_end); // # of menu items
+  OptionsDisplayOpenGLFogDef.prevMenu := @OptionsDisplayOpenGLDef; // previous menu
+  OptionsDisplayOpenGLFogDef.leftMenu := @OptionsDisplayOpenGLDef; // left menu
+  OptionsDisplayOpenGLFogDef.menuitems := Pmenuitem_tArray(@OptionsDisplayOpenGLFogMenu);  // menu items
+  OptionsDisplayOpenGLFogDef.drawproc := @M_DrawOptionsDisplayOpenGLFog;  // draw routine
+  OptionsDisplayOpenGLFogDef.x := 30;
+  OptionsDisplayOpenGLFogDef.y := 40;
+  OptionsDisplayOpenGLFogDef.lastOn := 0; // last item user was on in menu
+  OptionsDisplayOpenGLFogDef.itemheight := LINEHEIGHT2;
+  OptionsDisplayOpenGLFogDef.texturebk := true;
 {$ENDIF}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -5432,6 +5627,14 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @allowplayerjumps;
   pmi.alphaKey := 'j';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Allow player crouching';
+  pmi.cmd := 'allowplayercrouch';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @allowplayercrouch;
+  pmi.alphaKey := 'c';
 
   inc(pmi);
   pmi.status := 1;

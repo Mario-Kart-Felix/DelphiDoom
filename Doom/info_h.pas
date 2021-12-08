@@ -92,7 +92,7 @@ type
     SPR_SP90, SPR_SP91, SPR_SP92, SPR_SP93, SPR_SP94, SPR_SP95, SPR_SP96, SPR_SP97, SPR_SP98, SPR_SP99,
 
     SPR_NULL,
-    
+
     DO_NUMSPRITES
   );
 
@@ -554,6 +554,7 @@ type
     missileheight: integer;
     vspeed: integer;  // Initial vertical speed
     pushfactor: integer; // How much can be pushed? 1..FRACUNIT
+    friction: Integer; // Default is ORIG_FRICTION
     scale: integer;
     gravity: integer;
     flags3_ex: integer;
@@ -572,6 +573,8 @@ type
     maxtargetrange: integer;
     WeaveIndexXY: integer;
     WeaveIndexZ: integer;
+    spriteDX: integer;
+    spriteDY: integer;
   end;
 
   Pmobjinfo_t = ^mobjinfo_t;
@@ -581,7 +584,7 @@ const
   BASEEXTRAMOBJINFO = 150; // JVAL: 20210108 - From #150
   EXTRANUMSTATES = 4000;
 
-// JVAL: 20200108 - Old extra DelphiDoom mobjs made dynamic  
+// JVAL: 20200108 - Old extra DelphiDoom mobjs made dynamic
 var
   MT_SPLASHBASE: integer = -2;
   MT_SPLASH: integer = -2;
@@ -593,6 +596,8 @@ var
   MT_NUKAGESPLASH: integer = -2;
   MT_GREENBLOOD: integer = -2;
   MT_BLUEBLOOD: integer = -2;
+  MT_GREENGIBS: integer = -2;
+  MT_BLUEGIBS: integer = -2;
 
 implementation
 

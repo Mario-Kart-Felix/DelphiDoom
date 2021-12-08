@@ -53,6 +53,8 @@ function SC_SoundAlias(const snd: string): string;
 
 function SC_GetActordefDeclaration(const m: Pmobjinfo_t): string;
 
+function SC_GetWeapondefDeclaration(const wid: integer{$IFDEF HERETIC}; const lvl: integer{$ENDIF}{$IFDEF HEXEN}; const pcl: integer{$ENDIF}): string;
+
 var
   decorate_as_actordef: boolean = true;
 
@@ -61,6 +63,12 @@ implementation
 uses
   TypInfo,
   doomdef,
+  {$IFDEF DOOM_OR_STRIFE}
+  d_items,
+  {$ENDIF}
+  {$IFDEF HERETIC}
+  p_pspr_h,
+  {$ENDIF}
   d_main,
   c_cmds,
   deh_base,
@@ -83,6 +91,7 @@ uses
   sc_evaluate_actor,
   sc_utils,
   p_pspr,
+  p_spec,
   p_mobj_h,
   p_gender,
   ps_main,
@@ -276,6 +285,7 @@ procedure SC_DoParseActordefLump(const in_text: string);
 var
   mobj: rtl_mobjinfo_t;
   pinf: Pmobjinfo_t;
+  wpn: rtl_weaponinfo_t;
   sc: TActordefScriptEngine;
   foundstates: boolean;
   numstates: integer;
@@ -284,13 +294,15 @@ var
   res: string;
   ismissile: boolean;
   i, idx: integer;
-  state_tokens: TDStringList;
+  m_state_tokens: TDStringList;
+  w_state_tokens: TDStringList;
   th: rtl_thinker_t;
   passcriptname: string;
   passcriptfile: string;
   passcript: string;
   passcriptline: string;
   actorpending: boolean;
+  weaponpending: boolean;
 
   function MatchFlags: boolean;
   var
@@ -711,7 +723,6 @@ var
     result := false;
   end;
 
-
   function statecheckPos(const st: string; var sgoto: string): boolean;
   var
     sgoto1: string;
@@ -755,10 +766,17 @@ var
     savealias: string;
     blevel: integer;
     restline: string;
+    state_tokens: TDStringList;
   begin
     result := false;
     if sc._Finished then
       exit;
+
+    if weaponpending then
+      state_tokens := w_state_tokens
+    else
+      state_tokens := m_state_tokens;
+
     sc.GetString;
     if sc.MatchString('loop') then
     begin
@@ -780,6 +798,7 @@ var
       exit;
     end
     else if sc.MatchString('ACTOR') or
+            sc.MatchString('WEAPON') or
             sc.MatchString('ACTORALIAS') or
             sc.MatchString('DEH_PARSE') or
             sc.MatchString('DEH_PARSE_ALL') or
@@ -791,7 +810,8 @@ var
             sc.MatchString('GLOBAL') then
     begin
       if numstates > 0 then
-        m_states[numstates - 1].nextstate := -1; // S_NULL
+        if not m_states[numstates - 1].has_goto then
+          m_states[numstates - 1].nextstate := -1; // S_NULL
       sc.UnGet;
       exit;
     end
@@ -801,115 +821,183 @@ var
       p := Pos('//', gotostr);
       if p > 0 then
         gotostr := Copy(gotostr, 1, p - 1);
-      if (mobj.statesdefined and RTL_ST_SPAWN <> 0) and statecheckPos('SPAWN', gotostr) then
+
+      if actorpending then
       begin
-        if length(gotostr) > 5 then
-          offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+        if (mobj.statesdefined and RTL_ST_SPAWN <> 0) and statecheckPos('SPAWN', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.spawnstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_SEE <> 0) and statecheckPos('SEE', gotostr) then
+        begin
+          if length(gotostr) > 3 then
+            offs := atoi(strremovespaces(Copy(gotostr, 4, Length(gotostr) - 3)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.seestate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_MELEE <> 0) and statecheckPos('MELEE', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.meleestate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_MISSILE <> 0) and statecheckPos('MISSILE', gotostr) then
+        begin
+          if length(gotostr) > 7 then
+            offs := atoi(strremovespaces(Copy(gotostr, 8, Length(gotostr) - 7)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.missilestate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_PAIN <> 0) and statecheckPos('PAIN', gotostr) then
+        begin
+          if length(gotostr) > 4 then
+            offs := atoi(strremovespaces(Copy(gotostr, 5, Length(gotostr) - 4)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.painstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_DEATH <> 0) and statecheckPos('DEATH', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.deathstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_XDEATH <> 0) and statecheckPos('XDEATH', gotostr) then
+        begin
+          if length(gotostr) > 6 then
+            offs := atoi(strremovespaces(Copy(gotostr, 7, Length(gotostr) - 6)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.xdeathstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_RAISE <> 0) and statecheckPos('RAISE', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.raisestate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_HEAL <> 0) and statecheckPos('HEAL', gotostr) then
+        begin
+          if length(gotostr) > 4 then
+            offs := atoi(strremovespaces(Copy(gotostr, 5, Length(gotostr) - 4)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.healstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_CRASH <> 0) and statecheckPos('CRASH', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.crashstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_INTERACT <> 0) and statecheckPos('INTERACT', gotostr) then
+        begin
+          if length(gotostr) > 8 then
+            offs := atoi(strremovespaces(Copy(gotostr, 9, Length(gotostr) - 8)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.interactstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
         else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.spawnstate + offs;
-        m_states[numstates - 1].has_goto := true;
+        begin
+          //I_Warning('SC_ActordefToDEH(): Unknown label "goto %s"'#13#10, [gotostr]);
+          //exit;
+          m_states[numstates - 1].gotostr_needs_calc := true;
+          m_states[numstates - 1].gotostr_calc := gotostr;
+
+        end;
       end
-      else if (mobj.statesdefined and RTL_ST_SEE <> 0) and statecheckPos('SEE', gotostr) then
-      begin
-        if length(gotostr) > 3 then
-          offs := atoi(strremovespaces(Copy(gotostr, 4, Length(gotostr) - 3)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.seestate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_MELEE <> 0) and statecheckPos('MELEE', gotostr) then
-      begin
-        if length(gotostr) > 5 then
-          offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.meleestate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_MISSILE <> 0) and statecheckPos('MISSILE', gotostr) then
-      begin
-        if length(gotostr) > 7 then
-          offs := atoi(strremovespaces(Copy(gotostr, 8, Length(gotostr) - 7)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.missilestate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_PAIN <> 0) and statecheckPos('PAIN', gotostr) then
-      begin
-        if length(gotostr) > 4 then
-          offs := atoi(strremovespaces(Copy(gotostr, 5, Length(gotostr) - 4)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.painstate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_DEATH <> 0) and statecheckPos('DEATH', gotostr) then
-      begin
-        if length(gotostr) > 5 then
-          offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.deathstate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_XDEATH <> 0) and statecheckPos('XDEATH', gotostr) then
-      begin
-        if length(gotostr) > 6 then
-          offs := atoi(strremovespaces(Copy(gotostr, 7, Length(gotostr) - 6)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.xdeathstate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_RAISE <> 0) and statecheckPos('RAISE', gotostr) then
-      begin
-        if length(gotostr) > 5 then
-          offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.raisestate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_HEAL <> 0) and statecheckPos('HEAL', gotostr) then
-      begin
-        if length(gotostr) > 4 then
-          offs := atoi(strremovespaces(Copy(gotostr, 5, Length(gotostr) - 4)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.healstate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      else if (mobj.statesdefined and RTL_ST_CRASH <> 0) and statecheckPos('CRASH', gotostr) then
-      begin
-        if length(gotostr) > 5 then
-          offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.crashstate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      {$IFDEF DOOM_OR_STRIFE}
-      else if (mobj.statesdefined and RTL_ST_INTERACT <> 0) and statecheckPos('INTERACT', gotostr) then
-      begin
-        if length(gotostr) > 8 then
-          offs := atoi(strremovespaces(Copy(gotostr, 9, Length(gotostr) - 8)))
-        else
-          offs := 0;
-        m_states[numstates - 1].nextstate := mobj.interactstate + offs;
-        m_states[numstates - 1].has_goto := true;
-      end
-      {$ENDIF}
       else
       begin
-        //I_Warning('SC_ActordefToDEH(): Unknown label "goto %s"'#13#10, [gotostr]);
-        //exit;
-        m_states[numstates - 1].gotostr_needs_calc := true;
-        m_states[numstates - 1].gotostr_calc := gotostr;
+        if (wpn.statesdefined and RTL_WT_UP <> 0) and statecheckPos('UP', gotostr) then
+        begin
+          if length(gotostr) > 2 then
+            offs := atoi(strremovespaces(Copy(gotostr, 3, Length(gotostr) - 2)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := wpn.upstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (wpn.statesdefined and RTL_WT_DOWN <> 0) and statecheckPos('DOWN', gotostr) then
+        begin
+          if length(gotostr) > 4 then
+            offs := atoi(strremovespaces(Copy(gotostr, 5, Length(gotostr) - 4)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := wpn.downstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (wpn.statesdefined and RTL_WT_READY <> 0) and statecheckPos('READY', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := wpn.readystate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (wpn.statesdefined and RTL_WT_ATTACK <> 0) and statecheckPos('ATTACK', gotostr) then
+        begin
+          if length(gotostr) > 6 then
+            offs := atoi(strremovespaces(Copy(gotostr, 7, Length(gotostr) - 6)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := wpn.attackstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (wpn.statesdefined and RTL_WT_HOLDATTACK <> 0) and statecheckPos('HOLD', gotostr) then
+        begin
+          if length(gotostr) > 4 then
+            offs := atoi(strremovespaces(Copy(gotostr, 5, Length(gotostr) - 4)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := wpn.holdattackstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (wpn.statesdefined and RTL_WT_FLASH <> 0) and statecheckPos('FLASH', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := wpn.flashstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else
+        begin
+          //I_Warning('SC_ActordefToDEH(): Unknown label "goto %s"'#13#10, [gotostr]);
+          //exit;
+          m_states[numstates - 1].gotostr_needs_calc := true;
+          m_states[numstates - 1].gotostr_calc := gotostr;
 
+        end;
       end;
+
       result := sc.MatchString(state_tokens) = -1;
 
       exit;
@@ -918,7 +1006,10 @@ var
     result := sc.MatchString(state_tokens) = -1;
 
     if not result then
+    begin
+      sc.Unget;
       exit;
+    end;
 
     if sc.BracketLevel = 0 then
     begin
@@ -939,33 +1030,38 @@ var
       begin
         SetLength(alias, Length(alias) - 1);
         savealias := alias;
-        alias := 'S_' + strupper(mobj.name + '_' + alias);
+        if weaponpending then
+          alias := 'S_WEAPON' + itoa(wpn.weaponno) + '_' + strupper(alias)
+        else if actorpending then
+          alias := 'S_' + strupper(mobj.name + '_' + alias)
+        else
+          alias := strupper(alias);
         sc.GetString;
       end
       else
         alias := '';
     end;
 
-    sprite := sc._string;
+    sprite := sc._String;
     sc.GetString;
-    frames := sc._string;
+    frames := sc._String;
 
     stateflags := 0;
     sc.GetString;
     if sc.MatchString('RANDOMSELECT') then
     begin
       sc.GetInteger;
-      tics := sc._integer;
+      tics := sc._Integer;
       sc.GetInteger;
-      tics2 := sc._integer;
+      tics2 := sc._Integer;
       stateflags := stateflags or MF_EX_STATE_RANDOM_SELECT;
     end
     else if sc.MatchString('RANDOMRANGE') then
     begin
       sc.GetInteger;
-      tics := sc._integer;
+      tics := sc._Integer;
       sc.GetInteger;
-      tics2 := sc._integer;
+      tics2 := sc._Integer;
       stateflags := stateflags or MF_EX_STATE_RANDOM_RANGE;
     end
     else
@@ -981,8 +1077,8 @@ var
       sc.UnGet
     else
     begin
-      if strupper(sc._string) = 'BRIGHT' then
-        stmp := sc._string + ' ' + SC_RemoveLineComments(sc.GetStringEOLUnChanged)
+      if strupper(sc._String) = 'BRIGHT' then
+        stmp := sc._String + ' ' + SC_RemoveLineComments(sc.GetStringEOLUnChanged)
       else
       begin
         restline := strtrim(SC_RemoveLineComments(sc.GetStringEOLUnChanged));
@@ -993,7 +1089,7 @@ var
           if restline[1] <> '(' then
             restline := ' ' + restline;
         end;
-        stmp := sc._string + restline;
+        stmp := sc._String + restline;
       end;
 
       bright := false;
@@ -1001,12 +1097,12 @@ var
       if strupper(firstword(stmp)) = 'BRIGHT' then
       begin
         bright := true;
-        action := secondword(stmp);
+        action := strtrim(Copy(stmp, 7, length(stmp) - 6));
       end
       else if strupper(lastword(stmp)) = 'BRIGHT' then
       begin
         bright := true;
-        action := Copy(stmp, 1, length(stmp) - 7);
+        action := strtrim(Copy(stmp, 1, length(stmp) - 6));
       end
       else
         action := stmp;
@@ -1047,7 +1143,7 @@ var
     res := res + s + #13#10;
   end;
 
-  procedure AddMobjStateRes(const st: integer; const prefix: string);
+  procedure AddStateRes(const st: integer; const prefix: string);
   begin
     if st = -1 then
       AddRes(prefix + ' Frame = OriginalFrame 0')
@@ -1156,13 +1252,11 @@ var
           result := ORIGINALSTATEMARKER + inf.crashstate;
           exit;
         end
-        {$IFDEF DOOM_OR_STRIFE}
         else if sss1 = 'INTERACT' then
         begin
           result := ORIGINALSTATEMARKER + inf.interactstate;
           exit;
         end
-        {$ENDIF}
         else
         begin
           result := statenames.IndexOfToken('S_' + strupper(inf.name) + '_' + sss);
@@ -1226,13 +1320,11 @@ var
           result := mobj.crashstate;
           exit;
         end
-        {$IFDEF DOOM_OR_STRIFE}
         else if sss1 = 'INTERACT' then
         begin
           result := mobj.interactstate;
           exit;
         end
-        {$ENDIF}
         else
         begin
           for i := 0 to numstates - 1 do
@@ -1314,24 +1406,22 @@ var
       AddRes('name = ' + mobj.name2);
 {$ENDIF}
     AddRes('Id # = ' + itoa(mobj.doomednum));
-    AddMobjStateRes(mobj.spawnstate, 'Initial');
+    AddStateRes(mobj.spawnstate, 'Initial');
     AddRes('Hit Points = ' + itoa(mobj.spawnhealth));
-    AddMobjStateRes(mobj.seestate, 'First Moving');
+    AddStateRes(mobj.seestate, 'First Moving');
     AddRes('Alert Sound = ' + SC_SoundAlias(mobj.seesound));
     AddRes('Reaction Time = ' + itoa(mobj.reactiontime));
     AddRes('Attack Sound = ' + SC_SoundAlias(mobj.attacksound));
-    AddMobjStateRes(mobj.painstate, 'Injury');
+    AddStateRes(mobj.painstate, 'Injury');
     AddRes('Pain Chance = ' + itoa(mobj.painchance));
     AddRes('Pain Sound = ' + SC_SoundAlias(mobj.painsound));
-    AddMobjStateRes(mobj.meleestate, 'Close Attack');
-    AddMobjStateRes(mobj.missilestate, 'Far Attack');
-    AddMobjStateRes(mobj.deathstate, 'Death');
-    AddMobjStateRes(mobj.xdeathstate, 'Exploding');
-    AddMobjStateRes(mobj.healstate, 'Heal');
-    AddMobjStateRes(mobj.crashstate, 'Crash');
-    {$IFDEF DOOM_OR_STRIFE}
-    AddMobjStateRes(mobj.interactstate, 'Interact');
-    {$ENDIF}
+    AddStateRes(mobj.meleestate, 'Close Attack');
+    AddStateRes(mobj.missilestate, 'Far Attack');
+    AddStateRes(mobj.deathstate, 'Death');
+    AddStateRes(mobj.xdeathstate, 'Exploding');
+    AddStateRes(mobj.healstate, 'Heal');
+    AddStateRes(mobj.crashstate, 'Crash');
+    AddStateRes(mobj.interactstate, 'Interact');
     AddRes('Death Sound = ' + SC_SoundAlias(mobj.deathsound));
     ismissile := Pos('MF_MISSILE', mobj.flags) > 0;
     if ismissile then
@@ -1341,12 +1431,13 @@ var
     AddRes('VSpeed = ' + itoa(round(mobj.vspeed * FRACUNIT)));
     AddRes('MinMissileChance = ' + itoa(round(mobj.minmissilechance)));
     AddRes('Pushfactor = ' + itoa(round(mobj.pushfactor * FRACUNIT)));
+    AddRes('Friction = ' + itoa(round(mobj.friction * FRACUNIT)));
     AddRes('Width = ' + itoa(mobj.radius * FRACUNIT));
     AddRes('Height = ' + itoa(mobj.height * FRACUNIT));
     AddRes('Mass = ' + itoa(mobj.mass));
     AddRes('Missile Damage = ' + itoa(mobj.damage));
     AddRes('Action Sound = ' + SC_SoundAlias(mobj.activesound));
-    AddMobjStateRes(mobj.raisestate, 'Respawn');
+    AddStateRes(mobj.raisestate, 'Respawn');
     AddRes('Bits = ' + mobj.flags);
     AddRes('flags_ex = ' + mobj.flags_ex);
     AddRes('Custom Sound 1 = ' + SC_SoundAlias(mobj.customsound1));
@@ -1387,6 +1478,8 @@ var
     AddRes('Max Target Range = ' + itoa(mobj.maxtargetrange));
     AddRes('Weave Index XY = ' + itoa(mobj.WeaveIndexXY));
     AddRes('Weave Index Z = ' + itoa(mobj.WeaveIndexZ));
+    AddRes('Sprite DX = ' + itoa(round(mobj.spriteDX * FRACUNIT)));
+    AddRes('Sprite DY = ' + itoa(round(mobj.spriteDY * FRACUNIT)));
 
     AddRes('');
 
@@ -1422,9 +1515,7 @@ var
         AddRes('Codep Frame = ' + m_states[cnt].action);
         AddRes('Unknown 1 = 0');
         AddRes('Unknown 2 = 0');
-        {$IFNDEF STRIFE}
         AddRes('Flags_ex = ' + itoa(m_states[cnt].flags_ex));
-        {$ENDIF}
         AddRes('Owner = ' + mobj.name);
         AddRes('');
       end;
@@ -1438,6 +1529,188 @@ var
     if devparm then
     begin
       printf('SC_SubmitParsedData(): Submiting actordef lump to DEH subsystem:'#13#10);
+      printf(res);
+      printf('--------'#13#10);
+    end;
+    DEH_ParseText(res);
+  end;
+
+  function ResolveWeaponGoto(const s: string): string;
+  var
+    st: string;
+    fw, sw: string;
+    pps, ppp, ppb: integer;
+    ret: integer;
+
+    function _stindex(const sss: string): integer;
+    var
+      sss1: string;
+      i: integer;
+    begin
+      result := statenames.IndexOfToken(sss);
+      if result >= 0 then
+      begin
+        result := ORIGINALSTATEMARKER + result;
+        exit;
+      end;
+
+      sss1 := strupper(sss);
+
+      if sss1 = 'UP' then
+      begin
+        result := wpn.upstate;
+        exit;
+      end
+      else if sss1 = 'DOWN' then
+      begin
+        result := wpn.downstate;
+        exit;
+      end
+      else if sss1 = 'READY' then
+      begin
+        result := wpn.readystate;
+        exit;
+      end
+      else if sss1 = 'ATTACK' then
+      begin
+        result := wpn.attackstate;
+        exit;
+      end
+      else if sss1 = 'HOLD' then
+      begin
+        result := wpn.holdattackstate;
+        exit;
+      end
+      else if sss1 = 'FLASH' then
+      begin
+        result := wpn.flashstate;
+        exit;
+      end
+      else
+      begin
+        for i := 0 to numstates - 1 do
+          if sss1 = strtrim(strupper(m_states[i].savealias)) then
+          begin
+            result := i;
+            exit;
+          end;
+      end;
+
+      sss1 := 'S_WEAPON' + itoa(wpn.weaponno) + '_' + sss;
+      result := statenames.IndexOfToken(sss1);
+    end;
+
+  begin
+    st := strtrim(strupper(strtrim(s)));
+    pps := Pos('+', st);
+    ppp := Pos('-', st);
+    ppb := Pos(' ', st);
+    ret := -1;
+    if (ppb = 0) and (ppp = 0) and (pps = 0) then
+    begin
+      ret := _stindex(st);
+    end
+    else
+    // JVAL: 20170927 evaluate small expressions
+    //       20191003 rewritten, fixed
+    begin
+      st := strremovespaces(st);
+      pps := Pos('+', st);
+      ppp := Pos('-', st);
+      if pps > 0 then
+      begin
+        splitstring(st, fw, sw, '+');
+        ret := _stindex(fw) + atoi(sw, 0);
+      end
+      else if ppp > 0 then
+      begin
+        splitstring(st, fw, sw, '-');
+        ret := _stindex(fw) - atoi(sw, 0);
+      end;
+    end;
+
+    if ret = -1 then
+    begin
+      I_Warning('SC_ActordefToDEH(): Unknown label "goto %s"'#13#10, [s]);
+      result := 'OriginalFrame 0';
+    end
+    else if ret >= ORIGINALSTATEMARKER then
+      result := 'OriginalFrame ' + itoa(ret - ORIGINALSTATEMARKER)
+    else
+      result := 'NewFrame ' + itoa(ret);
+  end;
+
+  procedure SubmitWeaponParsedData;
+  var
+    cnt: integer;
+    stateprefix: string;
+  begin
+    if not weaponpending then
+      Exit;
+    weaponpending := false;
+    res := '';
+
+    AddRes('WEAPON ' + itoa(wpn.weaponno) {$IFDEF  HEXEN} + ' ' + itoa(wpn.pclass){$ENDIF});
+    {$IFDEF HERETIC}
+    AddRes('Level ' + itoa(wpn.level));
+    {$ENDIF}
+    AddRes('Ammo Type = ' + itoa(wpn.ammo));
+    AddStateRes(wpn.upstate, 'DESELECT');
+    AddStateRes(wpn.downstate, 'SELECT');
+    AddStateRes(wpn.readystate, 'BOBBING');
+    AddStateRes(wpn.attackstate, 'SHOOTING');
+    AddStateRes(wpn.holdattackstate, 'HOLD SHOOTING');
+    AddStateRes(wpn.flashstate, 'FIRING');
+
+    AddRes('');
+
+    if numstates > 0 then
+    begin
+      if m_states[numstates - 1].nextstate = numstates then
+        m_states[numstates - 1].nextstate := numstates - 1;
+
+      stateprefix := 'S_WEAPON' + itoa(wpn.weaponno) + '_';
+      for cnt := 0 to numstates - 1 do
+      begin
+        if m_states[cnt].alias <> '' then
+          statenames.Add(stateprefix + itoa(cnt) + ', ' + m_states[cnt].alias + ', ' + 'WEAPON' + itoa(wpn.weaponno) + '::' + m_states[cnt].alias)
+        else
+          statenames.Add(stateprefix + itoa(cnt));
+        AddRes('Frame NewFrame ' + itoa(cnt));
+        AddRes('Sprite Number = ' + m_states[cnt].sprite);
+        if m_states[cnt].bright then
+          AddRes('Sprite Subnumber = Bright ' + itoa(m_states[cnt].frame))
+        else
+          AddRes('Sprite Subnumber = ' + itoa(m_states[cnt].frame));
+        AddRes('Duration = ' + itoa(m_states[cnt].tics));
+        AddRes('Duration 2 = ' + itoa(m_states[cnt].tics2));
+
+        if m_states[cnt].gotostr_needs_calc then
+          AddRes('Next Frame = ' + ResolveWeaponGoto(m_states[cnt].gotostr_calc))
+        else if m_states[cnt].nextstate >= ORIGINALSTATEMARKER then
+          AddRes('Next Frame = OriginalFrame ' + itoa(m_states[cnt].nextstate - ORIGINALSTATEMARKER))
+        else if m_states[cnt].nextstate >= 0 then
+          AddRes('Next Frame = NewFrame ' + itoa(m_states[cnt].nextstate))
+        else
+          AddRes('Next Frame = OriginalFrame 0');
+        AddRes('Codep Frame = ' + m_states[cnt].action);
+        AddRes('Unknown 1 = 0');
+        AddRes('Unknown 2 = 0');
+        {$IFNDEF STRIFE}
+        AddRes('Flags_ex = ' + itoa(m_states[cnt].flags_ex));
+        {$ENDIF}
+        AddRes('');
+      end;
+      AddRes('');
+      AddRes('');
+      AddRes('SubmitNewFrames');
+    end;
+
+    AddRes('');
+    AddRes('');
+    if devparm then
+    begin
+      printf('SC_SubmitWeaponParsedData(): Submiting actordef lump to DEH subsystem:'#13#10);
       printf(res);
       printf('--------'#13#10);
     end;
@@ -1542,20 +1815,26 @@ var
   rstyle: mobjrenderstyle_t;
   gender: gender_t;
 begin
-  state_tokens := TDStringList.Create;
-  state_tokens.Add('spawn:');
-  state_tokens.Add('see:');
-  state_tokens.Add('melee:');
-  state_tokens.Add('missile:');
-  state_tokens.Add('pain:');
-  state_tokens.Add('death:');
-  state_tokens.Add('xdeath:');
-  state_tokens.Add('raise:');
-  state_tokens.Add('heal:');
-  state_tokens.Add('crash:');
-  {$IFDEF DOOM_OR_STRIFE}
-  state_tokens.Add('interact:');
-  {$ENDIF}
+  m_state_tokens := TDStringList.Create;
+  m_state_tokens.Add('spawn:');
+  m_state_tokens.Add('see:');
+  m_state_tokens.Add('melee:');
+  m_state_tokens.Add('missile:');
+  m_state_tokens.Add('pain:');
+  m_state_tokens.Add('death:');
+  m_state_tokens.Add('xdeath:');
+  m_state_tokens.Add('raise:');
+  m_state_tokens.Add('heal:');
+  m_state_tokens.Add('crash:');
+  m_state_tokens.Add('interact:');
+
+  w_state_tokens := TDStringList.Create;
+  w_state_tokens.Add('up:');
+  w_state_tokens.Add('down:');
+  w_state_tokens.Add('ready:');
+  w_state_tokens.Add('attack:');
+  w_state_tokens.Add('hold:');
+  w_state_tokens.Add('flash:');
 
   if devparm then
   begin
@@ -1575,6 +1854,7 @@ begin
   end;
 
   actorpending := false;
+  weaponpending := false;
   sc := TActordefScriptEngine.Create(in_text);
   while sc.GetString do
   begin
@@ -1591,7 +1871,7 @@ begin
       sc.MustGetString;
       if not sc.NewLine then
       begin
-        th.dn := atoi(sc._string);
+        th.dn := atoi(sc._String);
         sc.MustGetString;
       end;
 
@@ -1710,6 +1990,154 @@ begin
       DoDEHParse
     else if sc.MatchString('DEH_PARSE_ALL') then
       DoDEHParseAll
+    else if sc.MatchString('WEAPON') then
+    begin
+      weaponpending := true;
+      FillChar(wpn, SizeOf(wpn), 0);
+      wpn.weaponno := -1;
+      {$IFDEF HERETIC}
+      wpn.level := 1;
+      {$ENDIF}
+      wpn.upstate := -1;
+      wpn.downstate := -1;
+      wpn.readystate := -1;
+      wpn.attackstate := -1;
+      wpn.holdattackstate := -1;
+      wpn.flashstate := -1;
+
+      if not sc.GetString then
+        break;
+      if StrIsInteger(sc._String) then
+        wpn.weaponno := atoi(sc._String)
+      else
+      begin
+        wpn.weaponno := DEH_WeaponType(sc._String);
+        if wpn.weaponno < 0 then
+          sc.UnGet;
+      end;
+
+      sc.GetString;
+
+      foundstates := false;
+      repeat
+        if sc.MatchString('ammo') {$IFDEF HEXEN} or sc.MatchString('mana') {$ENDIF} then
+        begin
+          sc.GetString;
+          wpn.ammo := DEH_AmmoType(sc._String);
+          sc.GetString;
+        end
+        {$IFDEF HERETIC}
+        else if sc.MatchString('level') then
+        begin
+          sc.GetString;
+          if strupper(sc._String) = 'LEVEL1' then
+            wpn.level := 1
+          else if strupper(sc._String) = 'LEVEL2' then
+            wpn.level := 2
+          else
+            wpn.level := atoi(sc._String);
+          sc.GetString;
+        end
+        {$ENDIF}
+        {$IFDEF HEXEN}
+        else if sc.MatchString('class') or sc.MatchString('playerclass') then
+        begin
+          sc.GetString;
+          wpn.pclass := DEH_PlayerClass(sc._String);
+          sc.GetString;
+        end
+        {$ENDIF}
+        else if sc.MatchString('states') then
+        begin
+          foundstates := true;
+        end
+        else
+        begin
+          if sc.MatchString('ACTOR') or
+             sc.MatchString('WEAPON') or
+             sc.MatchString('ACTORALIAS') or
+             sc.MatchString('DEH_PARSE') or
+             sc.MatchString('DEH_PARSE_ALL') or
+             sc.MatchString('COMPILED') or
+             sc.MatchString('PRECOMPILED') or
+             sc.MatchString('EXTERNAL') or
+             sc.MatchString('SCRIPT') or
+             sc.MatchString('THINKER') or
+             sc.MatchString('GLOBAL') then
+          begin
+            sc.UnGet;
+            break;
+          end
+          else
+          begin
+            if wpn.weaponno >= 0 then
+              stmp := ' while parsing weapon "' + itoa(wpn.weaponno) + '"'
+            else
+              stmp := '';
+            I_Warning('SC_ActordefToDEH(): Unknown token "%s" found%s'#13#10, [sc._String, stmp]);
+            sc.GetString;
+          end;
+        end;
+      until foundstates or sc._Finished;
+
+      numstates := 0;
+
+      while sc.GetString do
+      begin
+        if sc.MatchString('ACTOR') or
+           sc.MatchString('WEAPON') or
+           sc.MatchString('ACTORALIAS') or
+           sc.MatchString('DEH_PARSE') or
+           sc.MatchString('DEH_PARSE_ALL') or
+           sc.MatchString('COMPILED') or
+           sc.MatchString('PRECOMPILED') or
+           sc.MatchString('EXTERNAL') or
+           sc.MatchString('SCRIPT') or
+           sc.MatchString('THINKER') or
+           sc.MatchString('GLOBAL') then
+        begin
+          SubmitWeaponParsedData;
+          sc.UnGet;
+          break;
+        end;
+        if sc.MatchString('up:') then
+        begin
+          wpn.statesdefined := wpn.statesdefined or RTL_WT_UP;
+          wpn.upstate := numstates;
+          repeat until not ParseState(wpn.upstate);
+        end
+        else if sc.MatchString('down:') then
+        begin
+          wpn.statesdefined := wpn.statesdefined or RTL_WT_DOWN;
+          wpn.downstate := numstates;
+          repeat until not ParseState(wpn.downstate);
+        end
+        else if sc.MatchString('ready:') then
+        begin
+          wpn.statesdefined := wpn.statesdefined or RTL_WT_READY;
+          wpn.readystate := numstates;
+          repeat until not ParseState(wpn.readystate);
+        end
+        else if sc.MatchString('attack:') then
+        begin
+          wpn.statesdefined := wpn.statesdefined or RTL_WT_ATTACK;
+          wpn.attackstate := numstates;
+          repeat until not ParseState(wpn.attackstate);
+        end
+        else if sc.MatchString('hold:') then
+        begin
+          wpn.statesdefined := wpn.statesdefined or RTL_WT_HOLDATTACK;
+          wpn.holdattackstate := numstates;
+          repeat until not ParseState(wpn.holdattackstate);
+        end
+        else if sc.MatchString('flash:') then
+        begin
+          wpn.statesdefined := wpn.statesdefined or RTL_WT_FLASH;
+          wpn.flashstate := numstates;
+          repeat until not ParseState(wpn.flashstate);
+        end
+      end;
+    end
     else if sc.MatchString('ACTOR') then
     begin
       pinf := nil;
@@ -1725,9 +2153,7 @@ begin
       mobj.raisestate := -1;
       mobj.healstate := -1;
       mobj.crashstate := -1;
-      {$IFDEF DOOM_OR_STRIFE}
       mobj.interactstate := -1;
-      {$ENDIF}
       mobj.flags := '';
       {$IFDEF HERETIC_OR_HEXEN}
       mobj.flags2 := '';
@@ -1741,6 +2167,7 @@ begin
       {$ENDIF}
       mobj.scale := 1.0;
       mobj.pushfactor := 0.25; {DEFPUSHFACTOR / FRACUNIT;}
+      mobj.friction := 0.90625; {ORIG_FRICTION / FRACUNIT;}
       mobj.gravity := 1.0;
       mobj.replacesid := -1;
       ismissile := false;
@@ -1753,7 +2180,7 @@ begin
       begin
         SetLength(mobj.name, Length(mobj.name) - 1);
         sc.GetString;
-        mobj.inheritsfrom := sc._string;
+        mobj.inheritsfrom := sc._String;
         isinherit := true;
       end
       else
@@ -1768,7 +2195,7 @@ begin
         begin
           if not sc.GetString then
             break;
-          mobj.inheritsfrom := sc._string;
+          mobj.inheritsfrom := sc._String;
 
         end;
       end;
@@ -1848,6 +2275,8 @@ begin
           mobj.maxtargetrange := pinf.maxtargetrange;
           mobj.WeaveIndexXY := pinf.WeaveIndexXY;
           mobj.WeaveIndexZ := pinf.WeaveIndexZ;
+          mobj.spriteDX := pinf.spriteDX;
+          mobj.spriteDY := pinf.spriteDY;
 
           mobj.spawnstate := ORIGINALSTATEMARKER + pinf.spawnstate;
           mobj.seestate := ORIGINALSTATEMARKER + pinf.seestate;
@@ -1859,9 +2288,7 @@ begin
           mobj.raisestate := ORIGINALSTATEMARKER + pinf.raisestate;
           mobj.healstate := ORIGINALSTATEMARKER + pinf.healstate;
           mobj.crashstate := ORIGINALSTATEMARKER + pinf.crashstate;
-          {$IFDEF DOOM_OR_STRIFE}
           mobj.interactstate := ORIGINALSTATEMARKER + pinf.interactstate;
-          {$ENDIF}
           if mobj.spawnstate > ORIGINALSTATEMARKER then
             mobj.statesdefined := mobj.statesdefined or RTL_ST_SPAWN;
           if mobj.seestate > ORIGINALSTATEMARKER then
@@ -1882,10 +2309,8 @@ begin
             mobj.statesdefined := mobj.statesdefined or RTL_ST_HEAL;
           if mobj.crashstate > ORIGINALSTATEMARKER then
             mobj.statesdefined := mobj.statesdefined or RTL_ST_CRASH;
-          {$IFDEF DOOM_OR_STRIFE}
           if mobj.interactstate > ORIGINALSTATEMARKER then
             mobj.statesdefined := mobj.statesdefined or RTL_ST_INTERACT;
-          {$ENDIF};
         end;
 
         if not sc.GetString then
@@ -1899,9 +2324,9 @@ begin
       end
       else
       begin
-        if StrIsInteger(sc._string) then
+        if StrIsInteger(sc._String) then
         begin
-          mobj.doomednum := atoi(sc._string);
+          mobj.doomednum := atoi(sc._String);
           if not sc.GetString then
             break;
         end;
@@ -1921,7 +2346,7 @@ begin
         if sc.MatchString('health') then
         begin
           sc.GetInteger;
-          mobj.spawnhealth := sc._integer;
+          mobj.spawnhealth := sc._Integer;
           sc.GetString;
         end
         // When "inherits" is after the first line of actor we do not copy properties
@@ -1929,13 +2354,13 @@ begin
         begin
           if not sc.GetString then
             break;
-          mobj.inheritsfrom := sc._string;
+          mobj.inheritsfrom := sc._String;
         end
         else if sc.MatchString('replaces') then
         begin
           if not sc.GetString then
             break;
-          idx := Info_GetMobjNumForName(sc._string);
+          idx := Info_GetMobjNumForName(sc._String);
           if idx >= 0 then
           begin
             if (mobj.doomednum > 0) and (mobjinfo[idx].doomednum <> mobj.doomednum) then
@@ -1947,7 +2372,7 @@ begin
             end;
           end
           else
-            I_Warning('SC_ActordefToDEH(): Replaces keyword point to an unknown mobj %s'#13#10, [sc._string]);
+            I_Warning('SC_ActordefToDEH(): Replaces keyword point to an unknown mobj %s'#13#10, [sc._String]);
           sc.GetString;
         end
         else if sc.MatchString('monster') or sc.MatchString('+monster') then
@@ -2026,6 +2451,24 @@ begin
           sc.GetString;
         end
 
+        else if sc.MatchString('spritedx') then
+        begin
+          sc.GetFloat;
+          mobj.spriteDX := sc._float;
+          if fabs(mobj.spriteDX) > 256 then
+            mobj.spriteDX := mobj.spriteDX / FRACUNIT;
+          sc.GetString;
+        end
+
+        else if sc.MatchString('spritedy') then
+        begin
+          sc.GetFloat;
+          mobj.spriteDY := sc._float;
+          if fabs(mobj.spriteDY) > 256 then
+            mobj.spriteDY := mobj.spriteDY / FRACUNIT;
+          sc.GetString;
+        end
+
         else if sc.MatchString('ALPHA') then
         begin
           sc.GetFloat;
@@ -2091,13 +2534,13 @@ begin
         else if sc.MatchString('radius') or sc.MatchString('width') then  // JVAL: width -> DelphiDoom specific
         begin
           sc.GetInteger;
-          mobj.radius := sc._integer;
+          mobj.radius := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('height') then
         begin
           sc.GetInteger;
-          mobj.height := sc._integer;
+          mobj.height := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('vspeed') then
@@ -2109,7 +2552,7 @@ begin
         else if sc.MatchString('minmissilechance') then
         begin
           sc.GetInteger;
-          mobj.minmissilechance := sc._integer;
+          mobj.minmissilechance := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('pushfactor') then
@@ -2119,15 +2562,26 @@ begin
           // JVAL In case that we encounter a fixed_t value
           //      Normal values for pushfactor are 0..1 in ACTORDEF lumps
           //      and 0..FRACUNIT in mobjinfo table
-          if mobj.pushfactor > 64 then
+          if fabs(mobj.pushfactor) > 64 then
             mobj.pushfactor := mobj.pushfactor / FRACUNIT;
+          sc.GetString;
+        end
+        else if sc.MatchString('friction') then
+        begin
+          sc.GetFloat;
+          mobj.friction := sc._float;
+          // JVAL In case that we encounter a fixed_t value
+          //      Normal values for pushfactor are 0..1 in ACTORDEF lumps
+          //      and 0..FRACUNIT in mobjinfo table
+          if fabs(mobj.friction) > 64 then
+            mobj.friction := mobj.friction / FRACUNIT;
           sc.GetString;
         end
         else if sc.MatchString('scale') then
         begin
           sc.GetFloat;
           mobj.scale := sc._float;
-          if mobj.scale > 64 then
+          if fabs(mobj.scale) > 64 then
             mobj.scale := mobj.scale / FRACUNIT;
           sc.GetString;
         end
@@ -2135,62 +2589,62 @@ begin
         begin
           sc.GetFloat;
           mobj.gravity := sc._float;
-          if mobj.gravity > 64 then
+          if fabs(mobj.gravity) > 64 then
             mobj.gravity := mobj.gravity / FRACUNIT;
           sc.GetString;
         end
         else if sc.MatchString('speed') then
         begin
           sc.GetInteger;
-          mobj.speed := sc._integer;
+          mobj.speed := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('damage') then
         begin
           sc.GetInteger;
-          mobj.damage := sc._integer;
+          mobj.damage := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('painchance') then
         begin
           sc.GetInteger;
-          mobj.painchance := sc._integer;
+          mobj.painchance := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('mass') then
         begin
           sc.GetInteger;
-          mobj.mass := sc._integer;
+          mobj.mass := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('reactiontime') then
         begin
           sc.GetInteger;
-          mobj.reactiontime := sc._integer;
+          mobj.reactiontime := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('dropitem') then
         begin
           sc.GetString;
-          mobj.dropitem := sc._string;
+          mobj.dropitem := sc._String;
           sc.GetString;
         end
         else if sc.MatchString('missiletype') then
         begin
           sc.GetString;
-          mobj.missiletype := sc._string;
+          mobj.missiletype := sc._String;
           sc.GetString;
         end
         else if sc.MatchString('explosiondamage') then
         begin
           sc.GetInteger;
-          mobj.explosiondamage := sc._integer;
+          mobj.explosiondamage := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('explosionradius') then
         begin
           sc.GetInteger;
-          mobj.explosionradius := sc._integer;
+          mobj.explosionradius := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('meleedamage') then
@@ -2256,19 +2710,19 @@ begin
         else if sc.MatchString('floatspeed') then
         begin
           sc.GetInteger;
-          mobj.floatspeed := sc._integer;
+          mobj.floatspeed := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('normalspeed') then
         begin
           sc.GetInteger;
-          mobj.normalspeed := sc._integer;
+          mobj.normalspeed := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('fastspeed') then
         begin
           sc.GetInteger;
-          mobj.normalspeed := sc._integer;
+          mobj.normalspeed := sc._Integer;
           sc.GetString;
         end
         else if sc.MatchString('obituary') then
@@ -2298,6 +2752,7 @@ begin
         else
         begin
           if sc.MatchString('ACTOR') or
+             sc.MatchString('WEAPON') or
              sc.MatchString('ACTORALIAS') or
              sc.MatchString('DEH_PARSE') or
              sc.MatchString('DEH_PARSE_ALL') or
@@ -2329,7 +2784,7 @@ begin
         mobj.flags := '0';
       {$IFDEF HERETIC_OR_HEXEN}
       if strtrim(mobj.flags2) = '' then
-        mobj.flags := '0';
+        mobj.flags2 := '0';
       {$ENDIF}
       if strtrim(mobj.flags_ex) = '' then
         mobj.flags_ex := '0';
@@ -2345,6 +2800,7 @@ begin
       while sc.GetString do
       begin
         if sc.MatchString('ACTOR') or
+           sc.MatchString('WEAPON') or
            sc.MatchString('ACTORALIAS') or
            sc.MatchString('DEH_PARSE') or
            sc.MatchString('DEH_PARSE_ALL') or
@@ -2356,6 +2812,7 @@ begin
            sc.MatchString('GLOBAL') then
         begin
           SubmitParsedData;
+          SubmitWeaponParsedData;
           sc.UnGet;
           break;
         end;
@@ -2383,14 +2840,12 @@ begin
           mobj.crashstate := numstates;
           repeat until not ParseState(mobj.crashstate);
         end
-        {$IFDEF DOOM_OR_STRIFE}
         else if sc.MatchString('interact:') then
         begin
           mobj.statesdefined := mobj.statesdefined or RTL_ST_INTERACT;
           mobj.interactstate := numstates;
           repeat until not ParseState(mobj.interactstate);
         end
-        {$ENDIF}
         else if sc.MatchString('melee:') then
         begin
           mobj.statesdefined := mobj.statesdefined or RTL_ST_MELEE;
@@ -2434,9 +2889,11 @@ begin
   end;
 
   SubmitParsedData;
+  SubmitWeaponParsedData;
 
   sc.Free;
-  state_tokens.Free;
+  m_state_tokens.Free;
+  w_state_tokens.Free;
 end;
 
 procedure SC_ParseActordefLump(const in_text: string);
@@ -2597,6 +3054,10 @@ begin
   SC_InitConsts;
   C_AddCmd('DEH_PrintActordef, PrintActordef', @DEH_PrintActordef);
   C_AddCmd('DEH_SaveActordef, SaveActordef', @DEH_SaveActordef);
+  C_AddCmd('DEH_PrintWeapondef, PrintWeapondef', @DEH_PrintWeapondef);
+  C_AddCmd('DEH_SaveWeapondef, SaveWeapondef', @DEH_SaveWeapondef);
+  C_AddCmd('DEH_PrintStateOwners, PrintStateOwners', @DEH_PrintStateOwners);
+  C_AddCmd('DEH_SaveStateOwners, SaveStateOwners', @DEH_SaveStateOwners);
 end;
 
 procedure SC_ShutDown;
@@ -2692,13 +3153,11 @@ var
       exit;
     end;
 
-    {$IFDEF DOOM_OR_STRIFE}
     if st = m.interactstate then
     begin
       AddLn('Goto Interact');
       exit;
     end;
-    {$ENDIF}
 
     result := false;
   end;
@@ -2810,6 +3269,8 @@ begin
     AddLn('MinMissileChance ' + itoa(m.minmissilechance));
   if m.pushfactor <> DEFPUSHFACTOR then
     AddLn('Pushfactor ' + itoa(m.pushfactor));
+  if m.friction <> ORIG_FRICTION then
+    AddLn('Friction ' + itoa(m.friction));
   if m.scale <> FRACUNIT then
     AddLn('Scale ' + ftoafmt('2.4', m.scale / FRACUNIT));
   if m.gravity <> FRACUNIT then
@@ -2888,6 +3349,10 @@ begin
     AddLn('WeaveIndexXY ' + itoa(m.WeaveIndexXY));
   if m.WeaveIndexZ <> 0 then
     AddLn('WeaveIndexZ ' + itoa(m.WeaveIndexZ));
+  if m.spriteDX <> 0 then
+    AddLn('spriteDX ' + itoa(m.spriteDX));
+  if m.spriteDY <> 0 then
+    AddLn('spriteDY ' + itoa(m.spriteDY));
 
   for i := 0 to mobj_flags.Count - 1 do
     if m.flags and (1 shl i) <> 0 then
@@ -2918,9 +3383,225 @@ begin
   AddState('Raise', m.raisestate);
   AddState('Heal', m.healstate);
   AddState('Crash', m.crashstate);
-  {$IFDEF DOOM_OR_STRIFE}
   AddState('Interact', m.interactstate);
+  AddLn('}');
+  AddLn('}');
+  AddLn('');
+  result := ret;
+end;
+
+function SC_GetWeapondefDeclaration(const wid: integer{$IFDEF HERETIC}; const lvl: integer{$ENDIF}{$IFDEF HEXEN}; const pcl: integer{$ENDIF}): string;
+var
+  ret: string;
+  plevel: integer;
+  aid: integer; // weapon & ammo ids
+  w: Pweaponinfo_t;
+  mxammo: integer;
+
+  procedure AddLn(const s: string);
+  var
+    blanks: string;
+    i: integer;
+  begin
+    if s = '}' then
+      dec(plevel);
+    blanks := '';
+    for i := 0 to plevel - 1 do
+      blanks := blanks + '  ';
+    if s = '{' then
+      inc(plevel);
+    ret := ret + blanks + s + #13#10;
+  end;
+
+  function OtherStateGoto(const st: integer): boolean;
+  begin
+    result := true;
+    if st = w.upstate then
+    begin
+      AddLn('Goto Up');
+      exit;
+    end;
+
+    if st = w.downstate then
+    begin
+      AddLn('Goto Down');
+      exit;
+    end;
+
+    if st = w.readystate then
+    begin
+      AddLn('Goto Ready');
+      exit;
+    end;
+
+    if st = w.atkstate then
+    begin
+      AddLn('Goto Attack');
+      exit;
+    end;
+
+    if st = w.holdatkstate then
+    begin
+      AddLn('Goto Hold');
+      exit;
+    end;
+
+    if st = w.flashstate then
+    begin
+      AddLn('Goto Flash');
+      exit;
+    end;
+
+    result := false;
+  end;
+
+  procedure AddState(const s: string; const st: integer);
+  var
+    sst: Pstate_t;
+    spr: string;
+    A: TDNumberList;
+    idx: integer;
+    act: string;
+    stics: string;
+  begin
+    if st <= 0 then
+      exit;
+
+    A := TDNumberList.Create;
+    A.Add(st);
+
+    sst := @states[st];
+
+    while true do
+    begin
+      if A.Count = 1 then
+      begin
+        AddLn(s + ':');
+        AddLn('{');
+      end;
+
+      spr :=
+        Chr(sprnames[sst.sprite] and $FF) +
+        Chr((sprnames[sst.sprite] shr 8) and $FF) +
+        Chr((sprnames[sst.sprite] shr 16) and $FF) +
+        Chr((sprnames[sst.sprite] shr 24) and $FF);
+
+      if not Assigned(sst.action.acv) then
+        act := ''
+      else
+      begin
+        act := DEH_ActionName(sst.action);
+        if act = 'NULL' then
+          act := ''
+        else
+        begin
+          act := ' ' + act;
+          if sst.params <> nil then
+            act := act + ' ' + sst.params.Declaration;  // Add the parameter list
+        end;
+      end;
+
+      if sst.flags_ex and MF_EX_STATE_RANDOM_SELECT <> 0 then
+        stics := 'RANDOMSELECT(' + itoa(sst.tics) + ',' + itoa(sst.tics2) + ')'
+      else if sst.flags_ex and MF_EX_STATE_RANDOM_RANGE <> 0 then
+        stics := 'RANDOMRANGE(' + itoa(sst.tics) + ',' + itoa(sst.tics2) + ')'
+      else
+        stics := itoa(sst.tics);
+      AddLn(
+        spr + ' ' +
+        Chr(Ord('A') + sst.frame and FF_FRAMEMASK) + ' ' +
+        stics +
+        act +
+        decide(sst.frame and FF_FULLBRIGHT <> 0, ' BRIGHT', '')
+      );
+
+      if sst.tics < 0 then
+        break;
+      if Ord(sst.nextstate) <= 0 then
+      begin
+        AddLn('Stop');
+        break;
+      end;
+      idx := A.IndexOf(Ord(sst.nextstate));
+      if idx >= 0 then
+      begin
+        if idx = 0 then
+          AddLn('Loop')
+        else
+          AddLn('Goto ' + s + '+' + itoa(idx));
+        break;
+      end;
+      if OtherStateGoto(Ord(sst.nextstate)) then
+        break;
+      A.Add(Ord(sst.nextstate));
+      sst := @states[Ord(sst.nextstate)];
+    end;
+    AddLn('}');
+    A.Free;
+  end;
+
+begin
+  if not IsIntegerInRange(wid, 0, Ord(NUMWEAPONS) - 1) then
+  begin
+    result := '';
+    exit;
+  end;
+
+  {$IFDEF HERETIC}
+  if not IsIntegerInRange(lvl, 1, 2) then
+  begin
+    result := '';
+    exit;
+  end;
   {$ENDIF}
+
+  ret := '';
+  plevel := 0;
+
+  Addln('// ' + strupper(GetENumName(TypeInfo(weapontype_t), Ord(wid))));
+
+  {$IFDEF DOOM_OR_STRIFE}
+  w := @weaponinfo[wid];
+  {$ENDIF}
+  {$IFDEF HERETIC}
+  if lvl = 1 then
+    w := @wpnlev1info[wid]
+  else
+    w := @wpnlev2info[wid];
+  {$ENDIF}
+  {$IFDEF HEXEN}
+  {$ENDIF}
+
+  {$IFDEF HEXEN}
+  aid := Ord(w.mana);
+  mxammo := Ord(MANA_NONE);
+  {$ELSE}
+  aid := Ord(w.ammo);
+  mxammo := Ord(NUMAMMO) + 1;
+  {$ENDIF}
+
+  AddLn('WEAPON ' + strupper(GetENumName(TypeInfo(weapontype_t), Ord(wid))));
+  AddLn('{');
+  {$IFDEF HERETIC}
+  AddLn('Level LEVEL' + itoa(lvl));
+  {$ENDIF}
+  {$IFDEF HEXEN}
+  AddLn('PlayerClass ' + strupper(GetENumName(TypeInfo(pclass_t), Ord(pcl))));
+  {$ENDIF}
+
+  AddLn('Ammo ' + decide(IsIntegerInRange(aid, 0, mxammo), strupper(GetENumName(TypeInfo({$IFDEF HEXEN}manatype_t{$ELSE}ammotype_t{$ENDIF}), Ord(aid))), itoa(aid)));
+
+  // States
+  AddLn('States');
+  AddLn('{');
+
+  AddState('Up', w.upstate);
+  AddState('Down', w.downstate);
+  AddState('Ready', w.readystate);
+  AddState('Attack', w.atkstate);
+  AddState('Hold', w.holdatkstate);
+  AddState('Flash', w.flashstate);
+
   AddLn('}');
   AddLn('}');
   AddLn('');

@@ -243,7 +243,7 @@ const
   MF2_TELESTOMP = $00040000;        // mobj can stomp another
 
   MF2_FLOATBOB = $00080000;         // use float bobbing z movement
-  
+
   MF2_DONTDRAW = $00100000;         // don't generate a vissprite
 
   MF2_IMPACT = $00200000;            // an MF_MISSILE mobj can activate
@@ -375,9 +375,11 @@ const
   // No P_HitFloor call
   MF2_EX_NOHITFLOOR = $10000;
   // Actor can jump up
-  MF2_EX_JUMPUP = $10000;
+  MF2_EX_JUMPUP = $20000;
   // Does not block player
-  MF2_EX_DONTBLOCKPLAYER = $20000;
+  MF2_EX_DONTBLOCKPLAYER = $40000;
+  // Interactive mobj - can be set to interactstate
+  MF2_EX_INTERACTIVE = $80000;
 
 const
   // Bounce on floor
@@ -420,6 +422,28 @@ const
   MF3_EX_NOTAUTOAIMED = $20000;
   // slide against walls alias
   MF3_EX_SLIDING = $40000;
+  // Missiles use absolute damage
+  MF3_EX_ABSOLUTEDAMAGE = $80000;
+  // Do not fall to ground on death
+  MF3_EX_NOGRAVITYDEATH = $100000;
+  // Missile causes freeze damage
+  MF3_EX_FREEZEDAMAGE = $200000;
+  // Actor is not hurt by freeze damage missile
+  MF3_EX_NOFREEZEDAMAGE = $400000;
+  // Actor is hurt less by freeze damage missile
+  MF3_EX_FREEZEDAMAGERESIST = $800000;
+  // Missile causes flame damage
+  MF3_EX_FLAMEDAMAGE = $1000000;
+  // Actor is not hurt by flame damage missile
+  MF3_EX_NOFLAMEDAMAGE = $2000000;
+
+const
+  // Actor is hurt less by flame damage missile
+  MF4_EX_FLAMEDAMAGERESIST = 1;
+  // No monster collision
+  MF4_EX_THRUMONSTERS = 2;
+  // Drop item in actual z
+  MF4_EX_ABSOLUTEDROPITEMPOS = 4;
 
 type
 // Map Object definition.
@@ -558,6 +582,12 @@ type
     master: Pmobj_t;
     WeaveIndexXY: integer;
     WeaveIndexZ: integer;
+    friction: integer;
+
+    // version 207
+    painchance: integer;
+    spriteDX: integer;
+    spriteDY: integer;
   end;
   Tmobj_tPArray = array[0..$FFFF] of Pmobj_t;
   Pmobj_tPArray = ^Tmobj_tPArray;
@@ -1037,6 +1067,144 @@ type
     flags3_ex: integer;  // JVAL extended flags (MF3_EX_????)
     flags4_ex: integer;  // JVAL extended flags (MF4_EX_????)
     rendervalidcount: integer;
+  end;
+
+  Pmobj_t206 = ^mobj_t206;
+  mobj_t206 = record
+    // List: thinker links.
+    thinker: thinker_t;
+
+    // Info for drawing: position.
+    x: fixed_t;
+    y: fixed_t;
+    z: fixed_t;
+
+    // More list: links in sector (if needed)
+    snext: Pmobj_t;
+    sprev: Pmobj_t;
+
+    //More drawing info: to determine current sprite.
+    angle: angle_t;     // orientation
+    viewangle: angle_t; // JVAL Turn head direction
+    sprite: integer;// used to find patch_t and flip value
+    frame: integer; // might be ORed with FF_FULLBRIGHT
+
+    // Interaction info, by BLOCKMAP.
+    // Links in blocks (if needed).
+    bnext: Pmobj_t;
+    bprev: Pmobj_t;
+    bpos: integer;
+    bidx: integer;
+
+    subsector: pointer; //Psubsector_t;
+
+    // The closest interval over all contacted Sectors.
+    floorz: fixed_t;
+    ceilingz: fixed_t;
+    floorpic: integer;  // contacted sec floorpic
+
+    // For movement checking.
+    radius: fixed_t;
+    height: fixed_t;
+
+    // Momentums, used to update position.
+    momx: fixed_t;
+    momy: fixed_t;
+    momz: fixed_t;
+
+    // If == validcount, already checked.
+    validcount: integer;
+
+    _type: integer;
+    info: Pmobjinfo_t; // @mobjinfo[mobj.type]
+
+    tics: integer; // state tic counter
+    state: Pstate_t;
+    damage: integer;
+    flags: integer;
+    flags2: integer;
+    flags_ex: integer;    // JVAL extended flags (MF_EX_????)
+    flags2_ex: integer;   // JVAL extended flags (MF2_EX_????)
+    special1: integer;
+    special2: integer;
+    renderstyle: mobjrenderstyle_t;
+    alpha: fixed_t;
+    bob: integer;
+
+    health: integer;
+
+    // Movement direction, movement generation (zig-zagging).
+    movedir: integer;   // 0-7
+    movecount: integer; // when 0, select a new dir
+
+    // Thing being chased/attacked (or NULL),
+    // also the originator for missiles.
+    target: Pmobj_t;
+
+    // Reaction time: if non 0, don't attack yet.
+    // Used by player to freeze a bit after teleporting.
+    reactiontime: integer;
+
+    // If >0, the target will be chased
+    // no matter what (even if shot)
+    threshold: integer;
+
+    // Additional info record for player avatars only.
+    // Only valid if type == MT_PLAYER
+    player: pointer;  // Pplayer_t;
+
+    // Player number last looked for.
+    lastlook: integer;
+
+    // For nightmare respawn.
+    spawnpoint: mapthing_t;
+
+    // Thing being chased/attacked for tracers.
+    tracer: Pmobj_t;
+
+    fastchasetics: integer;
+
+    archiveNum: integer;  // Identity during archive
+    tid: integer;      // thing identifier
+    special: byte;    // special
+    args: array[0..4] of byte;  // special arguments
+    floorclip: fixed_t;
+
+    // JVAL: Interpolation
+    prevx: fixed_t;
+    prevy: fixed_t;
+    prevz: fixed_t;
+    prevangle: angle_t;
+
+    nextx: fixed_t;
+    nexty: fixed_t;
+    nextz: fixed_t;
+    nextangle: angle_t;
+
+    intrplcnt: LongWord;
+
+    key: LongWord;
+
+    // JVAL: User defined parameters (eg custom Inventory)
+    customparams: Pmobjcustomparam_t;
+
+    dropitem: integer;
+
+    // version 205
+    lightvalidcount: integer;
+    scale: integer;
+    pushfactor: integer;
+    gravity: integer;
+    flags3_ex: integer;  // JVAL extended flags (MF3_EX_????)
+    flags4_ex: integer;  // JVAL extended flags (MF4_EX_????)
+    rendervalidcount: integer;
+
+    // version 206
+    mass: integer;
+    master: Pmobj_t;
+    WeaveIndexXY: integer;
+    WeaveIndexZ: integer;
+    friction: integer;
   end;
 
 var

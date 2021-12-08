@@ -68,14 +68,21 @@ uses
 const
   STATEDEFLUMPNAME = 'STATEDEF';
 
+var
+  default_states_added: boolean = false;
+
 procedure SC_DefaultStatedefLump;
 var
   st: statenum_t;
 begin
   if statenames = nil then
     statenames := TTokenList.Create;
-  for st := statenum_t(0) to statenum_t(Ord(DO_NUMSTATES) - 1) do
-    statenames.Add(strupper(GetENumName(TypeInfo(statenum_t), Ord(st))));
+  if not default_states_added then
+  begin
+    for st := statenum_t(0) to statenum_t(Ord(DO_NUMSTATES) - 1) do
+      statenames.Add(strupper(GetENumName(TypeInfo(statenum_t), Ord(st))));
+    default_states_added := true;
+  end;
 end;
 
 procedure SC_ParseStatedefLump;
@@ -212,13 +219,11 @@ var
         result := inf.crashstate;
         exit;
       end
-      {$IFDEF DOOM_OR_STRIFE}
       else if sss1 = 'INTERACT' then
       begin
         result := inf.interactstate;
         exit;
       end
-      {$ENDIF};
     end;
 
     sss1 := 'S_' + strupper(actor.info.name) + '_' + sss;

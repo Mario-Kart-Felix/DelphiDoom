@@ -4,7 +4,7 @@
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -102,7 +102,7 @@ var
 
 var
   destination_keys: array[0..MAXPLAYERS - 1] of string;
-    
+
 var
   shiftxform: array[0..127] of char;
 
@@ -366,13 +366,13 @@ begin
   for i := 1 to HU_FONTSIZE do
   begin
     buffer := 'FONTA' + IntToStrZfill(2, i);
-    hu_font[i - 1] := Ppatch_t(W_CacheLumpName(buffer, PU_STATIC));
+    hu_font[i - 1] := W_CacheLumpName(buffer, PU_STATIC);
   end;
 
   for i := 1 to HU_FONTSIZE - 1 do
   begin
     buffer := 'FONTB' + IntToStrZfill(2, i);
-    hu_font2[i - 1] := Ppatch_t(W_CacheLumpName(buffer, PU_STATIC));
+    hu_font2[i - 1] := W_CacheLumpName(buffer, PU_STATIC);
   end;
 
   for i := 1 to HU_CFONTSIZE do
@@ -380,7 +380,7 @@ begin
     buffer := 'FONTC' + IntToStrZfill(2, i);
     lump := W_CheckNumForName(buffer);
     if lump >= 0 then
-      hu_font3[i - 1] := Ppatch_t(W_CacheLumpNum(lump, PU_STATIC))
+      hu_font3[i - 1] := W_CacheLumpNum(lump, PU_STATIC)
     else if i < Ord(HU_FONTSIZE) then
       hu_font3[i - 1] := hu_font[i - 1]
     else if i = 59 then
@@ -396,7 +396,7 @@ begin
   for i := 1 to HU_FONTSIZE4 do
   begin
     buffer := 'STCFN' + IntToStrZfill(3, i + 32);
-    hu_font4[i - 1] := Ppatch_t(W_CacheLumpName(buffer, PU_STATIC));
+    hu_font4[i - 1] := W_CacheLumpName(buffer, PU_STATIC);
   end;
 
   for i := 0 to FPSSIZE - 1 do
@@ -508,7 +508,7 @@ begin
     else
       x := x - 4;
   end;
-{$ENDIF}  
+{$ENDIF}
 end;
 
 
@@ -576,7 +576,7 @@ begin
   if (showMessages <> 0) or message_dontfuckwithme then
   begin
     // display message if necessary
-    if ((plr._message <> '') and (not message_nottobefuckedwith)) or
+    if ((plr._message <> '') and not message_nottobefuckedwith) or
        ((plr._message <> '') and message_dontfuckwithme) then
     begin
       HUlib_addMessageToSText2(@w_message, '', plr._message);

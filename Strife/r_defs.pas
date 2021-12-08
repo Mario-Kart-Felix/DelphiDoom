@@ -335,6 +335,7 @@ const
   SRF_INTERPOLATE_ROTATE = 512;
   SRF_INTERPOLATE_FLOORSLOPE = 1024;
   SRF_INTERPOLATE_CEILINGSLOPE = 2048;
+  SRF_FOG = 4096;
 
 const
   // Vissprite render flags
@@ -387,7 +388,7 @@ type
     iSegID: integer;
 {$ELSE}
     map_length: integer;
-    inv_length: double;      
+    inv_length: double;
 {$ENDIF}
     miniseg: boolean;
   end;
@@ -543,6 +544,7 @@ type
     flip: boolean;
 {$ENDIF}
     infoscale: fixed_t;
+    fog: boolean; // JVAL: Mars fog sectors
   end;
   visspritebuffer_t = array[0..$FFFF] of Pvissprite_t;
   visspritebuffer_p = ^visspritebuffer_t;

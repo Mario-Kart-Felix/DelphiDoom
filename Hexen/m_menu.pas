@@ -35,6 +35,7 @@ unit m_menu;
 interface
 
 uses
+  d_delphi,
   d_event,
   m_fixed;
 
@@ -110,10 +111,58 @@ function M_StringWidth2(const str: string): integer;
 
 procedure M_SetKeyboardMode(const mode: integer);
 
+type
+  PmessageRoutine = function(i: integer): pointer;
+
+type
+  menuitem_t = record
+    // 0 = no cursor here, 1 = ok, 2 = arrows ok
+    status: smallint;
+
+    name: string;
+    cmd: string;
+
+    // choice = menu item #.
+    // if status = 2,
+    //   choice=0:leftarrow,1:rightarrow
+    routine: PmessageRoutine;
+
+    // Yes/No location
+    pBoolVal: PBoolean;
+    // hotkey in menu
+    alphaKey: char;
+  end;
+  Pmenuitem_t = ^menuitem_t;
+  menuitem_tArray = packed array[0..$FFFF] of menuitem_t;
+  Pmenuitem_tArray = ^menuitem_tArray;
+
+  Pmenu_t = ^menu_t;
+  menu_t = record
+    numitems: smallint;         // # of menu items
+    prevMenu: Pmenu_t;          // previous menu
+    leftMenu: Pmenu_t;          // left menu
+    lefttext: string[20];
+    rightMenu: Pmenu_t;         // right menu
+    righttext: string[20];
+    menuitems: Pmenuitem_tArray;// menu items
+    drawproc: PProcedure;       // draw routine
+    x: smallint;
+    y: smallint;                // x,y of menu
+    lastOn: smallint;           // last item user was on in menu
+    itemheight: integer;
+    texturebk: boolean;
+    runonselect: boolean;
+  end;
+
+procedure M_SetupNextMenu(menudef: Pmenu_t);
+
+var
+// current menudef
+  currentMenu: Pmenu_t;
+
 implementation
 
 uses
-  d_delphi,
   doomstat,
   doomdef,
   am_map,
@@ -168,7 +217,7 @@ uses
   r_draw,
 {$IFNDEF OPENGL}
   r_segs,
-{$ENDIF}  
+{$ENDIF}
   t_main,
   vx_voxelsprite,
   v_data,
@@ -198,9 +247,6 @@ var
 
 // timed message = no input from user
   messageNeedsInput: boolean;
-
-type
-  PmessageRoutine = function(i: integer): pointer;
 
 var
   messageRoutine: PmessageRoutine;
@@ -239,45 +285,6 @@ var
   savegameshots: array[0..Ord(load_end) - 1] of menuscreenbuffer_t;
   endstring: string;
 
-type
-  menuitem_t = record
-    // 0 = no cursor here, 1 = ok, 2 = arrows ok
-    status: smallint;
-
-    name: string;
-    cmd: string;
-
-    // choice = menu item #.
-    // if status = 2,
-    //   choice=0:leftarrow,1:rightarrow
-    routine: PmessageRoutine;
-
-    // Yes/No location
-    pBoolVal: PBoolean;
-    // hotkey in menu
-    alphaKey: char;
-  end;
-  Pmenuitem_t = ^menuitem_t;
-  menuitem_tArray = packed array[0..$FFFF] of menuitem_t;
-  Pmenuitem_tArray = ^menuitem_tArray;
-
-  Pmenu_t = ^menu_t;
-  menu_t = record
-    numitems: smallint;         // # of menu items
-    prevMenu: Pmenu_t;          // previous menu
-    leftMenu: Pmenu_t;          // left menu
-    lefttext: string[20];
-    rightMenu: Pmenu_t;         // right menu
-    righttext: string[20];
-    menuitems: Pmenuitem_tArray;// menu items
-    drawproc: PProcedure;       // draw routine
-    x: smallint;
-    y: smallint;                // x,y of menu
-    lastOn: smallint;           // last item user was on in menu
-    itemheight: integer;
-    texturebk: boolean;
-  end;
-
 var
   itemOn: smallint;             // menu item skull is on
   arrowAnimCounter: smallint;   // arrow animation counter
@@ -286,9 +293,6 @@ var
   FontABaseLump: integer;
   FontBBaseLump: integer;
   MauloBaseLump: integer;
-
-// current menudef
-  currentMenu: Pmenu_t;
 
 //
 //      Menu Functions
@@ -1146,8 +1150,25 @@ type
 var
   OptionsDisplayOpenGLFilterMenu: array[0..Ord(optglfilter_end) - 1] of menuitem_t;
   OptionsDisplayOpenGLFilterDef: menu_t;
-{$ENDIF}
 
+// OpenGL Fog Options
+type
+  optionsopenglfog_e = (
+    od_glf_use_fog,
+    od_glf_fog_density,
+    od_glf_filler1,
+    od_glf_filler2,
+    od_glf_use_white_fog,
+    od_glf_white_fog_density,
+    od_glf_filler3,
+    od_glf_filler4,
+    optglfog_end
+  );
+
+var
+  OptionsDisplayOpenGLFogMenu: array[0..Ord(optglfog_end) - 1] of menuitem_t;
+  OptionsDisplayOpenGLFogDef: menu_t;
+{$ENDIF}
 
 type
 //
@@ -1228,6 +1249,7 @@ type
 //
   compatibility_e = (
     cmp_allowplayerjumps,
+    cmp_allowplayercrouch,
     cmp_keepcheatsinplayerrebord,
     cmp_spawnrandommonsters,
     cmp_gldefs_as_lightdef,
@@ -1296,6 +1318,8 @@ type
     kb_strafeleft,
     kb_straferight,
     kb_jump,
+    // JVAL: 20211101 - Crouch
+    kb_crouch,
     kb_fire,
     kb_use,
     kb_strafe,
@@ -1318,9 +1342,9 @@ type
   );
 
 var
-  KeyBindingsMenu1: array[0..Ord(kb_flyup) - 1] of menuitem_t;
+  KeyBindingsMenu1: array[0..Ord(kb_lookup) - 1] of menuitem_t;
   KeyBindingsDef1: menu_t;
-  KeyBindingsMenu2: array[0..Ord(kb_weapon0) - Ord(kb_flyup) - 1] of menuitem_t;
+  KeyBindingsMenu2: array[0..Ord(kb_weapon0) - Ord(kb_lookup) - 1] of menuitem_t;
   KeyBindingsDef2: menu_t;
   KeyBindingsMenu3: array[0..Ord(kb_end) - Ord(kb_weapon0) - 1] of menuitem_t;
   KeyBindingsDef3: menu_t;
@@ -1340,6 +1364,7 @@ const
     (text: 'Strafe left'; pkey: @key_strafeleft),
     (text: 'Strafe right'; pkey: @key_straferight),
     (text: 'Jump'; pkey: @key_jump),
+    (text: 'Crouch'; pkey: @key_crouch),  // JVAL: 20211101 - Crouch
     (text: 'Fire'; pkey: @key_fire),
     (text: 'Use'; pkey: @key_use),
     (text: 'Strafe'; pkey: @key_strafe),
@@ -1488,12 +1513,12 @@ end;
 
 procedure M_DrawBindings1;
 begin
-  M_DrawBindings(KeyBindingsDef1, 0, Ord(kb_flyup));
+  M_DrawBindings(KeyBindingsDef1, 0, Ord(kb_lookup));
 end;
 
 procedure M_DrawBindings2;
 begin
-  M_DrawBindings(KeyBindingsDef2, Ord(kb_flyup), Ord(kb_weapon0));
+  M_DrawBindings(KeyBindingsDef2, Ord(kb_lookup), Ord(kb_weapon0));
 end;
 
 procedure M_DrawBindings3;
@@ -1502,7 +1527,7 @@ begin
   KeyBindingsInfo[Ord(kb_weapon1)].text := 'WEAPON 2';
   KeyBindingsInfo[Ord(kb_weapon2)].text := 'WEAPON 3';
   KeyBindingsInfo[Ord(kb_weapon3)].text := 'WEAPON 4';
-  if gamestate = gs_level then
+  if gamestate = GS_LEVEL then
     case players[consoleplayer]._class of
       PCLASS_FIGHTER:
         begin
@@ -1527,7 +1552,6 @@ begin
         end;
     end;
 
-
   M_DrawBindings(KeyBindingsDef3, Ord(kb_weapon0), Ord(kb_end));
 end;
 
@@ -1547,16 +1571,16 @@ procedure M_KeyBindingSelect2(choice: integer);
 begin
   bindkeyEnter := true;
 
-  bindkeySlot := Ord(kb_flyup) + choice;
+  bindkeySlot := Ord(kb_lookup) + choice;
 
-  saveOldkey := KeyBindingsInfo[Ord(kb_flyup) + choice].pkey^;
+  saveOldkey := KeyBindingsInfo[Ord(kb_lookup) + choice].pkey^;
 end;
 
 procedure M_KeyBindingSelect3(choice: integer);
 begin
   bindkeyEnter := true;
 
-  bindkeySlot := Ord(kb_flyup) + choice;
+  bindkeySlot := Ord(kb_lookup) + choice;
 
   saveOldkey := KeyBindingsInfo[Ord(kb_weapon0) + choice].pkey^;
 end;
@@ -1937,6 +1961,7 @@ begin
      (key_strafeleft = 44) and
      (key_straferight = 46) and
      (key_jump = 97) and
+     (key_crouch = 122) and // JVAL: 20211101 - Crouch
      (key_fire = 157) and
      (key_use = 32) and
      (key_strafe = 184) and
@@ -1968,6 +1993,7 @@ begin
      (key_strafeleft = 97) and
      (key_straferight = 100) and
      (key_jump = 101) and
+     (key_crouch = 113) and // JVAL: 20211101 - Crouch
      (key_fire = 157) and
      (key_use = 32) and
      (key_strafe = 184) and
@@ -1999,6 +2025,7 @@ begin
      (key_strafeleft = 115) and
      (key_straferight = 102) and
      (key_jump = 97) and
+     (key_crouch = 122) and // JVAL: 20211101 - Crouch
      (key_fire = 157) and
      (key_use = 32) and
      (key_strafe = 184) and
@@ -2305,6 +2332,11 @@ procedure M_OptionsDisplayOpenGLFilter(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLFilterDef);
 end;
+
+procedure M_OptionsDisplayOpenGLFog(choice: integer);
+begin
+  M_SetupNextMenu(@OptionsDisplayOpenGLFogDef);
+end;
 {$ENDIF}
 
 procedure M_SfxVol(choice: integer);
@@ -2349,7 +2381,7 @@ end;
 
 procedure M_NewGame(choice: integer);
 begin
-  if netgame and (not demoplayback) then
+  if netgame and not demoplayback then
   begin
     M_StartMessage(SNEWGAME + #13#10 + PRESSKEY, nil, false);
     exit;
@@ -2767,6 +2799,65 @@ begin
 
   ppos := M_WriteText3(OptionsDisplayOpenGLFilterDef.x, OptionsDisplayOpenGLFilterDef.y + OptionsDisplayOpenGLFilterDef.itemheight * Ord(od_glf_texture_filter), 'Filter: ');
   M_WriteWhiteText3(ppos.x, ppos.y, gl_tex_filter_string);
+end;
+
+const
+  NUMFOGDENSITIES = 20;
+
+var
+  fogdensities: array[0..NUMFOGDENSITIES - 1] of Integer = (
+    25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500
+  );
+
+procedure _ChangeFogDensity(choice: integer; var density: integer);
+begin
+  density := GetIntegerInRange(density, fogdensities[0], fogdensities[NUMFOGDENSITIES - 1]);
+  if choice = 0 then
+    density := density - 25
+  else
+    density := density + 25;
+  density := GetIntegerInRange(density, fogdensities[0], fogdensities[NUMFOGDENSITIES - 1]);
+end;
+
+procedure M_ChangeFogDensity(choice: integer);
+begin
+  _ChangeFogDensity(choice, fog_density);
+end;
+
+procedure M_ChangeWhiteFogDensity(choice: integer);
+begin
+  _ChangeFogDensity(choice, white_fog_density);
+end;
+
+function _fog_thermo_index(const density: integer): integer;
+var
+  i: integer;
+  dist: integer;
+  mx: integer;
+begin
+  mx := MAXINT;
+  result := 0;
+  for i := 0 to NUMFOGDENSITIES - 1 do
+  begin
+    dist := abs(density - fogdensities[i]);
+    if dist < mx then
+    begin
+      result := i;
+      mx := dist;
+    end;
+  end;
+end;
+
+procedure M_DrawOptionsDisplayOpenGLFog;
+begin
+  M_DrawDisplayOptions;
+
+  M_DrawThermo(
+    OptionsDisplayOpenGLFogDef.x, OptionsDisplayOpenGLFogDef.y + OptionsDisplayOpenGLFogDef.itemheight * (Ord(od_glf_fog_density) + 1),
+    25, _fog_thermo_index(fog_density), NUMFOGDENSITIES);
+  M_DrawThermo(
+    OptionsDisplayOpenGLFogDef.x, OptionsDisplayOpenGLFogDef.y + OptionsDisplayOpenGLFogDef.itemheight * (Ord(od_glf_white_fog_density) + 1),
+    25, _fog_thermo_index(white_fog_density), NUMFOGDENSITIES);
 end;
 {$ENDIF}
 
@@ -3349,7 +3440,7 @@ begin
           result := true;
           exit;
         end;
-      KEY_F10:  // Quit Heretic
+      KEY_F10:  // Quit Hexen
         begin
           S_StartSound(nil, Ord(SFX_CHAT));
           M_QuitGame(0);
@@ -3531,6 +3622,17 @@ begin
         if currentMenu.menuitems[i].alphaKey = Chr(ch) then
         begin
           itemOn := i;
+
+          // JVAL: 20211126 - Handle runonselect flag
+          // This is for simple dialogs, or any other use in the future
+          if currentMenu.runonselect then
+            if Assigned(currentMenu.menuitems[itemOn].routine) and
+              (currentMenu.menuitems[itemOn].status = 1) then
+            begin
+              currentMenu.lastOn := itemOn;
+              currentMenu.menuitems[itemOn].routine(itemOn);
+            end;
+
           S_StartSound(nil, Ord(SFX_FIGHTER_HAMMER_HITWALL));
           result := true;
           exit;
@@ -3539,6 +3641,17 @@ begin
         if currentMenu.menuitems[i].alphaKey = Chr(ch) then
         begin
           itemOn := i;
+
+          // JVAL: 20211126 - Handle runonselect flag
+          // This is for simple dialogs, or any other use in the future
+          if currentMenu.runonselect then
+            if Assigned(currentMenu.menuitems[itemOn].routine) and
+              (currentMenu.menuitems[itemOn].status = 1) then
+            begin
+              currentMenu.lastOn := itemOn;
+              currentMenu.menuitems[itemOn].routine(itemOn);
+            end;
+
           S_StartSound(nil, Ord(SFX_FIGHTER_HAMMER_HITWALL));
           result := true;
           exit;
@@ -3848,7 +3961,7 @@ begin
     rlen := M_StringWidth(rstr);
     M_WriteWhiteText3(315 - rlen, 158, rstr);
   end;
-  
+
   if currentMenu.itemheight <= LINEHEIGHT2 then
     M_WriteWhiteText3(x + LINECHARXOFF, currentMenu.y + LINECHARYOFF + itemOn * LINEHEIGHT2, '-')
   else
@@ -5127,11 +5240,11 @@ begin
 
   inc(pmi);
   pmi.status := 1;
-  pmi.name := '!Use fog';
-  pmi.cmd := 'use_fog';
-  pmi.routine := @M_BoolCmd;
-  pmi.pBoolVal := @use_fog;
-  pmi.alphaKey := 'u';
+  pmi.name := '!Fog...';
+  pmi.cmd := '';
+  pmi.routine := @M_OptionsDisplayOpenGLFog;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'f';
 
   {$IFDEF DEBUG}
   inc(pmi);
@@ -5326,7 +5439,7 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @gl_linear_hud;
   pmi.alphaKey := 'l';
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 //OptionsDisplayOpenGLFilterDef
   OptionsDisplayOpenGLFilterDef.numitems := Ord(optglfilter_end); // # of menu items
@@ -5339,6 +5452,85 @@ begin
   OptionsDisplayOpenGLFilterDef.lastOn := 0; // last item user was on in menu
   OptionsDisplayOpenGLFilterDef.itemheight := LINEHEIGHT2;
   OptionsDisplayOpenGLFilterDef.texturebk := true;
+
+////////////////////////////////////////////////////////////////////////////////
+//OptionsDisplayOpenGLFogMenu
+  pmi := @OptionsDisplayOpenGLFogMenu[0];
+  pmi.status := 1;
+  pmi.name := '!Normal fog';
+  pmi.cmd := 'use_fog';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @use_fog;
+  pmi.alphaKey := 'n';
+
+  inc(pmi);
+  pmi.status := 2;
+  pmi.name := '!Normal fog density';
+  pmi.cmd := '';
+  pmi.routine := @M_ChangeFogDensity;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'n';
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!White sector fog';
+  pmi.cmd := 'use_white_fog';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @use_white_fog;
+  pmi.alphaKey := 'w';
+
+  inc(pmi);
+  pmi.status := 2;
+  pmi.name := '!White fog density';
+  pmi.cmd := '';
+  pmi.routine := @M_ChangeWhiteFogDensity;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'w';
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+////////////////////////////////////////////////////////////////////////////////
+//OptionsDisplayOpenGLFogDef
+  OptionsDisplayOpenGLFogDef.numitems := Ord(optglfog_end); // # of menu items
+  OptionsDisplayOpenGLFogDef.prevMenu := @OptionsDisplayOpenGLDef; // previous menu
+  OptionsDisplayOpenGLFogDef.leftMenu := @OptionsDisplayOpenGLDef; // left menu
+  OptionsDisplayOpenGLFogDef.menuitems := Pmenuitem_tArray(@OptionsDisplayOpenGLFogMenu);  // menu items
+  OptionsDisplayOpenGLFogDef.drawproc := @M_DrawOptionsDisplayOpenGLFog;  // draw routine
+  OptionsDisplayOpenGLFogDef.x := 30;
+  OptionsDisplayOpenGLFogDef.y := 40;
+  OptionsDisplayOpenGLFogDef.lastOn := 0; // last item user was on in menu
+  OptionsDisplayOpenGLFogDef.itemheight := LINEHEIGHT2;
+  OptionsDisplayOpenGLFogDef.texturebk := true;
 {$ENDIF}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -5519,6 +5711,14 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @allowplayerjumps;
   pmi.alphaKey := 'j';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Allow player crouching';
+  pmi.cmd := 'allowplayercrouch';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @allowplayercrouch;
+  pmi.alphaKey := 'c';
 
   inc(pmi);
   pmi.status := 1;
@@ -5815,7 +6015,7 @@ begin
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsMenu1
   pmi := @KeyBindingsMenu1[0];
-  for i := 0 to Ord(kb_flyup) - 1 do
+  for i := 0 to Ord(kb_lookup) - 1 do
   begin
     pmi.status := 1;
     pmi.name := '!' + KeyBindingsInfo[i].text + ': ';
@@ -5828,7 +6028,7 @@ begin
 
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsDef1
-  KeyBindingsDef1.numitems := Ord(kb_flyup); // # of menu items
+  KeyBindingsDef1.numitems := Ord(kb_lookup); // # of menu items
   KeyBindingsDef1.prevMenu := @ControlsDef; // previous menu
   KeyBindingsDef1.leftmenu := nil; // left menu
   KeyBindingsDef1.rightmenu := @KeyBindingsDef2; // right menu
@@ -5844,10 +6044,10 @@ begin
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsMenu2
   pmi := @KeyBindingsMenu2[0];
-  for i := 0 to Ord(kb_weapon0) - Ord(kb_flyup) - 1 do
+  for i := 0 to Ord(kb_weapon0) - Ord(kb_lookup) - 1 do
   begin
     pmi.status := 1;
-    pmi.name := '!' + KeyBindingsInfo[Ord(kb_flyup) + i].text + ': ';
+    pmi.name := '!' + KeyBindingsInfo[Ord(kb_lookup) + i].text + ': ';
     pmi.cmd := '';
     pmi.routine := @M_KeyBindingSelect2;
     pmi.pBoolVal := nil;
@@ -5857,7 +6057,7 @@ begin
 
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsDef2
-  KeyBindingsDef2.numitems := Ord(kb_weapon0) - Ord(kb_flyup); // # of menu items
+  KeyBindingsDef2.numitems := Ord(kb_weapon0) - Ord(kb_lookup); // # of menu items
   KeyBindingsDef2.prevMenu := @ControlsDef; // previous menu
   KeyBindingsDef2.leftmenu := @KeyBindingsDef1; // left menu
   KeyBindingsDef2.lefttext := '<< prev';
@@ -5874,7 +6074,7 @@ begin
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsMenu3
   pmi := @KeyBindingsMenu3[0];
-  for i := 0 to Ord(kb_weapon0) - Ord(kb_flyup) - 1 do
+  for i := 0 to Ord(kb_end) - Ord(kb_weapon0) - 1 do
   begin
     pmi.status := 1;
     pmi.name := '';

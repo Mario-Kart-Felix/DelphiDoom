@@ -469,7 +469,27 @@ procedure A_SetWeaveIndexZ(actor: Pmobj_t);
 
 procedure A_SetWeaveIndexes(actor: Pmobj_t);
 
+procedure A_SetSpriteDX(actor: Pmobj_t);
+
+procedure A_SetSpriteDY(actor: Pmobj_t);
+
 procedure A_SetHeight(actor: Pmobj_t);
+
+procedure A_SetFriction(actor: Pmobj_t);
+
+procedure A_PlayerHurtExplode(actor: Pmobj_t);
+
+procedure A_SetPainChance(actor: Pmobj_t);
+
+procedure A_SetPushable(actor: Pmobj_t);
+
+procedure A_UnSetPushable(actor: Pmobj_t);
+
+procedure A_MatchTargetZ(actor: Pmobj_t);
+
+procedure A_SetInteractive(actor: Pmobj_t);
+
+procedure A_UnSetInteractive(actor: Pmobj_t);
 
 const
   FLOATBOBSIZE = 64;
@@ -532,6 +552,18 @@ const
   SIXF_ISTARGET = $4000000;
   SIXF_ISMASTER = $8000000;
   SIXF_ISTRACER = $10000000;
+  SIXF_DROPPED = $20000000;
+
+// A_CustomMissile
+const
+  CMF_AIMOFFSET = 1;
+  CMF_AIMDIRECTION = 2;
+  CMF_TRACKOWNER = 4;
+  CMF_CHECKTARGETDEAD = 8;
+  CMF_ABSOLUTEPITCH = 16;
+  CMF_OFFSETPITCH = 32;
+  CMF_SAVEPITCH = 64;
+  CMF_ABSOLUTEANGLE = 128;
 
 // P_DoRemoveThing
 const
@@ -2374,6 +2406,14 @@ begin
     exit;
   end;
 
+  // JVAL: 20211118 - Dropped flag
+  if flags and SIXF_DROPPED <> 0 then
+  {$IFDEF HEXEN}
+    mo.flags2 := mo.flags2 or MF2_DROPPED;
+  {$ELSE}
+    mo.flags := mo.flags or MF_DROPPED;
+  {$ENDIF}
+
   if flags and SIXF_TRANSFERTRANSLATION <> 0 then
     mo.flags := (mo.flags and not MF_TRANSLATION) or (self.flags and MF_TRANSLATION);
 
@@ -2385,7 +2425,7 @@ begin
   end;
 
   originator := self;
-  
+
   if flags and SIXF_ORIGINATOR = 0 then
   begin
     loop := 0;
@@ -3390,7 +3430,7 @@ begin
     s := s + actor.state.params.StrVal[i];
     if i < actor.state.params.Count - 1 then
       s := s + ' ';
-  end;                     
+  end;
 
   PS_SetMapStr(actor.state.params.StrVal[0], s);
 end;
@@ -3604,7 +3644,7 @@ begin
     flags := 0;
     sc := TSCriptEngine.Create(stmp);
     while sc.GetString do
-      flags := flags or SC_EvalueateIntToken(sc._String, ['CVF_RELATIVE', 'CVF_REPLACE']);
+      flags := flags or (SC_EvalueateIntToken(sc._String, ['CVF_RELATIVE', 'CVF_REPLACE']) + 1);
     sc.Free;
     actor.state.params.IntVal[3] := flags;
   end
@@ -4225,9 +4265,38 @@ begin
   if not IsIntegerInRange(arg, 0, 4) then
     exit;
 
-  offset := P_GetStateFromNameWithOffsetCheck(actor, actor.state.params.StrVal[1]);
-  if @states[offset] <> actor.state then
-    P_SetMobjState(actor, statenum_t(offset));
+  if actor.args[arg] = 0 then
+    Exit;
+
+  Dec(actor.args[arg]);
+  if actor.args[arg] = 0 then
+  begin
+    if actor.state.params.Count = 1 then
+      offset := -1
+    else
+      offset := P_GetStateFromNameWithOffsetCheck(actor, actor.state.params.StrVal[1]);
+    if offset = -1 then
+    begin
+      if actor.flags and MF_MISSILE <> 0 then
+      begin
+        P_ExplodeMissile(actor);
+        Exit;
+      end
+      else if actor.flags and MF_SHOOTABLE <> 0 then
+      begin
+        P_DamageMobj(actor, nil, nil, 10000);
+        Exit;
+      end
+      else
+      begin
+        offset := actor.info.deathstate;
+        if offset < 0 then
+          offset := Ord(S_NULL);
+      end;
+    end;
+    if @states[offset] <> actor.state then
+      P_SetMobjState(actor, statenum_t(offset));
+  end;
 end;
 
 //
@@ -5446,10 +5515,10 @@ end;
 //
 procedure A_BasicAttack(actor: Pmobj_t);
 var
-	MeleeDamage: integer;
-	MeleeSound: integer;
-	MissileType: integer;
-	MissileHeight: fixed_t;
+  MeleeDamage: integer;
+  MeleeSound: integer;
+  MissileType: integer;
+  MissileHeight: fixed_t;
 begin
   if not P_CheckStateParams(actor, 4) then
     exit;
@@ -6039,6 +6108,22 @@ begin
   actor.WeaveIndexZ := actor.state.params.IntVal[1] and FLOATBOBMASK;
 end;
 
+procedure A_SetSpriteDX(actor: Pmobj_t);
+begin
+  if not P_CheckStateParams(actor, 1) then
+    exit;
+
+  actor.spriteDX := actor.state.params.FixedVal[0];
+end;
+
+procedure A_SetSpriteDY(actor: Pmobj_t);
+begin
+  if not P_CheckStateParams(actor, 1) then
+    exit;
+
+  actor.spriteDY := actor.state.params.FixedVal[0];
+end;
+
 //
 // A_SetHeight(newheight: float)
 //
@@ -6050,4 +6135,155 @@ begin
   actor.height := actor.state.params.FixedVal[0];
 end;
 
+//
+// A_SetFriction(newfriction: float)
+//
+procedure A_SetFriction(actor: Pmobj_t);
+begin
+  if not P_CheckStateParams(actor, 1) then
+    exit;
+
+  actor.friction := actor.state.params.FixedVal[0];
+end;
+
+//
+//  A_PlayerHurtExplode(damage: integer; radius: integer);
+//
+procedure A_PlayerHurtExplode(actor: Pmobj_t);
+var
+  damage: integer;
+  radius: fixed_t;
+begin
+  if not P_CheckStateParams(actor, 2, CSP_AT_LEAST) then
+    exit;
+
+  damage := actor.state.params.IntVal[0];
+  radius := actor.state.params.IntVal[1];
+  P_RadiusAttackPlayer(actor, actor.target, damage, radius);
+
+  if actor.z <= actor.floorz then
+    P_HitFloor(actor);
+end;
+
+//
+//  A_SetPainChance(value: integer);
+//
+procedure A_SetPainChance(actor: Pmobj_t);
+begin
+  if not P_CheckStateParams(actor, 1, CSP_AT_LEAST) then
+    exit;
+
+  actor.painchance := actor.state.params.IntVal[0];
+end;
+
+//
+// A_SetPushable
+//
+procedure A_SetPushable(actor: Pmobj_t);
+begin
+  {$IFDEF DOOM_OR_STRIFE}
+  actor.flags2_ex := actor.flags2_ex or MF2_EX_PUSHABLE;
+  {$ENDIF}
+  {$IFDEF HERETIC_OR_HEXEN}
+  actor.flags2 := actor.flags2 or MF2_PUSHABLE;
+  {$ENDIF}
+end;
+
+//
+// A_SetPushable
+//
+procedure A_UnSetPushable(actor: Pmobj_t);
+begin
+  {$IFDEF DOOM_OR_STRIFE}
+  actor.flags2_ex := actor.flags2_ex and not MF2_EX_PUSHABLE;
+  {$ENDIF}
+  {$IFDEF HERETIC_OR_HEXEN}
+  actor.flags2 := actor.flags2 and not MF2_PUSHABLE;
+  {$ENDIF}
+end;
+
+//  A_MatchTargetZ(const zspeed, threshold, [maxmomz])
+procedure A_MatchTargetZ(actor: Pmobj_t);
+var
+  speed: fixed_t;
+  threshold: fixed_t;
+  maxmomz: fixed_t;
+begin
+  if actor.target = nil then
+    exit;
+
+  if actor.state.params = nil then
+  begin
+    speed := FRACUNIT;
+    threshold := FRACUNIT;
+    maxmomz := actor.info.speed;
+  end
+  else
+  begin
+    if actor.state.params.Count > 0 then
+    begin
+      speed := actor.state.params.FixedVal[0];
+      if speed = 0 then
+        exit;
+    end
+    else
+      speed := FRACUNIT;
+
+    if actor.state.params.Count > 1 then
+      threshold := actor.state.params.FixedVal[1]
+    else
+      threshold := FRACUNIT;
+
+    if actor.state.params.Count > 2 then
+      maxmomz := actor.state.params.FixedVal[2]
+    else
+      maxmomz := actor.info.speed;
+  end;
+
+  if maxmomz < 256 then
+    maxmomz := maxmomz * FRACUNIT;
+
+  if actor.z + actor.momz < actor.target.z - threshold then
+  begin
+    actor.momz := actor.momz + speed;
+    if actor.momz > maxmomz then
+      actor.momz := maxmomz;
+    if actor.momz < 0 then
+      actor.momz := 0;
+  end
+  else if actor.z + actor.momz > actor.target.z + threshold then
+  begin
+    actor.momz := actor.momz - speed;
+    if actor.momz < -maxmomz then
+      actor.momz := -maxmomz;
+    if actor.momz > 0 then
+      actor.momz := 0;
+  end
+  else
+  begin
+    actor.momz := actor.momz * 15 div 16;
+    if actor.momz > maxmomz then
+      actor.momz := maxmomz
+    else if actor.momz < -maxmomz then
+      actor.momz := -maxmomz;
+  end;
+
+  // JVAL: 20200421 - Do not slam to floor - ceiling
+  if actor.z + actor.momz + actor.height >= actor.ceilingz then
+    actor.momz := (actor.ceilingz - actor.z - actor.height) div 2
+  else if actor.z + actor.momz <= actor.floorz then
+    actor.momz := actor.floorz - actor.z;
+end;
+
+procedure A_SetInteractive(actor: Pmobj_t);
+begin
+  actor.flags2_ex := actor.flags2_ex or MF2_EX_INTERACTIVE;
+end;
+
+procedure A_UnSetInteractive(actor: Pmobj_t);
+begin
+  actor.flags2_ex := actor.flags2_ex and not MF2_EX_INTERACTIVE;
+end;
+
 end.
+

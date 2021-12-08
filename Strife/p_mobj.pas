@@ -147,6 +147,7 @@ uses
   p_params,
   p_ladder,
   p_musinfo,
+  p_bouncing,
   ps_main,
   r_defs,
   r_sky,
@@ -237,9 +238,9 @@ begin
   if mo.tics < 1 then
     mo.tics := 1;
 
-  mo.flags := mo.flags and (not MF_MISSILE);
+  mo.flags := mo.flags and not MF_MISSILE;
 
-  A_DeathSound(mo);
+  A_DeathSound1(mo);
 end;
 
 //
@@ -322,6 +323,14 @@ begin
       else if (mo.flags3_ex and (MF3_EX_SLIDING or MF3_EX_SLIDE or MF3_EX_SLIDEONWALLS) <> 0) and (mo.flags and MF_MISSILE = 0) then
       begin
         P_SlideMove(mo); // try to slide along it
+      end
+      // JVAL: 20211121 - New bounch on walls mechanics
+      else if (G_PlayingEngineVersion >= VERSION207) and (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) and (tmbounceline <> nil) and
+        (mo.flags and MF_BOUNCE = 0) then
+      begin
+        P_WallBounceMobj(mo, tmbounceline);
+        xmove := 0;
+        ymove := 0;
       end
       // villsa [STRIFE] check for bouncy missiles
       else if (mo.flags and MF_BOUNCE <> 0) or (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) then
@@ -493,7 +502,7 @@ begin
   begin
     player.viewheight := player.viewheight - (mo.floorz - mo.z);
     player.deltaviewheight :=
-      _SHR3(PVIEWHEIGHT - player.viewheight);
+      _SHR3(PVIEWHEIGHT - player.crouchheight - player.viewheight);
   end;
 
   // adjust height
@@ -560,6 +569,9 @@ begin
         // after hitting the ground (hard),
         // and utter appropriate sound.
         player.deltaviewheight := _SHR3(mo.momz);
+        // JVAL: 20211101 - Crouch
+        if G_PlayingEngineVersion >= VERSION207 then
+          player.deltaviewheight := FixedMul(player.deltaviewheight, FixedDiv(mo.height, mo.info.height));
 
         // villsa [STRIFE] fall damage
         // haleyjd 09/18/10: Repaired calculation
@@ -720,7 +732,7 @@ begin
 
   if mthing.options and MTF_DONOTTRIGGERSCRIPTS <> 0 then
     mobj.flags2_ex := mobj.flags2_ex or MF2_EX_DONTRUNSCRIPTS;
-    
+
   if mthing.options and MTF_AMBUSH <> 0 then
     mo.flags := mo.flags or MF_AMBUSH;
   if mthing.options and MTF_STAND <> 0 then       // [STRIFE] Standing mode, for NPCs
@@ -749,7 +761,7 @@ end;
 procedure P_MobjThinker(mobj: Pmobj_t);
 begin
   // JVAL: Clear just spawned flag
-  mobj.flags2_ex := mobj.flags2_ex and (not MF2_EX_JUSTAPPEARED);
+  mobj.flags2_ex := mobj.flags2_ex and not MF2_EX_JUSTAPPEARED;
 
   // momentum movement
   if (mobj.momx <> 0) or
@@ -888,6 +900,7 @@ begin
   mobj.scale := info.scale;
   mobj.gravity := info.gravity;
   mobj.pushfactor := info.pushfactor;
+  mobj.friction := info.friction;
   mobj.renderstyle := info.renderstyle;
   mobj.alpha := info.alpha;
   if mobj.flags_ex and MF_EX_FLOATBOB <> 0 then
@@ -896,6 +909,7 @@ begin
   mobj.mass := info.mass;
   mobj.WeaveIndexXY := info.WeaveIndexXY;
   mobj.WeaveIndexZ := info.WeaveIndexZ;
+  mobj.painchance := info.painchance;
 
   mobj.reactiontime := info.reactiontime;
 
@@ -1231,6 +1245,20 @@ begin
   p.extralight := 0;
   p.fixedcolormap := 0;
   p.viewheight := PVIEWHEIGHT;
+  // JVAL: 20211117 - Reset extra player fields when spawning player
+  p.lastbreath := 0;
+  p.hardbreathtics := 0;
+  p.angletargetticks := 0;
+  p.laddertics := 0;
+  p.slopetics := 0;
+  p.teleporttics := 0;
+  p.nextoof := 0;
+  p.quakeintensity := 0;
+  p.quaketics := 0;
+  p.oldcrouch := 0;
+  p.lastongroundtime := 0;
+  p.lastautocrouchtime := 0;
+  p.crouchheight := 0;
 
   // setup gun psprite
   P_SetupPsprites(p);
@@ -1601,7 +1629,7 @@ begin
   else
     th := P_SpawnMobj(source.x, source.y, source.z + source.info.missileheight, _type);
 
-  A_SeeSound(th);
+  A_SeeSound1(th);
 
   th.target := source;  // where it came from
   an := R_PointToAngle2(source.x, source.y, dest.x, dest.y);
@@ -1671,7 +1699,7 @@ begin
 
   th := P_SpawnMobj(x, y, z, _type);
 
-  A_SeeSound(th);
+  A_SeeSound1(th);
 
   th.target := source;  // record missile's originator
 
@@ -1743,7 +1771,7 @@ begin
 
   mo := P_SpawnMobj(source.x, source.y, z, _type);
 
-  A_SeeSound(mo);
+  A_SeeSound1(mo);
 
   if owner <> nil then
     mo.target := owner
@@ -1781,7 +1809,7 @@ var
 begin
   result := P_SpawnMobj(source.x, source.y, source.z + (32 * FRACUNIT), _type);
 
-  A_SeeSound(result);
+  A_SeeSound1(result);
 
   result.target := source;    // where it came from
   result.angle := source.angle; // haleyjd 09/06/10: fix0red
@@ -1879,7 +1907,7 @@ begin
 
   th := P_SpawnMobj(x, y, z, _type);
 
-  A_SeeSound(th);
+  A_SeeSound1(th);
 
   th.target := source;
   th.angle := an;

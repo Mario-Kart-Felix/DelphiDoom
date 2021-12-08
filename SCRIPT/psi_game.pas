@@ -151,6 +151,18 @@ procedure PS_SetActorWeaveIndexXY(const key: LongWord; const value: Integer);
 function PS_GetActorWeaveIndexZ(const key: LongWord): Integer;
 procedure PS_SetActorWeaveIndexZ(const key: LongWord; const value: Integer);
 
+function PS_GetActorFriction(const key: LongWord): Integer;
+procedure PS_SetActorFriction(const key: LongWord; const value: Integer);
+
+function PS_GetActorPainChance(const key: LongWord): Integer;
+procedure PS_SetActorPainChance(const key: LongWord; const value: Integer);
+
+function PS_GetActorSpriteDX(const key: LongWord): Integer;
+procedure PS_SetActorSpriteDX(const key: LongWord; const value: Integer);
+
+function PS_GetActorSpriteDY(const key: LongWord): Integer;
+procedure PS_SetActorSpriteDY(const key: LongWord; const value: Integer);
+
 function PS_GetActorName(const key: LongWord): string;
 
 {$IFDEF STRIFE}
@@ -433,6 +445,9 @@ procedure PS_SetSectorRippleCeiling(const sec: Integer; const rpl: Boolean);
 function PS_GetSectorInterpolate(const sec: Integer): Boolean;
 procedure PS_SetSectorInterpolate(const sec: Integer; const intpl: Boolean);
 
+function PS_GetSectorFog(const sec: Integer): Boolean;
+procedure PS_SetSectorFog(const sec: Integer; const fog: Boolean);
+
 // JVAL: sector gravity (VERSION 204)
 function PS_GetSectorGravity(const sec: Integer): Integer;
 procedure PS_SetSectorGravity(const sec: Integer; const grav: Integer);
@@ -649,9 +664,15 @@ function PS_GetMobjInfoWeaveIndexXY(const typ: integer): integer;
 
 function PS_GetMobjInfoWeaveIndexZ(const typ: integer): integer;
 
-{$IFDEF DOOM_OR_STRIFE}
+function PS_GetMobjInfoSpriteDX(const typ: integer): integer;
+
+function PS_GetMobjInfoSpriteDY(const typ: integer): integer;
+
+function PS_GetMobjInfoFriction(const typ: integer): integer;
+
 function PS_GetMobjInfoInteractState(const typ: integer): integer;
 
+{$IFDEF DOOM_OR_STRIFE}
 function PS_GetMobjInfoMissileHeight(const typ: integer): integer;
 {$ENDIF}
 
@@ -713,6 +734,9 @@ function PS_key_strafe: integer;
 function PS_key_speed: integer;
 
 function PS_key_jump: integer;
+
+// JVAL: 20211101 - Crouch
+function PS_key_crouch: integer;
 
 function PS_key_weapon0: integer;
 
@@ -789,6 +813,9 @@ function PS_joybuse: integer;
 function PS_joybspeed: integer;
 
 function PS_joybjump: integer;
+
+// JVAL: 20211101 - Crouch
+function PS_joybcrouch: integer;
 
 function PS_joyblleft: integer;
 
@@ -1875,6 +1902,98 @@ begin
   if mo = nil then
     Exit;
   mo.WeaveIndexXY := value;
+end;
+
+function PS_GetActorFriction(const key: LongWord): Integer;
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mo.friction;
+end;
+
+procedure PS_SetActorFriction(const key: LongWord; const value: Integer);
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+    Exit;
+  mo.friction := value;
+end;
+
+function PS_GetActorPainChance(const key: LongWord): Integer;
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mo.painchance;
+end;
+
+procedure PS_SetActorPainChance(const key: LongWord; const value: Integer);
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+    Exit;
+  mo.painchance := value;
+end;
+
+function PS_GetActorSpriteDX(const key: LongWord): Integer;
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mo.spriteDX;
+end;
+
+procedure PS_SetActorSpriteDX(const key: LongWord; const value: Integer);
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+    Exit;
+  mo.spriteDX := value;
+end;
+
+function PS_GetActorSpriteDY(const key: LongWord): Integer;
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mo.spriteDY;
+end;
+
+procedure PS_SetActorSpriteDY(const key: LongWord; const value: Integer);
+var
+  mo: Pmobj_t;
+begin
+  mo := mobj_from_key(key);
+  if mo = nil then
+    Exit;
+  mo.spriteDY := value;
 end;
 
 function PS_GetActorName(const key: LongWord): string;
@@ -3159,6 +3278,46 @@ end;
 procedure TRTLActorWeaveIndexZ_R(Self: TRTLActor; var T: Integer);
 begin
   T := PS_GetActorWeaveIndexZ(LongWord(Self));
+end;
+
+procedure TRTLActorFriction_W(Self: TRTLActor; const T: Integer);
+begin
+  PS_SetActorFriction(LongWord(Self), T);
+end;
+
+procedure TRTLActorFriction_R(Self: TRTLActor; var T: Integer);
+begin
+  T := PS_GetActorFriction(LongWord(Self));
+end;
+
+procedure TRTLActorPainChance_W(Self: TRTLActor; const T: Integer);
+begin
+  PS_SetActorPainChance(LongWord(Self), T);
+end;
+
+procedure TRTLActorPainChance_R(Self: TRTLActor; var T: Integer);
+begin
+  T := PS_GetActorPainChance(LongWord(Self));
+end;
+
+procedure TRTLActorSpriteDX_W(Self: TRTLActor; const T: Integer);
+begin
+  PS_SetActorSpriteDX(LongWord(Self), T);
+end;
+
+procedure TRTLActorSpriteDX_R(Self: TRTLActor; var T: Integer);
+begin
+  T := PS_GetActorSpriteDX(LongWord(Self));
+end;
+
+procedure TRTLActorSpriteDY_W(Self: TRTLActor; const T: Integer);
+begin
+  PS_SetActorSpriteDY(LongWord(Self), T);
+end;
+
+procedure TRTLActorSpriteDY_R(Self: TRTLActor; var T: Integer);
+begin
+  T := PS_GetActorSpriteDY(LongWord(Self));
 end;
 
 procedure TRTLActorFlags_W(Self: TRTLActor; const T: Boolean; const t1: LongWord);
@@ -4471,6 +4630,25 @@ begin
   end;
 end;
 
+function PS_GetSectorFog(const sec: Integer): Boolean;
+begin
+  if (sec >= 0) and (sec < numsectors) then
+    Result := sectors[sec].renderflags and SRF_FOG = 0
+  else
+    Result := False;
+end;
+
+procedure PS_SetSectorFog(const sec: Integer; const fog: Boolean);
+begin
+  if (sec >= 0) and (sec < numsectors) then
+  begin
+    if fog then
+      sectors[sec].renderflags := sectors[sec].renderflags and not SRF_FOG
+    else
+      sectors[sec].renderflags := sectors[sec].renderflags or SRF_FOG
+  end;
+end;
+
 function PS_GetSectorGravity(const sec: Integer): Integer;
 begin
   if (sec >= 0) and (sec < numsectors) then
@@ -4819,6 +4997,17 @@ begin
   T := PS_GetSectorInterpolate(Integer(Self) - 1);
 end;
 
+// JVAL: Sector fog (VERSION 207)
+procedure TRTLSectorFog_W(Self: TRTLSector; const T: Boolean);
+begin
+  PS_SetSectorFog(Integer(Self) - 1, T);
+end;
+
+procedure TRTLSectorFog_R(Self: TRTLSector; var T: Boolean);
+begin
+  T := PS_GetSectorFog(Integer(Self) - 1);
+end;
+
 // JVAL: sector gravity (VERSION 204)
 procedure TRTLSectorGravity_W(Self: TRTLSector; const T: fixed_t);
 begin
@@ -5104,7 +5293,7 @@ begin
   end;
 
   Result := Ord(players[plnum]._class);
-end;  
+end;
 {$ENDIF}
 
 procedure PS_SetPlayerMessage(const plnum: Integer; const msg: string);
@@ -5873,7 +6062,36 @@ begin
   Result := mobjinfo[typ].WeaveIndexZ;
 end;
 
-{$IFDEF DOOM_OR_STRIFE}
+function PS_GetMobjInfoFriction(const typ: integer): integer;
+begin
+  if (typ < 0) or (typ >= nummobjtypes) then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mobjinfo[typ].friction;
+end;
+
+function PS_GetMobjInfoSpriteDX(const typ: integer): integer;
+begin
+  if (typ < 0) or (typ >= nummobjtypes) then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mobjinfo[typ].spriteDX;
+end;
+
+function PS_GetMobjInfoSpriteDY(const typ: integer): integer;
+begin
+  if (typ < 0) or (typ >= nummobjtypes) then
+  begin
+    Result := 0;
+    Exit;
+  end;
+  Result := mobjinfo[typ].spriteDY;
+end;
+
 function PS_GetMobjInfoInteractState(const typ: integer): integer;
 begin
   if (typ < 0) or (typ >= nummobjtypes) then
@@ -5884,6 +6102,7 @@ begin
   Result := mobjinfo[typ].interactstate;
 end;
 
+{$IFDEF DOOM_OR_STRIFE}
 function PS_GetMobjInfoMissileHeight(const typ: integer): integer;
 begin
   if (typ < 0) or (typ >= nummobjtypes) then
@@ -6202,12 +6421,27 @@ begin
   T := PS_GetMobjInfoWeaveIndexZ(Integer(Self) - 1);
 end;
 
-{$IFDEF DOOM_OR_STRIFE}
+procedure TRTLMobjInfoItemFriction_R(Self: TRTLMobjInfoItem; var T: integer);
+begin
+  T := PS_GetMobjInfoFriction(Integer(Self) - 1);
+end;
+
+procedure TRTLMobjInfoItemSpriteDX_R(Self: TRTLMobjInfoItem; var T: integer);
+begin
+  T := PS_GetMobjInfoSpriteDX(Integer(Self) - 1);
+end;
+
+procedure TRTLMobjInfoItemSpriteDY_R(Self: TRTLMobjInfoItem; var T: integer);
+begin
+  T := PS_GetMobjInfoSpriteDY(Integer(Self) - 1);
+end;
+
 procedure TRTLMobjInfoItemInteractState_R(Self: TRTLMobjInfoItem; var T: integer);
 begin
   T := PS_GetMobjInfoInteractState(Integer(Self) - 1);
 end;
 
+{$IFDEF DOOM_OR_STRIFE}
 procedure TRTLMobjInfoItemMissileHeight_R(Self: TRTLMobjInfoItem; var T: integer);
 begin
   T := PS_GetMobjInfoMissileHeight(Integer(Self) - 1);
@@ -6443,6 +6677,15 @@ begin
     Result := 0
   else
     Result := key_jump;
+end;
+
+// JVAL: 20211101 - Crouch
+function PS_key_crouch: integer;
+begin
+  if demoplayback or demorecording or netgame then
+    Result := 0
+  else
+    Result := key_crouch;
 end;
 
 function PS_key_weapon0: integer;
@@ -6728,6 +6971,15 @@ begin
     Result := joybjump;
 end;
 
+// JVAL: 20211101 - Crouch
+function PS_joybcrouch: integer;
+begin
+  if demoplayback or demorecording or netgame then
+    Result := 0
+  else
+    Result := joybcrouch;
+end;
+
 function PS_joyblleft: integer;
 begin
   if demoplayback or demorecording or netgame then
@@ -6802,7 +7054,11 @@ begin
   cactor.RegisterProperty('Arg5', 'Integer', iptRW);
   cactor.RegisterProperty('Height', 'fixed_t', iptRW);
   cactor.RegisterProperty('WeaveIndexXY', 'Integer', iptRW);
-  cactor.RegisterProperty('WeaveIndexZ', 'Integer', iptRW);;
+  cactor.RegisterProperty('WeaveIndexZ', 'Integer', iptRW);
+  cactor.RegisterProperty('Friction', 'fixed_t', iptRW);
+  cactor.RegisterProperty('PainChance', 'fixed_t', iptRW);
+  cactor.RegisterProperty('SpriteDX', 'fixed_t', iptRW);
+  cactor.RegisterProperty('SpriteDY', 'fixed_t', iptRW);
   cactor.RegisterProperty('CustomDropItem', 'Integer', iptRW);
   cactor.RegisterProperty('CustomParams', 'Integer String', iptRW);
   cactor.RegisterProperty('Flag', 'Boolean LongWord', iptRW);
@@ -6917,6 +7173,7 @@ begin
   csector.RegisterProperty('RippleFloor', 'boolean', iptRW);
   csector.RegisterProperty('RippleCeiling', 'boolean', iptRW);
   csector.RegisterProperty('Interpolate', 'boolean', iptRW);
+  csector.RegisterProperty('Fog', 'boolean', iptRW);
   csector.RegisterProperty('Gravity', 'fixed_t', iptRW);
   csector.RegisterMethod('procedure PlaySound(const snd: string);');
   csector.RegisterMethod('procedure MoveZ(const dz: fixed_t);');
@@ -6967,7 +7224,9 @@ begin
   cmobjinfoitem.RegisterProperty('HealState', 'Integer', iptR);
   cmobjinfoitem.RegisterProperty('CrashState', 'Integer', iptR);
   cmobjinfoitem.RegisterProperty('InteractState', 'Integer', iptR);
+{$IFDEF DOOM_OR_STRIFE}
   cmobjinfoitem.RegisterProperty('MissileHeight', 'Integer', iptR);
+{$ENDIF}
   cmobjinfoitem.RegisterProperty('VSpeed', 'Integer', iptR);
   cmobjinfoitem.RegisterProperty('MinMissileChance', 'Integer', iptR);
   cmobjinfoitem.RegisterProperty('PushFactor', 'Integer', iptR);
@@ -6986,7 +7245,9 @@ begin
   cmobjinfoitem.RegisterProperty('MaxTargetRange', 'Integer', iptR);
   cmobjinfoitem.RegisterProperty('WeaveIndexXY', 'Integer', iptR);
   cmobjinfoitem.RegisterProperty('WeaveIndexZ', 'Integer', iptR);
-
+  cmobjinfoitem.RegisterProperty('Friction', 'Integer', iptR);
+  cmobjinfoitem.RegisterProperty('SpriteDX', 'Integer', iptR);
+  cmobjinfoitem.RegisterProperty('SpriteDY', 'Integer', iptR);
 
   cmobjinfo.RegisterProperty('Item', '!TMobjInfoItem integer', iptR);
   cmobjinfo.SetDefaultPropery('Item');
@@ -7060,6 +7321,10 @@ begin
   ractor.RegisterPropertyHelper(@TRTLActorArg5_R, @TRTLActorArg5_W, 'Arg5');
   ractor.RegisterPropertyHelper(@TRTLActorWeaveIndexXY_R, @TRTLActorWeaveIndexXY_W, 'WeaveIndexXY');
   ractor.RegisterPropertyHelper(@TRTLActorWeaveIndexZ_R, @TRTLActorWeaveIndexZ_W, 'WeaveIndexZ');
+  ractor.RegisterPropertyHelper(@TRTLActorFriction_R, @TRTLActorFriction_W, 'Friction');
+  ractor.RegisterPropertyHelper(@TRTLActorPainChance_R, @TRTLActorPainChance_W, 'PainChance');
+  ractor.RegisterPropertyHelper(@TRTLActorSpriteDX_R, @TRTLActorSpriteDX_W, 'SpriteDX');
+  ractor.RegisterPropertyHelper(@TRTLActorSpriteDY_R, @TRTLActorSpriteDY_W, 'SpriteDY');
   ractor.RegisterPropertyHelper(@TRTLActorCustomParams_R, @TRTLActorCustomParams_W, 'CustomParams');
   ractor.RegisterPropertyHelper(@TRTLActorFlags_R, @TRTLActorFlags_W, 'Flag');
   ractor.RegisterPropertyHelper(@TRTLActorName_R, nil, 'Name');
@@ -7168,6 +7433,7 @@ begin
   rsector.RegisterPropertyHelper(@TRTLSectorRippleFloor_R, @TRTLSectorRippleFloor_W, 'RippleFloor');
   rsector.RegisterPropertyHelper(@TRTLSectorRippleCeiling_R, @TRTLSectorRippleCeiling_W, 'RippleCeiling');
   rsector.RegisterPropertyHelper(@TRTLSectorInterpolate_R, @TRTLSectorInterpolate_W, 'Interpolate');
+  rsector.RegisterPropertyHelper(@TRTLSectorFog_R, @TRTLSectorFog_W, 'Fog');
   rsector.RegisterPropertyHelper(@TRTLSectorGravity_R, @TRTLSectorGravity_W, 'Gravity');
   rsector.RegisterMethod(@TRTLSector.PlaySound, 'PlaySound');
   rsector.RegisterMethod(@TRTLSector.MoveZ, 'MoveZ');
@@ -7236,8 +7502,11 @@ begin
   rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemMaxTargetRange_R, nil, 'MaxTargetRange');
   rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemWeaveIndexXY_R, nil, 'WeaveIndexXY');
   rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemWeaveIndexZ_R, nil, 'WeaveIndexZ');
-  {$IFDEF DOOM_OR_STRIFE}
+  rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemFriction_R, nil, 'Friction');
+  rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemSpriteDX_R, nil, 'SpriteDX');
+  rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemSpriteDY_R, nil, 'SpriteDY');
   rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemInteractState_R, nil, 'InteractState');
+  {$IFDEF DOOM_OR_STRIFE}
   rmobjinfoitem.RegisterPropertyHelper(@TRTLMobjInfoItemMissileHeight_R, nil, 'MissileHeight');
   {$ENDIF}
 

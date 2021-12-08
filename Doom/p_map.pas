@@ -67,6 +67,8 @@ procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; const damage: integer);
 
 procedure P_RadiusAttackEx(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
 
+procedure P_RadiusAttackPlayer(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
+
 function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
 
 procedure P_SlideMove(mo: Pmobj_t);
@@ -87,6 +89,7 @@ var
   tmceilingz: fixed_t;
   tmdropoffz: fixed_t;
   tmfloorpic: integer;
+  tmbounceline: Pline_t;
 
 var
   spechit: Pline_tPArray = nil;  // JVAL Now spechit is dynamic
@@ -126,7 +129,9 @@ uses
   doomdata,
   g_game,
   info_h,
+  info,
   info_common,
+  info_rnd,
   p_common,
   p_gravity,
   p_setup,
@@ -169,6 +174,20 @@ begin
 
   // JVAL: 20210209 - MF3_EX_THRUACTORS flag - does not colide with actors
   if (tmthing.flags3_ex and MF3_EX_THRUACTORS <> 0) or (thing.flags3_ex and MF3_EX_THRUACTORS <> 0) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (tmthing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(thing._type) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (thing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(tmthing._type) then
   begin
     result := true;
     exit;
@@ -346,6 +365,7 @@ begin
   if ld.backsector = nil then
   begin
     result := false;  // one sided line
+    tmbounceline := ld;
     exit;
   end;
 
@@ -356,6 +376,7 @@ begin
       if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
       begin
         result := false;  // explicitly blocking everything
+        tmbounceline := ld;
         exit;
       end;
     end;
@@ -364,6 +385,7 @@ begin
     if ((tmthing.player = nil) or (tmthing.flags2_ex and MF2_EX_FRIEND <> 0)) and ((ld.flags and ML_BLOCKMONSTERS) <> 0) then
     begin
       result := false;  // block monsters only
+      tmbounceline := ld;
       exit;
     end;
   end;
@@ -418,13 +440,13 @@ begin
     exit;
   end;
 
-  // JVAL: VERSION 206 
+  // JVAL: VERSION 206
   if ld.flags and ML_NOCLIP <> 0 then
   begin
     result := true;
     exit;
   end;
-  
+
   if P_BoxOnLineSide(@tmbbox, ld) <> -1 then
   begin
     result := true;
@@ -445,6 +467,7 @@ begin
   if ld.backsector = nil then
   begin
     result := false;  // one sided line
+    tmbounceline := ld;
     exit;
   end;
 
@@ -455,6 +478,7 @@ begin
       if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
       begin
         result := false;  // explicitly blocking everything
+        tmbounceline := ld;
         exit;
       end;
     end;
@@ -463,6 +487,7 @@ begin
     if ((tmthing.player = nil) or (tmthing.flags2_ex and MF2_EX_FRIEND <> 0)) and ((ld.flags and ML_BLOCKMONSTERS) <> 0) then
     begin
       result := false;  // block monsters only
+      tmbounceline := ld;
       exit;
     end;
   end;
@@ -599,6 +624,20 @@ begin
     exit;
   end;
 
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (tmthing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(thing._type) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  // JVAL: 20211031 - MF4_EX_THRUMONSTERS flag - does not colide with monsters
+  if (thing.flags4_ex and MF4_EX_THRUMONSTERS <> 0) and Info_IsMonster(tmthing._type) then
+  begin
+    result := true;
+    exit;
+  end;
+
   // JVAL: 20210209 - MF3_EX_THRUSPECIES flag - does not colide with same species (also inheritance)
   if tmthing.flags3_ex and MF3_EX_THRUSPECIES <> 0 then
   begin
@@ -721,7 +760,9 @@ begin
     if (tmthing.target <> nil) and (
         (tmthing.target._type = thing._type) or
         ((tmthing.target._type = Ord(MT_KNIGHT)) and (thing._type = Ord(MT_BRUISER))) or
-        ((tmthing.target._type = Ord(MT_BRUISER)) and (thing._type = Ord(MT_KNIGHT)))) then
+        ((tmthing.target._type = Ord(MT_BRUISER)) and (thing._type = Ord(MT_KNIGHT))) or
+        // JVAL: 20211126 - Inherited actors do not hurt each other
+		(Info_GetInheritance(tmthing.target.info) = Info_GetInheritance(thing.info))) then
     begin
       // Don't hit same species as originator.
       if thing = tmthing.target then
@@ -746,8 +787,24 @@ begin
       exit;
     end;
 
+    if tmthing.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
+    if tmthing.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
     // damage / explode
-    if tmthing.flags3_ex and MF3_EX_STRIFEDAMAGE <> 0 then
+    if tmthing.flags3_ex and MF3_EX_ABSOLUTEDAMAGE <> 0 then
+      damage := tmthing.info.damage
+    else if tmthing.flags3_ex and MF3_EX_STRIFEDAMAGE <> 0 then
       damage := ((P_Random mod 4) + 1) * tmthing.info.damage
     else
       damage := ((P_Random mod 8) + 1) * tmthing.info.damage;
@@ -826,6 +883,7 @@ var
   bx: integer;
   by: integer;
   newsec: Psector_t;
+  msec: Psector_t;
   r: fixed_t;
 begin
   tmthing := thing;
@@ -851,6 +909,19 @@ begin
   tmdropoffz := P_3dFloorHeight(newsec, x, y, thing.z); // JVAL: Slopes
   tmfloorz := tmdropoffz;
   tmceilingz := P_3dCeilingHeight(newsec, x, y, thing.z) + P_SectorJumpOverhead(newsec);
+
+  tmbounceline := nil;
+
+  if newsec.midsec >= 0 then
+  begin
+    msec := @sectors[newsec.midsec];
+    if thing.z < msec.ceilingheight then
+      tmfloorpic := newsec.floorpic
+    else
+      tmfloorpic := msec.ceilingpic
+  end
+  else
+    tmfloorpic := newsec.floorpic;
 
   inc(validcount);
   numspechit := 0;
@@ -1622,7 +1693,7 @@ var
 
   aimslope: fixed_t;
 
-// JVAL: 3d floors : Moved from P_Sight  
+// JVAL: 3d floors : Moved from P_Sight
   bottomslope: fixed_t; // slopes to top and bottom of target
   topslope: fixed_t;
 
@@ -1745,6 +1816,45 @@ begin
   result := false; // don't go any farther
 end;
 
+type
+  bloodtype_t = (bt_puff, bt_red, bt_blue, bt_green);
+
+function P_BloodType(const th: Pmobj_t): bloodtype_t;
+var
+  confcoloredblood: boolean;
+begin
+  if th.flags and MF_NOBLOOD <> 0 then
+    result := bt_puff
+  else
+  begin
+    // JVAL 18/09/2009 Added Blue and Green blood spawners
+    if G_PlayingEngineVersion < VERSION110 then
+      result := bt_red
+    else if G_PlayingEngineVersion < VERSION206 then
+    begin
+      if th.flags2_ex and MF2_EX_BLUEBLOOD <> 0 then
+        result := bt_blue
+      else if th.flags2_ex and MF2_EX_GREENBLOOD <> 0 then
+        result := bt_green
+      else
+        result := bt_red;
+    end
+    else
+    begin
+      if demoplayback or demorecording then
+        confcoloredblood := true
+      else
+        confcoloredblood := p_confcoloredblood;
+      if (th.flags2_ex and MF2_EX_BLUEBLOOD <> 0) or (confcoloredblood and (th.flags3_ex and MF3_EX_CONFBLUEBLOOD <> 0)) then
+        result := bt_blue
+      else if (th.flags2_ex and MF2_EX_GREENBLOOD <> 0) or (confcoloredblood and (th.flags3_ex and MF3_EX_CONFGREENBLOOD <> 0)) then
+        result := bt_green
+      else
+        result := bt_red
+    end;
+  end;
+end;
+
 //
 // PTR_ShootTraverse
 //
@@ -1762,7 +1872,6 @@ var
   thingbottomslope: fixed_t;
   mid: Psector_t;  // JVAL: 3d Floors
   midn: integer;
-  confcoloredblood: boolean;
 
   function hitline(const check3dfloors: boolean): boolean;
   var
@@ -1971,35 +2080,11 @@ begin
 
   // Spawn bullet puffs or blood spots,
   // depending on target type.
-  if intr.d.thing.flags and MF_NOBLOOD <> 0 then
-    P_SpawnPuff(x, y, z)
-  else
-  begin
-  // JVAL 18/09/2009 Added Blue and Green blood spawners
-    if G_PlayingEngineVersion < VERSION110 then
-      P_SpawnBlood(x, y, z, la_damage)
-    else if G_PlayingEngineVersion < VERSION206 then
-    begin
-      if th.flags2_ex and MF2_EX_BLUEBLOOD <> 0 then
-        P_SpawnBlueBlood(x, y, z, la_damage)
-      else if th.flags2_ex and MF2_EX_GREENBLOOD <> 0 then
-        P_SpawnGreenBlood(x, y, z, la_damage)
-      else
-        P_SpawnBlood(x, y, z, la_damage);
-    end
-    else
-    begin
-      if demoplayback or demorecording then
-        confcoloredblood := true
-      else
-        confcoloredblood := p_confcoloredblood;
-      if (th.flags2_ex and MF2_EX_BLUEBLOOD <> 0) or (confcoloredblood and (th.flags3_ex and MF3_EX_CONFBLUEBLOOD <> 0)) then
-        P_SpawnBlueBlood(x, y, z, la_damage)
-      else if (th.flags2_ex and MF2_EX_GREENBLOOD <> 0) or (confcoloredblood and (th.flags3_ex and MF3_EX_CONFGREENBLOOD <> 0)) then
-        P_SpawnGreenBlood(x, y, z, la_damage)
-      else
-        P_SpawnBlood(x, y, z, la_damage);
-    end;
+  case P_BloodType(intr.d.thing) of
+    bt_puff: P_SpawnPuff(x, y, z);
+    bt_red: P_SpawnBlood(x, y, z, la_damage);
+    bt_blue: P_SpawnBlueBlood(x, y, z, la_damage);
+    bt_green: P_SpawnGreenBlood(x, y, z, la_damage);
   end;
 
   if la_damage <> 0 then
@@ -2144,7 +2229,7 @@ begin
     result := true;
     exit;
   end;
-  if (mobj.flags2_ex and MF2_EX_INTERACTIVE) = 0 then
+  if mobj.flags2_ex and MF2_EX_INTERACTIVE = 0 then
   begin
     result := true;
     exit;
@@ -2207,6 +2292,7 @@ var
   bombsource: Pmobj_t;
   bombspot: Pmobj_t;
   bombdamage: integer;
+  bombradius: integer;
 
 
 //
@@ -2249,6 +2335,20 @@ begin
 
   if bombsource <> nil then
   begin
+    if bombsource.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
+    if bombsource.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+      if thing.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+      begin
+        result := true;
+        exit;
+      end;
+
     if thing.player = nil then
       if bombsource.info.doomednum > 0 then
       begin
@@ -2366,6 +2466,105 @@ begin
       P_BlockThingsIterator(x, y, PIT_RadiusAttack);
 end;
 
+function PIT_RadiusAttackPlayer(thing: Pmobj_t): boolean;
+var
+  dx: fixed_t;
+  dy: fixed_t;
+  dist: fixed_t;
+  cl: fixed_t;
+  damage: integer;
+begin
+  if thing.player = nil then
+  begin
+    result := true;
+    exit;
+  end;
+
+  dx := abs(thing.x - bombspot.x);
+  dy := abs(thing.y - bombspot.y);
+
+  if dx > dy then
+    dist := dx
+  else
+    dist := dy;
+  dist := FixedInt(dist - thing.radius);
+
+  if dist < 0 then
+    dist := 0;
+
+  if dist >= bombradius then
+  begin
+    result := true; // out of range
+    exit;
+  end;
+
+  if bombsource.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+    if thing.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+    begin
+      result := true;
+      exit;
+    end;
+
+  if bombsource.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+    if thing.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+    begin
+      result := true;
+      exit;
+    end;
+
+  if P_CheckSight(thing, bombspot) then
+  begin
+    // must be in direct path
+    if bombradius = 0 then
+      P_DamageMobj(thing, bombspot, bombsource, bombdamage)
+    else
+    begin
+      cl := FixedDiv((bombradius - dist) * FRACUNIT, bombradius * FRACUNIT);
+      damage := FixedInt(FixedMul(bombdamage * FRACUNIT, cl));
+      if damage < 1 then
+        damage := 1;
+      P_DamageMobj(thing, bombspot, bombsource, damage);
+    end;
+  end;
+
+  result := true;
+end;
+
+procedure P_RadiusAttackPlayer(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
+var
+  x: integer;
+  y: integer;
+  xl: integer;
+  xh: integer;
+  yl: integer;
+  yh: integer;
+  dist: fixed_t;
+begin
+  dist := distance * FRACUNIT;
+  if internalblockmapformat then
+  begin
+    yh := MapBlockIntY(int64(spot.y) + int64(dist) - int64(bmaporgy));
+    yl := MapBlockIntY(int64(spot.y) - int64(dist) - int64(bmaporgy));
+    xh := MapBlockIntX(int64(spot.x) + int64(dist) - int64(bmaporgx));
+    xl := MapBlockIntX(int64(spot.x) - int64(dist) - int64(bmaporgx));
+  end
+  else
+  begin
+    yh := MapBlockInt(spot.y + dist - bmaporgy);
+    yl := MapBlockInt(spot.y - dist - bmaporgy);
+    xh := MapBlockInt(spot.x + dist - bmaporgx);
+    xl := MapBlockInt(spot.x - dist - bmaporgx);
+  end;
+
+  bombspot := spot;
+  bombsource := source;
+  bombdamage := damage;
+  bombradius := distance;
+
+  for y := yl to yh do
+    for x := xl to xh do
+      P_BlockThingsIterator(x, y, PIT_RadiusAttackPlayer);
+end;
 
 //
 // SECTOR HEIGHT CHANGING
@@ -2391,6 +2590,8 @@ function PIT_ChangeSector(thing: Pmobj_t): boolean;
 var
   mo: Pmobj_t;
   plr: Pplayer_t;
+  st: integer;
+  bt: bloodtype_t;
 begin
   if P_ThingHeightClip(thing) then
   begin
@@ -2409,7 +2610,19 @@ begin
   // crunch bodies to giblets
   if thing.health <= 0 then
   begin
-    P_SetMobjState(thing, S_GIBS);
+    if G_PlayingEngineVersion >= VERSION207 then
+    begin
+      bt := P_BloodType(thing);
+      if (bt = bt_green) and (MT_GREENGIBS <> Ord(MT_NONE)) then
+        st := mobjinfo[MT_GREENGIBS].spawnstate
+      else if (bt = bt_blue) and (MT_BLUEGIBS <> Ord(MT_NONE)) then
+        st := mobjinfo[MT_GREENGIBS].spawnstate
+      else
+        st := Ord(S_GIBS);
+      P_SetMobjState(thing, statenum_t(st));
+    end
+    else
+      P_SetMobjState(thing, S_GIBS);
 
     thing.flags := thing.flags and not MF_SOLID;
     thing.height := 0;
@@ -2801,7 +3014,7 @@ begin
     else
       node := node.m_tnext;
   end;
-  
+
 end;
 
 //----------------------------------------------------------------------------

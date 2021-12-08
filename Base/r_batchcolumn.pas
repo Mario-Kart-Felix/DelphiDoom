@@ -1017,7 +1017,7 @@ begin
     deststopX4 := PLongWord(integer(deststop) - 4 * SizeOf(pointer));
     if lfactor >= 0 then
     begin
-      R_GetPrecalc32Tables(lfactor, bf_r, bf_g, bf_b);
+      R_GetPrecalc32Tables(lfactor, bf_r, bf_g, bf_b, dc_fog);  // JVAL: Mars fog sectors
       while count >= 0 do
       begin
         spot := (LongWord(frac) shr FRACBITS) and 127;
@@ -1094,7 +1094,7 @@ begin
   begin
     if lfactor >= 0 then
     begin
-      R_GetPrecalc32Tables(lfactor, bf_r, bf_g, bf_b);
+      R_GetPrecalc32Tables(lfactor, bf_r, bf_g, bf_b, dc_fog);  // JVAL: Mars fog sectors
       while count >= 0 do
       begin
         spot := (LongWord(frac) shr FRACBITS) and 127;
@@ -2099,7 +2099,7 @@ begin
   swidth := SCREENWIDTH32PITCH - num_batch_columns * SizeOf(LongWord);
 
   addfactor := dc_alpha;
-    
+
   fraclimit := frac + fracstep * count;
   while frac <= fraclimit do
   begin
@@ -2231,7 +2231,7 @@ begin
   swidth := SCREENWIDTH32PITCH - num_batch_columns * SizeOf(LongWord);
 
   subfactor := dc_alpha;
-    
+
   fraclimit := frac + fracstep * count;
   while frac <= fraclimit do
   begin

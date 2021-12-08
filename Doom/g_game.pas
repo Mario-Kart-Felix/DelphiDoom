@@ -44,7 +44,7 @@ uses
 
 procedure G_DeathMatchSpawnPlayer(playernum: integer);
 
-procedure G_InitNew(skill:skill_t; episode: integer; map: integer);
+procedure G_InitNew(skill: skill_t; episode: integer; map: integer);
 
 // Can be called by the startup code or M_Responder.
 // A normal game starts at map 1,
@@ -129,6 +129,8 @@ var
   key_speed: integer;
 // JVAL Jump
   key_jump: integer;
+// JVAL: 20211101 - Crouch
+  key_crouch: integer;
 
 // JVAL 20191207 Key bindings for weapon change
   key_weapon0: integer = Ord('1');
@@ -155,6 +157,7 @@ var
   joybuse: integer;
   joybspeed: integer;
   joybjump: integer;
+  joybcrouch: integer;  // JVAL: 20211101 - Crouch
   joyblleft: integer;
   joyblright: integer;
 
@@ -241,6 +244,7 @@ var
   autorunmode: boolean = false;
   keepcheatsinplayerreborn: boolean = false;
   allowplayerjumps: boolean = true;
+  allowplayercrouch: boolean = true;
   majorbossdeathendsdoom1level: boolean = false;
 
 var
@@ -438,6 +442,7 @@ var
   base: Pticcmd_t;
   imousex: integer;
   imousey: integer;
+  cmd_jump, cmd_crouch: byte;
 begin
   base := I_BaseTiccmd;    // empty, or external driver
 
@@ -725,13 +730,34 @@ begin
     if allowplayerjumps and (gamekeydown[key_jump] or (usejoystick and joybuttons[joybjump])) then
     begin
       if players[consoleplayer].oldjump <> 0 then
-        cmd.jump := 1
+        cmd_jump := 1
       else
-        cmd.jump := 2
+        cmd_jump := 2
       end
     else
-      cmd.jump := 0;
-    players[consoleplayer].oldjump := cmd.jump;
+      cmd_jump := 0;
+    players[consoleplayer].oldjump := cmd_jump;
+    // JVAL: 20211101 - Crouch
+    // allowplayercrouch variable controls if we accept input for crouching
+    if cmd_jump = 0 then
+    begin
+      if allowplayercrouch and (gamekeydown[key_crouch] or (usejoystick and joybuttons[joybcrouch])) then
+      begin
+        if players[consoleplayer].oldcrouch <> 0 then
+          cmd_crouch := 2
+        else
+          cmd_crouch := 1
+        end
+      else
+        cmd_crouch := 0;
+    end
+    else
+      cmd_crouch := 0;
+    players[consoleplayer].oldcrouch := cmd_crouch;
+
+    cmd.jump_crouch :=
+      ((cmd_jump shl CMD_JUMP_SHIFT) and CMD_JUMP_MASK) +
+      ((cmd_crouch shl CMD_CROUCH_SHIFT) and CMD_CROUCH_MASK);
   end;
 
   // special buttons
@@ -746,6 +772,7 @@ begin
     sendsave := false;
     cmd.buttons := BT_SPECIAL or BTS_SAVEGAME or _SHL(savegameslot, BTS_SAVESHIFT);
   end;
+
   if sendcmdsave then
   begin
     sendcmdsave := false;
@@ -1051,6 +1078,7 @@ begin
     sendsave := false;
     cmd.buttons := BT_SPECIAL or BTS_SAVEGAME or _SHL(savegameslot, BTS_SAVESHIFT);
   end;
+
   if sendcmdsave then
   begin
     sendcmdsave := false;
@@ -1080,16 +1108,22 @@ begin
      (gamemission = pack_plutonia) then
   begin
     if gamemap < 12 then
-      skytexture := R_TextureNumForName('SKY1')
+      skytexture := R_CheckTextureNumForName('SKY1')
     else if gamemap < 21 then
-      skytexture := R_TextureNumForName('SKY2')
+      skytexture := R_CheckTextureNumForName('SKY2')
     else
-      skytexture := R_TextureNumForName('SKY3');
+      skytexture := R_CheckTextureNumForName('SKY3');
+    if skytexture < 0 then
+      skytexture := R_TextureNumForName('SKY1');
   end
   else
   begin
     if gameepisode < 5 then
-      skytexture := R_TextureNumForName('SKY' + Chr(Ord('0') + gameepisode))
+    begin
+      skytexture := R_CheckTextureNumForName('SKY' + Chr(Ord('0') + gameepisode));
+      if skytexture < 0 then
+        skytexture := R_TextureNumForName('SKY1');
+    end
     else
       skytexture := R_TextureNumForName('SKY1');
   end;
@@ -1477,6 +1511,8 @@ begin
     key_strafeleft := 44;
     key_straferight := 46;
     key_jump := 97;
+    // JVAL: 20211101 - Crouch
+    key_crouch := 122;
     key_fire := 157;
     key_use := 32;
     key_strafe := 184;
@@ -1505,6 +1541,8 @@ begin
     key_strafeleft := 97;
     key_straferight := 100;
     key_jump := 101;
+    // JVAL: 20211101 - Crouch
+    key_crouch := 113;
     key_fire := 157;
     key_use := 32;
     key_strafe := 184;
@@ -1880,7 +1918,7 @@ begin
 end;
 
 //
-// G_WorldDone 
+// G_WorldDone
 //
 procedure G_WorldDone;
 begin
@@ -1923,7 +1961,7 @@ begin
       exit;
     end;
   end;
-  
+
   if strupper(Copy(name, length(name) - 3, 4)) <> '.DSG' then
     result := name + '.DSG'
   else
@@ -2012,6 +2050,8 @@ begin
         savegameversion := VERSION204
       else if vsaved = 'version 205' then
         savegameversion := VERSION205
+      else if vsaved = 'version 206' then
+        savegameversion := VERSION206
       else
       begin
         I_Warning('G_DoLoadGame(): Saved game is from an unsupported version: %s!'#13#10, [vsaved]);
@@ -2562,7 +2602,7 @@ begin
     cmd.lookupdown := 0;
     cmd.lookupdown16 := 0; // JVAL Smooth Look Up/Down
     cmd.lookleftright := 0;
-    cmd.jump := 0;
+    cmd.jump_crouch := 0; // JVAL: 20211101 - Crouch
   end
   else
   begin
@@ -2580,7 +2620,7 @@ begin
 
     cmd.lookleftright := demo_p[0];
     demo_p := @demo_p[1];
-    cmd.jump := demo_p[0];
+    cmd.jump_crouch := demo_p[0];
     demo_p := @demo_p[1];
   end;
 end;
@@ -2656,7 +2696,7 @@ begin
   demo_p[0] := cmd.lookleftright;
   demo_p := @demo_p[1];
 
-  demo_p[0] := cmd.jump;
+  demo_p[0] := cmd.jump_crouch;
 
   demo_p := demo_start;
 

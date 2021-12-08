@@ -107,6 +107,7 @@ uses
   g_game,
   p_mobj,
   p_obituaries,
+  p_3dfloors,
   p_pspr,
   p_pspr_h,
   p_dialog,
@@ -580,14 +581,14 @@ begin
       end;
 
     // missile
-    Ord(SPR_ROKT):
+    Ord(SPR_MSSL):
       begin
         if not P_GiveAmmo(player, am_missiles, 1) then
           exit;
       end;
 
     // box of missiles
-    Ord(SPR_MSSL):
+    Ord(SPR_ROKT):
       begin
         if not P_GiveAmmo(player, am_missiles, 5) then
           exit;
@@ -862,9 +863,13 @@ var
   junk: line_t;
   p: Pplayer_t;
   i: integer;
+  zpos: integer;
 begin
-  target.flags := target.flags and (not (MF_SHOOTABLE or MF_FLOAT or MF_BOUNCE));
-  target.flags3_ex := target.flags3_ex and (not MF3_EX_BOUNCE);
+  target.flags := target.flags and not (MF_SHOOTABLE or MF_FLOAT or MF_BOUNCE);
+  if target.flags3_ex and MF3_EX_SETGRAVITYONDEATH <> 0 then
+    target.flags := target.flags and not MF_NOGRAVITY;
+
+  target.flags3_ex := target.flags3_ex and not MF3_EX_BOUNCE;
 
   target.flags := target.flags or (MF_CORPSE or MF_DROPOFF);
   target.height := FRACUNIT;  // villsa [STRIFE] set to fracunit instead of >>= 2
@@ -888,7 +893,7 @@ begin
       end;
     end;
   end
-  else if (not netgame) and (target.flags and MF_COUNTKILL <> 0) then
+  else if not netgame and (target.flags and MF_COUNTKILL <> 0) then
   begin
     // count all monster deaths,
     // even those caused by other monsters
@@ -941,7 +946,7 @@ begin
       end;
     end;
 
-    target.flags := target.flags and (not MF_SOLID);
+    target.flags := target.flags and not MF_SOLID;
     p.playerstate := PST_DEAD;
     p.mo.momz := 5 * FRACUNIT;  // [STRIFE]: small hop!
 
@@ -1167,7 +1172,12 @@ begin
   // villsa [STRIFE] toss out item
   if (deathmatch = 0) or (mobjinfo[item].flags and MF_NOTDMATCH = 0) then
   begin
-    mo := P_SpawnMobj(target.x, target.y, target.z + (24 * FRACUNIT), item);
+    if target.flags4_ex and MF4_EX_ABSOLUTEDROPITEMPOS <> 0 then
+      zpos := target.z
+    else
+      zpos := target.z + 24 * FRACUNIT;
+
+    mo := P_SpawnMobj(target.x, target.y, zpos, item);
     r := P_Random;
     mo.momx := mo.momx + ((r and 7) - (P_Random and 7)) * FRACUNIT;
     r := P_Random;
@@ -1249,6 +1259,26 @@ begin
   if target.health <= 0 then
     exit;
 
+  if inflictor <> nil then
+  begin
+    if inflictor.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+        exit;
+      if target.flags3_ex and MF3_EX_FREEZEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
+    if inflictor.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+        exit;
+      if target.flags4_ex and MF4_EX_FLAMEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
+  end;
+
   player := target.player;
   if (player <> nil) and (gameskill = sk_baby) then
     damage := damage div 2; // take half damage in trainer mode
@@ -1279,7 +1309,7 @@ begin
 
     // make fall forwards sometimes
     if (damage < 40) and (damage > target.health) and
-       (target.z - inflictor.z > 64 * FRACUNIT) and ((P_Random and 1) <> 0) then
+       (target.z - inflictor.z > 64 * FRACUNIT) and (P_Random and 1 <> 0) then
     begin
       ang := ang + ANG180;
       thrust := thrust * 4;
@@ -1416,7 +1446,7 @@ begin
   end;
 
   if damage <> 0 then
-    if P_Random < target.info.painchance then
+    if P_Random < target.painchance then
     begin
       target.flags := target.flags or MF_JUSTHIT; // fight back!
       P_SetMobjState(target, statenum_t(target.info.painstate));

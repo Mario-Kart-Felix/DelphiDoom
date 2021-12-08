@@ -127,7 +127,7 @@ var
   p_maxartifacts: integer = 16;
 
 function P_GiveArtifact(player: Pplayer_t; arti: artitype_t; mo: Pmobj_t): boolean;
-  
+
 implementation
 
 uses
@@ -140,6 +140,7 @@ uses
   g_game,
   p_mobj,
   p_obituaries,
+  p_3dfloors,
   p_pspr,
   p_pspr_h,
   p_tick,
@@ -1186,6 +1187,11 @@ begin
   begin
     result.z := result.z + 32 * FRACUNIT;
     result.momz := 4 * FRACUNIT;
+    if G_PlayingEngineVersion >= VERSION207 then
+    begin
+      result.momx := 64 * N_Random;
+      result.momy := 64 * N_Random;
+    end;
   end;
 end;
 
@@ -1193,9 +1199,13 @@ procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 var
   item: integer;
   gibhealth: integer;
+  zpos: integer;
 begin
-  target.flags := target.flags and (not (MF_SHOOTABLE or MF_FLOAT or MF_SKULLFLY or MF_NOGRAVITY));
-  target.flags3_ex := target.flags3_ex and (not MF3_EX_BOUNCE);
+  target.flags := target.flags and not (MF_SHOOTABLE or MF_FLOAT or MF_SKULLFLY);
+  if target.flags3_ex and MF3_EX_NOGRAVITYDEATH = 0 then
+    target.flags := target.flags and not MF_NOGRAVITY;
+
+  target.flags3_ex := target.flags3_ex and not MF3_EX_BOUNCE;
 
   target.flags := target.flags or (MF_CORPSE or MF_DROPOFF);
   target.flags2 := target.flags2 and not MF2_PASSMOBJ;
@@ -1223,7 +1233,7 @@ begin
       end;
     end;
   end
-  else if (not netgame) and (target.flags and MF_COUNTKILL <> 0) then
+  else if not netgame and (target.flags and MF_COUNTKILL <> 0) then
   begin
     // count all monster deaths,
     // even those caused by other monsters
@@ -1237,8 +1247,8 @@ begin
       Pplayer_t(target.player).frags[pDiff(target.player, @players[0], SizeOf(players[0]))] :=
         Pplayer_t(target.player).frags[pDiff(target.player, @players[0], SizeOf(players[0]))] - 1;
 
-    target.flags := target.flags and (not MF_SOLID);
-    target.flags2 := target.flags2 and (not MF2_FLY);
+    target.flags := target.flags and not MF_SOLID;
+    target.flags2 := target.flags2 and not MF2_FLY;
     Pplayer_t(target.player).powers[Ord(pw_flight)] := 0;
     Pplayer_t(target.player).powers[Ord(pw_weaponlevel2)] := 0;
     Pplayer_t(target.player).playerstate := PST_DEAD;
@@ -1298,8 +1308,13 @@ begin
   if item <= 0 then
     Exit;
 
-  if Psubsector_t(target.subsector).sector.midsec >= 0 then // JVAL: 3d Floors
+  if target.flags4_ex and MF4_EX_ABSOLUTEDROPITEMPOS <> 0 then
     P_SpawnDroppedMobj(target.x, target.y, target.z, item)
+  else if Psubsector_t(target.subsector).sector.midsec >= 0 then // JVAL: 3d Floors
+  begin
+    zpos := P_3dFloorHeight(target);
+    P_SpawnDroppedMobj(target.x, target.y, zpos, item)
+  end
   else
     P_SpawnDroppedMobj(target.x, target.y, ONFLOORZ, item);
 end;
@@ -1349,6 +1364,26 @@ begin
     target.momx := 0;
     target.momy := 0;
     target.momz := 0;
+  end;
+
+  if inflictor <> nil then
+  begin
+    if inflictor.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFREEZEDAMAGE <> 0 then
+        exit;
+      if target.flags3_ex and MF3_EX_FREEZEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
+    if inflictor.flags3_ex and MF3_EX_FLAMEDAMAGE <> 0 then
+    begin
+      if target.flags3_ex and MF3_EX_NOFLAMEDAMAGE <> 0 then
+        exit;
+      if target.flags4_ex and MF4_EX_FLAMEDAMAGERESIST <> 0 then
+        if damage > 1 then
+          damage := _SHR1(damage);
+    end;
   end;
 
   player := target.player;
@@ -1554,13 +1589,13 @@ begin
          ((inflictor._type = Ord(MT_PHOENIXFX1)) and (target.health > -50) and (damage > 25)) then
         target.flags2 := target.flags2 or MF2_FIREDAMAGE;
     end;
-    
+
     P_KillMobj(source, target);
     P_Obituary(target, inflictor, source);
     exit;
   end;
 
-  if (P_Random < target.info.painchance) and
+  if (P_Random < target.painchance) and
      ((target.flags and MF_SKULLFLY) = 0) then
   begin
     target.flags := target.flags or MF_JUSTHIT; // fight back!

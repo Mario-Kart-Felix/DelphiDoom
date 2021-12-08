@@ -63,6 +63,18 @@ procedure DEH_PrintActordef;
 
 procedure DEH_SaveActordef(const fname: string);
 
+function DEH_CurrentWeapondef: string;
+
+procedure DEH_PrintWeapondef;
+
+procedure DEH_SaveWeapondef(const fname: string);
+
+function DEH_CurrentStateOwners: string;
+
+procedure DEH_PrintStateOwners;
+
+procedure DEH_SaveStateOwners(const fname: string);
+
 procedure DEH_PrintActions;
 
 function DEH_FixedOrFloat(const token: string; const tolerance: integer): fixed_t;
@@ -89,6 +101,16 @@ procedure DEH_AddActionToHash(const act: string; const idpos: integer);
 
 function DEH_SearchActionFromHash(const act: string): integer;
 
+function DEH_AmmoType(const str: string): integer;
+
+function DEH_WeaponType(const str: string): integer;
+
+procedure DEH_AddAction(const acp1: actionf_p1; const desc: string);
+
+{$IFDEF  HEXEN}
+function DEH_PlayerClass(const str: string): integer;
+{$ENDIF}
+
 const
   DEH_STRINGLIST_HASH_SIZE = 64;
 
@@ -111,11 +133,16 @@ implementation
 uses
   TypInfo,
   deh_main,
+  doomdef,
+  {$IFDEF DOOM_OR_STRIFE}
+  d_items,
+  {$ENDIF}
   i_system,
   info,
   info_h,
   m_argv,
   sc_actordef,
+  sc_states,
   w_folders,
   w_pak,
   w_wad;
@@ -441,11 +468,135 @@ begin
   end;
 end;
 
+function DEH_CurrentWeapondef: string;
+var
+  w: integer;
+{$IFDEF HERETIC_OR_HEXEN}
+  i: integer;
+{$ENDIF}
+begin
+  result := '';
+{$IFDEF HERETIC}
+  for i := 1 to 2 do
+{$ENDIF}
+{$IFDEF HEXEN}
+  for i := 0 to Ord(NUMCLASSES) - 1 do
+{$ENDIF}
+    for w := 0 to Ord(NUMWEAPONS) - 1 do
+      result := result + SC_GetWeapondefDeclaration(w{$IFDEF HERETIC_OR_HEXEN}, i{$ENDIF});
+end;
+
+procedure DEH_PrintWeapondef;
+var
+  s: TDSTringList;
+  i: integer;
+begin
+  s := TDSTringList.Create;
+  try
+    s.Text := DEH_CurrentWeapondef;
+    for i := 0 to s.Count - 1 do
+      printf('%s'#13#10, [s[i]]);
+  finally
+    s.Free;
+  end;
+end;
+
+procedure DEH_SaveWeapondef(const fname: string);
+var
+  s: TDSTringList;
+  fname1: string;
+begin
+  if fname = '' then
+  begin
+    printf('Please specify the filename to save current WEAPONDEF settings'#13#10);
+    exit;
+  end;
+
+  if Pos('.', fname) = 0 then
+    fname1 := fname + '.txt'
+  else
+    fname1 := fname;
+
+  fname1 := M_SaveFileName(fname1);
+
+  s := TDSTringList.Create;
+  try
+    s.Text := DEH_CurrentWeapondef;
+    s.SaveToFile(fname1);
+    printf('WEAPONDEF settings saved to %s'#13#10, [fname1]);
+  finally
+    s.Free;
+  end;
+end;
+
+function DEH_CurrentStateOwners: string;
+var
+  i, j: integer;
+  s1, s2: string;
+begin
+  result := '';
+  for i := 0 to numstates - 1 do
+  begin
+    s1 := statenames.Strings[i];
+    s2 := '';
+    if states[i].owners <> nil then
+    begin
+      for j := 0 to states[i].owners.Count - 1 do
+        s2 := s2 + '"' + strtrim(mobjinfo[states[i].owners.Numbers[j]].name) + '" ';
+      s2 := strtrim(s2);
+    end;
+    result := result + s1 + '=' + s2 + #13#10;
+  end;
+end;
+
+procedure DEH_PrintStateOwners;
+var
+  s: TDSTringList;
+  i: integer;
+begin
+  s := TDSTringList.Create;
+  try
+    s.Text := DEH_CurrentStateOwners;
+    for i := 0 to s.Count - 1 do
+      printf('%s'#13#10, [s[i]]);
+  finally
+    s.Free;
+  end;
+end;
+
+procedure DEH_SaveStateOwners(const fname: string);
+var
+  s: TDSTringList;
+  fname1: string;
+begin
+  if fname = '' then
+  begin
+    printf('Please specify the filename to save current state owners'#13#10);
+    exit;
+  end;
+
+  if Pos('.', fname) = 0 then
+    fname1 := fname + '.txt'
+  else
+    fname1 := fname;
+
+  fname1 := M_SaveFileName(fname1);
+
+  s := TDSTringList.Create;
+  try
+    s.Text := DEH_CurrentStateOwners;
+    s.SaveToFile(fname1);
+    printf('State owners saved to %s'#13#10, [fname1]);
+  finally
+    s.Free;
+  end;
+end;
+
 procedure DEH_PrintActions;
 var
   i: integer;
 begin
-  for i := 0 to DEHNUMACTIONS - 1 do
+  for i := 0 to dehnumactions - 1 do
     printf('A_%s'#13#10, [deh_actions[i].name]);
 end;
 
@@ -456,7 +607,7 @@ begin
   if (Pos('.', token) > 0) or (Pos(',', token) > 0) then
   begin
     fv := atof(token, 0);
-    if fv > tolerance then
+    if fabs(fv) > tolerance then
       result := round(fv)
     else
       result := round(fv * FRACUNIT);
@@ -695,7 +846,7 @@ function DEH_ActionName(action: actionf_t): string;
 var
   i: integer;
 begin
-  for i := 0 to DEHNUMACTIONS - 1 do
+  for i := 0 to dehnumactions - 1 do
   begin
     if @deh_actions[i].action.acp1 = @action.acp1 then
     begin
@@ -869,6 +1020,96 @@ begin
 
   result := fList.IndexOf(check);
 end;
+
+function DEH_AmmoType(const str: string): integer;
+var
+  stmp: string;
+begin
+  if ammotype_tokens = nil then
+  begin
+    result := atoi(str, -1);
+    exit;
+  end;
+
+  if StrIsInteger(str) then
+  begin
+    result := atoi(str, -1);
+    exit;
+  end;
+
+  stmp := strupper(str);
+  {$IFNDEF HEXEN}
+  if Pos('AM_', stmp) <> 1 then
+    stmp := stmp + 'AM_';
+  {$ENDIF}
+
+  result := ammotype_tokens.IndexOf(stmp);
+end;
+
+function DEH_WeaponType(const str: string): integer;
+var
+  stmp: string;
+begin
+  if weapontype_tokens = nil then
+  begin
+    result := atoi(str, -1);
+    exit;
+  end;
+
+  if StrIsInteger(str) then
+  begin
+    result := atoi(str, -1);
+    exit;
+  end;
+
+  stmp := strupper(str);
+  if Pos('WP_', stmp) <> 1 then
+    stmp := stmp + 'WP_';
+
+  result := weapontype_tokens.IndexOf(stmp);
+end;
+
+procedure DEH_AddAction(const acp1: actionf_p1; const desc: string);
+var
+  aname: string;
+begin
+  if dehnumactions >= DEHMAXACTIONS then
+    I_Error('DEH_AddAction(): Trying to add more than %d actions', [DEHMAXACTIONS]);
+
+  deh_actions[dehnumactions].action.acp1 := @acp1;
+  aname := firstword(desc, [' ', ';', '(', '[', ':', #7, #9, #10, #13]);
+  if Pos('A_', strupper(aname)) = 1 then
+    Delete(aname, 1, 2);
+  deh_actions[dehnumactions].originalname := aname;
+  deh_actions[dehnumactions].name := strupper(aname);
+  {$IFDEF DLL}deh_actions[dehnumactions].decl := desc;{$ENDIF}
+  Inc(dehnumactions);
+end;
+
+{$IFDEF  HEXEN}
+function DEH_PlayerClass(const str: string): integer;
+var
+  stmp: string;
+begin
+  if playerclass_tokens = nil then
+  begin
+    result := atoi(str, -1);
+    exit;
+  end;
+
+  if StrIsInteger(str) then
+  begin
+    result := atoi(str, -1);
+    exit;
+  end;
+
+  stmp := strupper(str);
+  if Pos('PCLASS_', stmp) <> 1 then
+    stmp := stmp + 'PCLASS_';
+
+  result := playerclass_tokens.IndexOf(stmp);
+end;
+{$ENDIF}
 
 end.
 

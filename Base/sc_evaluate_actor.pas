@@ -48,12 +48,15 @@ implementation
 uses
   d_delphi,
   Math,
+  g_game,
   m_fixed,
   i_system,
   {$IFDEF HERETIC}
   r_defs,
   {$ENDIF}
   p_params,
+  p_setup,
+  p_tick,
   psi_globals,
   sc_evaluate,
   sc_consts,
@@ -74,6 +77,14 @@ type
     function PF_random2(p: TDStrings): string;
     function PF_frandom(p: TDStrings): string;
     function PF_randompick(p: TDStrings): string;
+    // General
+    function PF_leveltime(p: TDStrings): string;
+    {$IFDEF DOOM_OR_HERETIC}
+    function PF_gameepisode(p: TDStrings): string;
+    {$ENDIF}
+    function PF_gamemap(p: TDStrings): string;
+    function PF_levelname(p: TDStrings): string;
+    function PF_gameskill(p: TDStrings): string;
     // Actor position and movement
     function PF_X(p: TDStrings): string;
     function PF_Y(p: TDStrings): string;
@@ -96,6 +107,7 @@ type
     function PF_floorclip(p: TDStrings): string;
     function PF_gravity(p: TDStrings): string;
     function PF_pushfactor(p: TDStrings): string;
+    function PF_friction(p: TDStrings): string;
     function PF_scale(p: TDStrings): string;
     function PF_mass(p: TDStrings): string;
     function PF_special(p: TDStrings): string;
@@ -106,6 +118,8 @@ type
     function PF_arg5(p: TDStrings): string;
     function PF_WeaveIndexXY(p: TDStrings): string;
     function PF_WeaveIndexZ(p: TDStrings): string;
+    function PF_SpriteDX(p: TDStrings): string;
+    function PF_SpriteDY(p: TDStrings): string;
     // Pascalscript map & world variables
     function PF_MAPSTR(p: TDStrings): string;
     function PF_WORLDSTR(p: TDStrings): string;
@@ -126,9 +140,7 @@ type
     function PF_XDEATH(p: TDStrings): string;
     function PF_HEAL(p: TDStrings): string;
     function PF_CRASH(p: TDStrings): string;
-    {$IFDEF DOOM_OR_STRIFE}
     function PF_INTERACT(p: TDStrings): string;
-    {$ENDIF}
     function PF_RAISE(p: TDStrings): string;
   public
     constructor Create; override;
@@ -160,6 +172,14 @@ begin
   AddFunc('FRANDOM', PF_frandom, -1);
   AddFunc('RANDOMPICK', PF_randompick, -1);
   AddFunc('FRANDOMPICK', PF_randompick, -1);
+  // General
+  AddFunc('LEVELTIME', PF_leveltime, -1);
+  {$IFDEF DOOM_OR_HERETIC}
+  AddFunc('GAMEEPISODE', PF_gameepisode, -1);
+  {$ENDIF}
+  AddFunc('GAMEMAP', PF_gamemap, -1);
+  AddFunc('LEVELNAME', PF_levelname, -1);
+  AddFunc('GAMESKILL', PF_gameskill, -1);
   // Actor position and movement
   AddFunc('X', PF_X, 0);
   AddFunc('Y', PF_Y, 0);
@@ -185,6 +205,7 @@ begin
   AddFunc('FLOORCLIP', PF_floorclip, 0);
   AddFunc('GRAVITY', PF_gravity, 0);
   AddFunc('PUSHFACTOR', PF_pushfactor, 0);
+  AddFunc('FRICTION', PF_friction, 0);
   AddFunc('SCALE', PF_scale, 0);
   AddFunc('MASS', PF_mass, 0);
   AddFunc('SPECIAL', PF_special, 0);
@@ -195,6 +216,8 @@ begin
   AddFunc('ARG5', PF_arg5, 0);
   AddFunc('WEAVEINDEXXY', PF_WeaveIndexXY, 0);
   AddFunc('WEAVEINDEXZ', PF_WeaveIndexZ, 0);
+  AddFunc('SPRITEDX', PF_SpriteDX, 0);
+  AddFunc('SPRITEDY', PF_SpriteDY, 0);
   // Pascalscript map & world variables
   AddFunc('MAPSTR', PF_MAPSTR, 1);
   AddFunc('WORLDSTR', PF_WORLDSTR, 1);
@@ -217,9 +240,7 @@ begin
   AddFunc('XDEATH', PF_XDEATH, 0);
   AddFunc('HEAL', PF_HEAL, 0);
   AddFunc('CRASH', PF_CRASH, 0);
-  {$IFDEF DOOM_OR_STRIFE}
   AddFunc('INTERACT', PF_INTERACT, 0);
-  {$ENDIF}
   AddFunc('RAISE', PF_RAISE, 0);
 end;
 
@@ -347,6 +368,34 @@ begin
   result := p[N_Random mod p.count];
 end;
 
+// General
+function TActorEvaluator.PF_leveltime(p: TDStrings): string;
+begin
+  result := itoa(leveltime);
+end;
+
+{$IFDEF DOOM_OR_HERETIC}
+function TActorEvaluator.PF_gameepisode(p: TDStrings): string;
+begin
+  result := itoa(gameepisode);
+end;
+{$ENDIF}
+
+function TActorEvaluator.PF_gamemap(p: TDStrings): string;
+begin
+  result := itoa(gamemap);
+end;
+
+function TActorEvaluator.PF_levelname(p: TDStrings): string;
+begin
+  result := P_GetMapName({$IFDEF DOOM_OR_HERETIC}gameepisode, {$ENDIF}gamemap);
+end;
+
+function TActorEvaluator.PF_gameskill(p: TDStrings): string;
+begin
+  result := itoa(Ord(gameskill));
+end;
+
 // Actor position and movement
 function TActorEvaluator.PF_X(p: TDStrings): string;
 begin
@@ -457,6 +506,11 @@ begin
   result := ftoa(factor.pushfactor / FRACUNIT);
 end;
 
+function TActorEvaluator.PF_friction(p: TDStrings): string;
+begin
+  result := ftoa(factor.friction / FRACUNIT);
+end;
+
 function TActorEvaluator.PF_scale(p: TDStrings): string;
 begin
   result := ftoa(factor.scale / FRACUNIT);
@@ -505,6 +559,16 @@ end;
 function TActorEvaluator.PF_WeaveIndexZ(p: TDStrings): string;
 begin
   result := itoa(factor.WeaveIndexZ);
+end;
+
+function TActorEvaluator.PF_SpriteDX(p: TDStrings): string;
+begin
+  result := itoa(factor.spriteDX);
+end;
+
+function TActorEvaluator.PF_SpriteDY(p: TDStrings): string;
+begin
+  result := itoa(factor.spriteDY);
 end;
 
 // Pascalscript map & world variables
@@ -612,12 +676,10 @@ begin
   result := itoa(factor.info.crashstate);
 end;
 
-{$IFDEF DOOM_OR_STRIFE}
 function TActorEvaluator.PF_INTERACT(p: TDStrings): string;
 begin
   result := itoa(factor.info.interactstate);
 end;
-{$ENDIF}
 
 function TActorEvaluator.PF_RAISE(p: TDStrings): string;
 begin

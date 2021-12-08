@@ -4,7 +4,7 @@
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -192,7 +192,7 @@ begin
   cmd.lookleftright := demo_p[0];
   demo_p := @demo_p[1];
 
-  cmd.jump := demo_p[0];
+  cmd.jump_crouch := demo_p[0];
   demo_p := @demo_p[1];
 
   if demoversion < VERSION203 then
@@ -275,7 +275,7 @@ begin
   demo_p[0] := cmd.lookleftright;
   demo_p := @demo_p[1];
 
-  demo_p[0] := cmd.jump;
+  demo_p[0] := cmd.jump_crouch;
   demo_p := @demo_p[1];
 
   // JVAL Smooth Look Up/Down
@@ -507,7 +507,7 @@ begin
   else if demoversion <> VERSION then
     I_Warning('G_DoPlayDemo(): Demo is from a partial supported game version = %d.%.*d' + #13#10,
       [demo_p[0] div 100, 2, demo_p[0] mod 100]);
-      
+
   demo_p := @demo_p[1];
 
   skill := skill_t(demo_p[0]);

@@ -712,6 +712,7 @@ begin
   parms.dc_texturemid := dc_texturemid;
   parms.dc_source := dc_source;
   parms.dc_alpha := dc_alpha;
+  parms.dc_fog := dc_fog; // JVAL: Mars fog sectors
   parms.num_batch_columns := num_batch_columns;
   parms.dc_colormap32 := dc_colormap32;
   parms.proc := spritefunc_mt;
@@ -726,6 +727,7 @@ begin
   parms.dc_texturemid := dc_texturemid;
   parms.dc_source := dc_source;
   parms.dc_alpha := dc_alpha;
+  parms.dc_fog := dc_fog; // JVAL: Mars fog sectors
   parms.num_batch_columns := num_batch_columns;
   parms.dc_colormap32 := dc_colormap32;
   parms.proc := batchspritefunc_mt;
@@ -1017,12 +1019,14 @@ begin
   dc_iscale := FixedDivEx(FRACUNIT, vis.scale);
   dbscale := trunc((FRACUNIT / dc_iscale) * (FRACUNIT / vis.infoscale) * FRACUNIT);
 
+  dc_fog := vis.fog; // JVAL: Mars fog sectors
+
   dc_texturemid := vis.texturemid;
   frac := vis.startfrac;
   spryscale := vis.scale;
   sprtopscreen := centeryfrac - FixedMul(dc_texturemid, spryscale);
 
-  if (vis.footclip <> 0) and (not playerweapon) then
+  if (vis.footclip <> 0) and not playerweapon then
     baseclip := FixedInt((sprtopscreen + FixedMul(patch.height * FRACUNIT, spryscale) - FixedMul(vis.footclip, spryscale)))
   else
     baseclip := viewheight - 1;
@@ -1106,7 +1110,6 @@ end;
 // R_DrawVisSpriteLight
 // Used for sprites that emits light
 //
-
 procedure R_DrawVisSpriteLight(vis: Pvissprite_t; x1: integer; x2: integer);
 var
   texturecolumn: integer;
@@ -1134,6 +1137,11 @@ begin
 
   if fixedcolormapnum = INVERSECOLORMAP then
   // JVAL: if in invulnerability mode use white color
+  begin
+    lightcolfunc := whitelightcolfunc;
+    batchlightcolfunc := batchwhitelightcolfunc;
+  end
+  else if vis.fog then  // JVAL: Mars fog sectors
   begin
     lightcolfunc := whitelightcolfunc;
     batchlightcolfunc := batchwhitelightcolfunc;
@@ -1178,32 +1186,35 @@ begin
     while dc_x <= x2 do
     begin
       texturecolumn := LongWord(frac) shr FRACBITS;
-      ltopdelta := lighboostlookup[texturecolumn].topdelta;
-      llength := lighboostlookup[texturecolumn].length;
-      dc_source32 := @lightboost[texturecolumn * LIGHTBOOSTSIZE + ltopdelta];
+      if IsIntegerInRange(texturecolumn, 0, LIGHTBOOSTSIZE - 1) then
+      begin
+        ltopdelta := lighboostlookup[texturecolumn].topdelta;
+        llength := lighboostlookup[texturecolumn].length;
+        dc_source32 := @lightboost[texturecolumn * LIGHTBOOSTSIZE + ltopdelta];
 
-      basetexturemid := dc_texturemid;
+        basetexturemid := dc_texturemid;
 
-      topscreen := sprtopscreen + int64(spryscale * ltopdelta);
-      bottomscreen := topscreen + int64(spryscale * llength);
+        topscreen := sprtopscreen + int64(spryscale * ltopdelta);
+        bottomscreen := topscreen + int64(spryscale * llength);
 
-      dc_yl := FixedInt64(topscreen + (FRACUNIT - 1));
-      dc_texturemid := (centery - dc_yl) * dc_iscale;
-      if dc_yl <= mceilingclip[dc_x] then
-        dc_yl := mceilingclip[dc_x] + 1;
+        dc_yl := FixedInt64(topscreen + (FRACUNIT - 1));
+        dc_texturemid := (centery - dc_yl) * dc_iscale;
+        if dc_yl <= mceilingclip[dc_x] then
+          dc_yl := mceilingclip[dc_x] + 1;
 
-      dc_yh := FixedInt64(bottomscreen - 1);
-      if dc_yh >= mfloorclip[dc_x] then
-        dc_yh := mfloorclip[dc_x] - 1;
+        dc_yh := FixedInt64(bottomscreen - 1);
+        if dc_yh >= mfloorclip[dc_x] then
+          dc_yh := mfloorclip[dc_x] - 1;
 
-      if frac < 256 * FRACUNIT then
-        if dc_yl <= dc_yh then
-          if depthbufferactive then                             // JVAL: 3d Floors
-            R_DrawColumnWithDepthBufferCheckOnly(lightcolfunc)  // JVAL: 3d Floors
-          else
-            lightcolfunc;
+        if frac < 256 * FRACUNIT then
+          if dc_yl <= dc_yh then
+            if depthbufferactive then                             // JVAL: 3d Floors
+              R_DrawColumnWithDepthBufferCheckOnly(lightcolfunc)  // JVAL: 3d Floors
+            else
+              lightcolfunc;
 
-      dc_texturemid := basetexturemid;
+        dc_texturemid := basetexturemid;
+      end;
 
       frac := frac + fracstep;
       inc(dc_x);
@@ -1231,36 +1242,40 @@ begin
         save_dc_x := last_dc_x;
         last_dc_x := dc_x;
 
-        ltopdelta := lighboostlookup[texturecolumn].topdelta;
-        llength := lighboostlookup[texturecolumn].length;
-        dc_source32 := @lightboost[texturecolumn * LIGHTBOOSTSIZE + ltopdelta];
+        if IsIntegerInRange(texturecolumn, 0, LIGHTBOOSTSIZE - 1) then
+        begin
+          ltopdelta := lighboostlookup[texturecolumn].topdelta;
+          llength := lighboostlookup[texturecolumn].length;
+          dc_source32 := @lightboost[texturecolumn * LIGHTBOOSTSIZE + ltopdelta];
 
-        basetexturemid := dc_texturemid;
+          basetexturemid := dc_texturemid;
 
-        topscreen := sprtopscreen + int64(spryscale * ltopdelta);
-        bottomscreen := topscreen + int64(spryscale * llength);
+          topscreen := sprtopscreen + int64(spryscale * ltopdelta);
+          bottomscreen := topscreen + int64(spryscale * llength);
 
-        dc_yl := FixedInt64(topscreen + (FRACUNIT - 1));
-        dc_texturemid := (centery - dc_yl) * dc_iscale;
-        if dc_yl <= mceilingclip[dc_x] then
-          dc_yl := mceilingclip[dc_x] + 1;
+          dc_yl := FixedInt64(topscreen + (FRACUNIT - 1));
+          dc_texturemid := (centery - dc_yl) * dc_iscale;
+          if dc_yl <= mceilingclip[dc_x] then
+            dc_yl := mceilingclip[dc_x] + 1;
 
-        dc_yh := FixedInt64(bottomscreen - 1);
-        if dc_yh >= mfloorclip[dc_x] then
-          dc_yh := mfloorclip[dc_x] - 1;
+          dc_yh := FixedInt64(bottomscreen - 1);
+          if dc_yh >= mfloorclip[dc_x] then
+            dc_yh := mfloorclip[dc_x] - 1;
 
-        if frac < 256 * FRACUNIT then
-          if dc_yl <= dc_yh then
-          begin
-            dc_x := save_dc_x;
-            if num_batch_columns > 1 then
-              batchlightcolfunc
-            else
-              lightcolfunc;
-            dc_x := last_dc_x;
-          end;
+          if frac < 256 * FRACUNIT then
+            if dc_yl <= dc_yh then
+            begin
+              dc_x := save_dc_x;
+              if num_batch_columns > 1 then
+                batchlightcolfunc
+              else
+                lightcolfunc;
+              dc_x := last_dc_x;
+            end;
 
-        dc_texturemid := basetexturemid;
+          dc_texturemid := basetexturemid;
+        end;
+
       end;
 
       frac := frac + fracstep;
@@ -1467,7 +1482,7 @@ begin
   end;
 
   infoscale := thing.scale;
-  soffset := FixedMul(spriteoffset[lump], infoscale);
+  soffset := FixedMul(spriteoffset[lump] + thing.spriteDX, infoscale);
   tx := tx - soffset;
   x1 := FixedInt(centerxfrac + FixedMul(tx, xscale));
 {$IFNDEF OPENGL}
@@ -1510,7 +1525,7 @@ begin
   if x2 < x1 then
     exit; // SOS
 {$IFNDEF OPENGL}
-  scaledtop := FixedMul(spritetopoffset[lump], infoscale);
+  scaledtop := FixedMul(spritetopoffset[lump] + thing.spriteDY, infoscale);
   gzt := thing.z + scaledtop;
   {$IFDEF DOOM_OR_STRIFE}
   heightsec := Psubsector_t(thing.subsector).sector.heightsec;
@@ -1577,8 +1592,8 @@ begin
   {$ELSE}
   vis.footclip := thing.floorclip;
   {$ENDIF}
-  vis.texturemid := FixedDiv(thing.z - viewz - vis.footclip, infoscale) + spritetopoffset[lump];
-  vis.texturemid2 := vis.texturemid + spritetopoffset[lump];
+  vis.texturemid := FixedDiv(thing.z - viewz - vis.footclip, infoscale) + spritetopoffset[lump] + thing.spriteDY;
+  vis.texturemid2 := vis.texturemid + spritetopoffset[lump] + thing.spriteDY;
   if x1 <= 0 then
     vis.x1 := 0
   else
@@ -1656,6 +1671,8 @@ begin
 {$ENDIF}
   vis.patch := lump;
 
+  vis.fog := Psubsector_t(thing.subsector).sector.renderflags and SRF_FOG <> 0; // JVAL: Mars fog sectors
+
 {$IFNDEF OPENGL}  // JVAL: 3d Floors
   // get light level
   {$IFDEF DOOM_OR_HERETIC}
@@ -1672,7 +1689,10 @@ begin
   else if thing.frame and FF_FULLBRIGHT <> 0 then
   begin
     // full bright
-    vis.colormap := colormaps;
+    if vis.fog then // JVAL: Mars fog sectors
+      vis.colormap := fog_colormaps
+    else
+      vis.colormap := colormaps;
   end
   else
   begin
@@ -1732,24 +1752,54 @@ begin
 
   lightnum := _SHR(sec.lightlevel, LIGHTSEGSHIFT) + extralight;
 
-  if lightnum <= 0 then
-    spritelights := @scalelight[0]
-  else if lightnum >= LIGHTLEVELS then
-    spritelights := @scalelight[LIGHTLEVELS - 1]
+  if sec.renderflags and SRF_FOG <> 0 then // JVAL: Mars fog sectors
+  begin
+    {$IFNDEF OPENGL}
+    dc_fog := true;
+    {$ENDIF}
+    if lightnum <= 0 then
+      spritelights := @fog_scalelight[0]
+    else if lightnum >= LIGHTLEVELS then
+      spritelights := @fog_scalelight[LIGHTLEVELS - 1]
+    else
+      spritelights := @fog_scalelight[lightnum];
+  end
   else
-    spritelights := @scalelight[lightnum];
+  begin
+    {$IFNDEF OPENGL}
+    dc_fog := false;
+    {$ENDIF}
+    if lightnum <= 0 then
+      spritelights := @scalelight[0]
+    else if lightnum >= LIGHTLEVELS then
+      spritelights := @scalelight[LIGHTLEVELS - 1]
+    else
+      spritelights := @scalelight[lightnum];
+  end;
 
   // JVAL: 3d Floors
   {$IFNDEF OPENGL}
   if sec.midsec >= 0 then
   begin
     lightnum2 := _SHR(sectors[sec.midsec].lightlevel, LIGHTSEGSHIFT) + extralight;
-    if lightnum2 <= 0 then
-      spritelights2 := @scalelight[0]
-    else if lightnum2 >= LIGHTLEVELS then
-      spritelights2 := @scalelight[LIGHTLEVELS - 1]
+    if sectors[sec.midsec].renderflags and SRF_FOG <> 0 then // JVAL: Mars fog sectors
+    begin
+      if lightnum2 <= 0 then
+        spritelights2 := @fog_scalelight[0]
+      else if lightnum2 >= LIGHTLEVELS then
+        spritelights2 := @fog_scalelight[LIGHTLEVELS - 1]
+      else
+        spritelights2 := @fog_scalelight[lightnum2];
+    end
     else
-      spritelights2 := @scalelight[lightnum2];
+    begin
+      if lightnum2 <= 0 then
+        spritelights2 := @scalelight[0]
+      else if lightnum2 >= LIGHTLEVELS then
+        spritelights2 := @scalelight[LIGHTLEVELS - 1]
+      else
+        spritelights2 := @scalelight[lightnum2];
+    end;
   end;
   {$ENDIF}
 
@@ -1822,6 +1872,8 @@ begin
   tx := psp.sx - 160 * FRACUNIT;
 
   tx := tx - spriteoffset[lump];
+  if viewplayer.mo <> nil then
+    tx := tx - viewplayer.mo.spriteDX;
   x1 := FixedInt(centerxfrac + centerxshift + FixedMul(tx, pspritescalep));
 
   // off the right side
@@ -1846,6 +1898,9 @@ begin
   vis.mo := viewplayer.mo;
 
   vis.texturemid := (BASEYCENTER * FRACUNIT) {+ FRACUNIT div 2} - (psp.sy - spritetopoffset[lump]);
+  if viewplayer.mo <> nil then
+    vis.texturemid := vis.texturemid + viewplayer.mo.spriteDY;
+
 {$IFDEF HERETIC}
   if screenblocks > 10 then
     vis.texturemid := vis.texturemid - PSpriteSY[Ord(viewplayer.readyweapon)];
@@ -1881,6 +1936,8 @@ begin
     vis.startfrac := vis.startfrac + vis.xiscale * (vis.x1 - x1);
 {$ENDIF}
   vis.patch := lump;
+
+  vis.fog := false; // JVAL: Mars fog sectors
 
 {$IFNDEF OPENGL}{$IFDEF DOOM_OR_HERETIC}
   if (viewplayer.powers[Ord(pw_invisibility)] > 4 * 32) or
@@ -2344,7 +2401,8 @@ begin
   if vissprite_p > 0 then
   begin
     // draw all vissprites back to front
-    if uselightboost and (videomode = vm32bit) then
+    if (uselightboost and (videomode = vm32bit) and (fixedcolormapnum <> INVERSECOLORMAP)) or
+       (uselightboostgodmode and (videomode = vm32bit) and (fixedcolormapnum = INVERSECOLORMAP)) then
     begin
       // 32bit color
       for i := 0 to vissprite_p - 1 do

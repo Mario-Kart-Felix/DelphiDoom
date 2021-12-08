@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -554,7 +554,7 @@ var
   ss: Psubsector_t;
 begin
   if not ST_CmdCheckPlayerStatus then
-    exit;                                                  
+    exit;
 
   ss := R_PointInSubsector(plyr.mo.x, plyr.mo.y);
   sprintf(buf, 'ssector = %d, sector = %d'#13#10, [
@@ -592,7 +592,7 @@ var
     cht_ret := cht_CheckCheat(cht, key);
     result := cht_ret = cht_acquired;
     if not ateit then
-      ateit := (cht_ret in [cht_pending, cht_acquired])
+      ateit := (cht_ret in [{cht_pending,} cht_acquired]) // JVAL: 20211101 - Crouch
   end;
 
 begin
@@ -1044,7 +1044,7 @@ var
 begin
   if plyr = nil then
     exit;
-    
+
   cnt := plyr.damagecount;
 
   if plyr.powers[Ord(pw_strength)] <> 0 then
@@ -1644,10 +1644,10 @@ begin
   for i := 0 to 9 do
   begin
     sprintf(namebuf, 'INVFONG%d', [i]);
-    invfontg[i] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    invfontg[i] := W_CacheLumpName(namebuf, PU_STATIC);
 
     sprintf(namebuf, 'INVFONY%d', [i]);
-    invfonty[i] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    invfonty[i] := W_CacheLumpName(namebuf, PU_STATIC);
   end;
 
   // haleyjd 20100919: load Sigil patches
@@ -1655,20 +1655,20 @@ begin
     for i := 0 to 4 do
     begin
       sprintf(namebuf, 'I_SGL%d', [i + 1]);
-      invsigil[i] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+      invsigil[i] := W_CacheLumpName(namebuf, PU_STATIC);
     end;
 
   // load ammo patches
   for i := 0 to Ord(NUMAMMO) - 1 do
-    invammo[i] := Ppatch_t(W_CacheLumpName(invammonames[i], PU_STATIC));
+    invammo[i] := W_CacheLumpName(invammonames[i], PU_STATIC);
 
-  invarmor[0] := Ppatch_t(W_CacheLumpName('I_ARM2', PU_STATIC));
-  invarmor[1] := Ppatch_t(W_CacheLumpName('I_ARM1', PU_STATIC));
+  invarmor[0] := W_CacheLumpName('I_ARM2', PU_STATIC);
+  invarmor[1] := W_CacheLumpName('I_ARM1', PU_STATIC);
 
   if netgame then
   begin
     sprintf(namebuf, 'STBACK0%d', [consoleplayer + 1]);
-    stback := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    stback := W_CacheLumpName(namebuf, PU_STATIC);
   end;
 
   invback := W_CacheLumpName('INVBACK', PU_STATIC);
@@ -1778,7 +1778,7 @@ begin
   if st_stopped then
     exit;
 
-  pal := PByteArray(W_CacheLumpNum(lu_palette, PU_STATIC));
+  pal := W_CacheLumpNum(lu_palette, PU_STATIC);
   {$IFDEF OPENGL}
   I_SetPalette(pal);
   V_SetPalette(pal);

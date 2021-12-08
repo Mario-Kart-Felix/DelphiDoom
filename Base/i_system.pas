@@ -3,7 +3,7 @@
 //  DelphiDoom: A modified and improved DOOM engine for Windows
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -201,6 +201,7 @@ uses
   i_video,
   i_main,
 {$ENDIF}
+  i_mainwindow,
   d_main,
   d_net,
 {$IFDEF HEXEN}
@@ -507,7 +508,7 @@ begin
 end;
 
 procedure I_Sleep(const msecs: integer);
-begin         
+begin
   sleep(msecs);
 end;
 
@@ -791,13 +792,13 @@ begin
     usemultithread := numcpus > 1;
 
   if usemultithread then
-    printf(' Multithreding mode ON'#13#10)
+    printf(' Multithreading mode ON'#13#10)
   else
   begin
     if numcpus > 1 then
-      printf(' Multithreding mode OFF (will not use all cores)'#13#10)
+      printf(' Multithreading mode OFF (will not use all cores)'#13#10)
     else
-      printf(' Multithreding mode OFF'#13#10);
+      printf(' Multithreading mode OFF'#13#10);
   end;
 end;
 
@@ -843,7 +844,7 @@ type
 // JVAL
 // Dynamically get ShellExecute function to avoid malicius detection of
 // some antivirus programs
-//     
+//
 procedure I_GoToWebPage(const cmd: string);
 var
   shellexecutefunc: shellexecute_t;

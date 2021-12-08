@@ -74,7 +74,7 @@ procedure P_PlayerInSpecialSector(player: Pplayer_t; const sector: Psector_t; co
 
 function twoSided(sector: integer; line: integer): boolean;
 
-function twoSidedS(sector: Psector_t; line: integer): boolean; 
+function twoSidedS(sector: Psector_t; line: integer): boolean;
 
 function getSide(currentSector: integer; line: integer; side: integer): Pside_t;
 
@@ -165,11 +165,11 @@ type
   Pbutton_t = ^button_t;
 
 const
- // 4 players, 4 buttons each at once, max.
-   MAXBUTTONS = 16;
+  // 4 players, 4 buttons each at once, max.
+  MAXBUTTONS = 16;
 
- // 1 second, in ticks.
-   BUTTONTIME = 35;
+  // 1 second, in ticks.
+  BUTTONTIME = 35;
 
 
 type
@@ -268,7 +268,7 @@ type
     thinker: thinker_t;
     _type: vldoor_e;
     sector: Psector_t;
-    line: Pline_t; 
+    line: Pline_t;
     topheight: fixed_t;
     speed: fixed_t;
 
@@ -546,6 +546,7 @@ const
   MORE_FRICTION_MOMENTUM = 15000; // mud factor based on momentum
   ORIG_FRICTION = $E800;          // original value
   ORIG_FRICTION_FACTOR = 2048;    // original value
+  CROUCH_FRICTION_FACTOR = 1536;  // JVAL: 20211101 - Crouch
 
 procedure P_SpawnFriction;
 
@@ -1496,7 +1497,7 @@ begin
           exit;
         end;
       end;
-      
+
     Ord(YCard):
       begin
         if not player.cards[Ord(it_yellowcard)] and
@@ -2833,7 +2834,7 @@ begin
       end;
       exit; // if not a gun type, do nothing here
     end;
-    
+
   end;
 
   //  Impacts that other things can activate.

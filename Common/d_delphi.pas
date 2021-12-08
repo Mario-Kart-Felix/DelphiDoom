@@ -35,13 +35,13 @@ interface
 
 type
   PPointer = ^Pointer;
-  
+
   PString = ^string;
 
   PBoolean = ^Boolean;
 
   PInteger = ^Integer;
-  
+
   PLongWord = ^LongWord;
 
   PShortInt = ^ShortInt;
@@ -60,6 +60,9 @@ type
 
   TByteArray = packed array[0..$7FFF] of Byte;
   PByteArray = ^TByteArray;
+
+  TShortIntArray = packed array[0..$7FFF] of ShortInt;
+  PShortIntArray = ^TShortIntArray;
 
   TBooleanArray = packed array[0..$7FFF] of boolean;
   PBooleanArray = ^TBooleanArray;
@@ -172,7 +175,7 @@ function mallocA(var Size: integer; const Align: integer; var original: pointer)
 
 function mallocz(const size: integer): Pointer;
 
-procedure realloc(var p: pointer; const oldsize, newsize: integer); 
+procedure realloc(var p: pointer; const oldsize, newsize: integer);
 
 procedure memfree(var p: pointer; const size: integer);
 
@@ -208,7 +211,7 @@ function decide(const condition: integer;
   const iftrue: pointer; const iffalse: pointer): pointer; overload;
 
 function decidef(const condition: boolean;
-  const iftrue: single; const iffalse: single): single; 
+  const iftrue: single; const iffalse: single): single;
 
 function incp(var p: pointer; const size: integer = 1): pointer;
 
@@ -676,7 +679,7 @@ function lastword(const inp: string; const splitters: charset_t): string; overlo
 
 procedure FreeAndNil(var Obj);
 
-function StrLCopy(Dest: PChar; const Source: PChar; MaxLen: Cardinal): PChar; 
+function StrLCopy(Dest: PChar; const Source: PChar; MaxLen: Cardinal): PChar;
 
 function fabs(const f: float): float;
 
@@ -772,6 +775,10 @@ function wordstolist(const inp: string; const splitters: charset_t): TDStringLis
 function RemoveQuotesFromString(const s: string): string;
 
 function isdigit(const c: char): boolean;
+
+function Isign(const x: integer): integer;
+
+function readablestring(const s: string): string;
 
 implementation
 
@@ -2993,11 +3000,32 @@ begin
   PutObject(Index, AObject);
 end;
 
+procedure BufferUtf16ToAnsi(const inpBuf: PByteArray; const inpSize: integer;
+  var outBuf: PByteArray; var outSize: integer);
+var
+  i: integer;
+begin
+  outSize := (inpSize - 2) div 2;
+  if outSize > 0 then
+  begin
+    outBuf := malloc(outSize + 1);
+    for i := 0 to outSize - 1 do
+      outBuf[i] := inpBuf[i * 2 + 2];
+    outBuf[outsize] := 0;
+  end
+  else
+  begin
+    outSize := 0;
+    outBuf := nil;
+  end;
+end;
+
 function TDStrings.LoadFromFile(const FileName: string): boolean;
 var
   f: file;
   Size: Integer;
-  S: string;
+  S, S2: string;
+  p: integer;
 begin
   if fopen(f, FileName, fOpenReadOnly) then
   begin
@@ -3005,6 +3033,20 @@ begin
     Size := FileSize(f);
     SetString(S, nil, Size);
     BlockRead(f, Pointer(S)^, Size);
+    if Size > 1 then
+      if S[1] = Chr($FF) then
+        if S[2] = Chr($FE) then
+        begin
+          S2 := '';
+          p := 3;
+          while p < Size do
+          begin
+            S2 := S2 + S[p];
+            inc(p, 2);
+          end;
+          S := S2;
+        end;
+
     SetTextStr(S);
     close(f);
     {$I+}
@@ -3016,16 +3058,39 @@ end;
 
 function TDStrings.LoadFromStream(const strm: TDStream): boolean;
 var
-  Size: Integer;
-  A: PByteArray;
+  SizeA, SizeB: Integer;
+  A, B: PByteArray;
+
+  isUTF16: boolean;
 begin
   {$I-}
   strm.Seek(0, sFromBeginning);
-  Size := strm.Size;
-  A := malloc(Size);
-  strm.Read(A^, Size);
-  SetByteStr(A, Size);
-  memfree(pointer(A), Size);
+  SizeA := strm.Size;
+  {$I+}
+  if SizeA = 0 then
+  begin
+    Clear;
+    result := IOresult = 0;
+    Exit;
+  end;
+  {$I-}
+  A := malloc(SizeA + 1);
+  A[SizeA] := 0;
+  strm.Read(A^, SizeA);
+  isUTF16 := False;
+  if SizeA > 1 then
+    isUTF16 := (A[0] = $FF) and (A[1] = $FE);
+
+  if isUTF16 then
+  begin
+    BufferUtf16ToAnsi(A, SizeA, B, SizeB);
+    memfree(pointer(A), SizeA + 1);
+    A := B;
+    SizeA := SizeB;
+  end;
+
+  SetByteStr(A, SizeA);
+  memfree(pointer(A), SizeA + 1);
   {$I+}
   result := IOresult = 0;
 end;
@@ -3309,10 +3374,10 @@ end;
 
 function getenv(const env: string): string;
 var
-  buf: array[0..255] of char;
+  buf: array[0..2047] of char;
 begin
   ZeroMemory(@buf, SizeOf(buf));
-  GetEnvironmentVariable(PChar(env), buf, 255);
+  GetEnvironmentVariable(PChar(env), buf, 2047);
   result := Trim(StringVal(buf));
 end;
 
@@ -3551,7 +3616,7 @@ begin
 end;
 
 function StringVal(const Str: PChar): string;
-begin                        
+begin
   sprintf(result, '%s', [Str]);
 end;
 
@@ -4500,6 +4565,32 @@ end;
 function isdigit(const c: char): boolean;
 begin
   result := c in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+end;
+
+function Isign(const x: integer): integer;
+begin
+  if x < 0 then
+    result := -1
+  else if x > 0 then
+    result := 1
+  else
+    result := 0;
+end;
+
+function readablestring(const s: string): string;
+var
+  i: integer;
+  h: string;
+begin
+  result := '';
+  h := '0123456789ABCDEF';
+  for i := 1 to Length(s) do
+  begin
+    if Pos(toupper(s[i]), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') > 0 then
+      result := result + toupper(s[i])
+    else
+      result := result + h[Ord(s[i]) div 16 + 1] + h[Ord(s[i]) mod 16 + 1];
+  end;
 end;
 
 end.

@@ -177,6 +177,7 @@ uses
   p_params,
   p_ladder,
   p_musinfo,
+  p_bouncing,
   r_defs,
   r_sky,
   r_main,
@@ -286,7 +287,7 @@ begin
 
   P_SetMobjState(mo, statenum_t(mobjinfo[Ord(mo._type)].deathstate));
 
-  mo.flags := mo.flags and (not MF_MISSILE);
+  mo.flags := mo.flags and not MF_MISSILE;
 
   case mo._type of
     Ord(MT_SORCBALL1),
@@ -430,7 +431,6 @@ end;
 //
 const
   STOPSPEED = $1000;
-  FRICTION_NORMAL = $e800;
   FRICTION_LOW = $f900;
   FRICTION_FLY = $eb00;
   windTab: array[0..2] of integer = (2048 * 5, 2048 * 10, 2048 * 25);
@@ -584,7 +584,15 @@ begin
       end
       else if mo.flags and MF_MISSILE <> 0 then
       begin
-        if (mo.flags2 and MF2_FLOORBOUNCE <> 0) or (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) then
+        // JVAL: 20211121 - New bounch on walls mechanics
+        if (G_PlayingEngineVersion >= VERSION207) and (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) and (tmbounceline <> nil) and
+          (mo.flags2 and MF2_FLOORBOUNCE = 0) and (BlockingMobj = nil) then
+        begin
+          P_WallBounceMobj(mo, tmbounceline);
+          xmove := 0;
+          ymove := 0;
+        end
+        else if (mo.flags2 and MF2_FLOORBOUNCE <> 0) or (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) then
         begin
           if BlockingMobj <> nil then
           begin
@@ -664,7 +672,7 @@ begin
               // Reflection
               rnd := P_Random;
               angle := angle + ANG1 * ((rnd mod 16) - 8);
-            end; 
+            end;
           end;
 
           if not skip then
@@ -714,7 +722,7 @@ begin
     exit;
   end;
 
-  if (mo.flags3_ex and MF3_EX_BOUNCE) <> 0 then
+  if mo.flags3_ex and MF3_EX_BOUNCE <> 0 then
     exit; // no friction for bouncing objects
 
   if (mo.z > mo.floorz) and (mo.flags2 and MF2_FLY = 0) and (mo.flags2 and MF2_ONMOBJ = 0) then
@@ -771,8 +779,8 @@ begin
     end
     else
     begin
-      mo.momx := FixedMul(mo.momx, FRICTION_NORMAL);
-      mo.momy := FixedMul(mo.momy, FRICTION_NORMAL);
+      mo.momx := FixedMul(mo.momx, mo.friction);
+      mo.momy := FixedMul(mo.momy, mo.friction);
     end;
   end;
 end;
@@ -916,7 +924,7 @@ begin
   if (pl <> nil) and (mo.z < mo.floorz) and (laddertics = 0) then
   begin
     pl.viewheight := pl.viewheight - mo.floorz - mo.z;
-    pl.deltaviewheight := _SHR3(PVIEWHEIGHT - pl.viewheight);
+    pl.deltaviewheight := _SHR3(PVIEWHEIGHT - pl.crouchheight - pl.viewheight);
   end;
 
   // adjust height
@@ -1011,7 +1019,10 @@ begin
         if (mo.momz < -P_GetMobjGravity(mo) * 8) and (mo.flags2 and MF2_FLY = 0) then
         begin // squat down
           pl.deltaviewheight := _SHR3(mo.momz);
-          if mo.momz < -23 * FRACUNIT then
+          // JVAL: 20211101 - Crouch
+          if G_PlayingEngineVersion >= VERSION207 then
+            pl.deltaviewheight := FixedMul(pl.deltaviewheight, FixedDiv(mo.height, mo.info.height));
+	  if mo.momz < -23 * FRACUNIT then
           begin
             P_FallingDamage(mo.player);
             P_NoiseAlert(mo, mo);
@@ -1320,7 +1331,7 @@ var
   pl: Pplayer_t;
 begin
   // JVAL: Clear just spawned flag
-  mobj.flags := mobj.flags and (not MF_JUSTAPPEARED);
+  mobj.flags := mobj.flags and not MF_JUSTAPPEARED;
 
   // Handle X and Y momentums
   BlockingMobj := nil;
@@ -1445,6 +1456,7 @@ begin
   mobj.scale := info.scale;
   mobj.gravity := info.gravity;
   mobj.pushfactor := info.pushfactor;
+  mobj.friction := info.friction;
   mobj.damage := info.damage;
   mobj.renderstyle := info.renderstyle;
   mobj.alpha := info.alpha;
@@ -1452,6 +1464,7 @@ begin
   mobj.mass := info.mass;
   mobj.WeaveIndexXY := info.WeaveIndexXY;
   mobj.WeaveIndexZ := info.WeaveIndexZ;
+  mobj.painchance := info.painchance;
 
   if gameskill <> sk_nightmare then
     mobj.reactiontime := info.reactiontime;
@@ -1715,6 +1728,16 @@ begin
   p.extralight := 0;
   p.fixedcolormap := 0;
   p.viewheight := PVIEWHEIGHT;
+  // JVAL: 20211117 - Reset extra player fields when spawning player
+  p.laddertics := 0;
+  p.slopetics := 0;
+  p.teleporttics := 0;
+  p.quakeintensity := 0;
+  p.quaketics := 0;
+  p.oldcrouch := 0;
+  p.lastongroundtime := 0;
+  p.lastautocrouchtime := 0;
+  p.crouchheight := 0;
 
   // setup gun psprite
   P_SetupPsprites(p);

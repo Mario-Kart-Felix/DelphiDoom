@@ -3,7 +3,7 @@
 //  DelphiDoom: A modified and improved DOOM engine for Windows
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -88,6 +88,12 @@ type
     WaitDestState,
     GetChatState
   );
+
+var
+  p_idfaarmor: integer = 200;
+  p_idfaarmorclass: integer = 2;
+  p_idkfaarmor: integer = 200;
+  p_idkfaarmorclass: integer = 2;
 
 implementation
 
@@ -661,8 +667,8 @@ begin
   if not ST_CmdCheckPlayerStatus then
     exit;
 
-  plyr.armorpoints := 200;
-  plyr.armortype := 2;
+  plyr.armorpoints := p_idfaarmor;
+  plyr.armortype := p_idfaarmorclass;
 
   if gamemode = shareware then
   begin
@@ -692,8 +698,8 @@ begin
   if not ST_CmdCheckPlayerStatus then
     exit;
 
-  plyr.armorpoints := 200;
-  plyr.armortype := 2;
+  plyr.armorpoints := p_idkfaarmor;
+  plyr.armortype := p_idkfaarmorclass;
 
   if gamemode = shareware then
   begin
@@ -1220,7 +1226,7 @@ var
 begin
   if plyr = nil then
     exit;
-    
+
   // must redirect the pointer if the ready weapon has changed.
   if weaponinfo[Ord(plyr.readyweapon)].ammo = am_noammo then
     w_ready.num := @largeammo
@@ -1287,7 +1293,7 @@ var
 begin
   if plyr = nil then
     exit;
-    
+
   cnt := plyr.damagecount;
 
   if plyr.powers[Ord(pw_strength)] <> 0 then
@@ -1326,7 +1332,7 @@ begin
   if customgame in [cg_chex, cg_chex2] then
     if (palette >= STARTREDPALS) and (palette < STARTREDPALS + NUMREDPALS) then
       palette := RADIATIONPAL;
-          
+
   if palette <> st_palette then
   begin
     st_palette := palette;
@@ -1482,25 +1488,25 @@ begin
   for i := 0 to 9 do
   begin
     sprintf(namebuf, 'STTNUM%d', [i]);
-    tallnum[i] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    tallnum[i] := W_CacheLumpName(namebuf, PU_STATIC);
 
     sprintf(namebuf, 'STYSNUM%d', [i]);
-    shortnum[i] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    shortnum[i] := W_CacheLumpName(namebuf, PU_STATIC);
   end;
 
   // Load percent key.
   //Note: why not load STMINUS here, too?
-  tallpercent := Ppatch_t(W_CacheLumpName('STTPRCNT', PU_STATIC));
+  tallpercent := W_CacheLumpName('STTPRCNT', PU_STATIC);
 
   // key cards
   for i := 0 to Ord(NUMCARDS) - 1 do
   begin
     sprintf(namebuf, 'STKEYS%d', [i]);
-    keys[i] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    keys[i] := W_CacheLumpName(namebuf, PU_STATIC);
   end;
 
   // arms background
-  armsbg := Ppatch_t(W_CacheLumpName('STARMS', PU_STATIC));
+  armsbg := W_CacheLumpName('STARMS', PU_STATIC);
 
   // arms ownership widgets
   for i := 0 to 5 do
@@ -1508,7 +1514,7 @@ begin
     sprintf(namebuf, 'STGNUM%d', [i + 2]);
 
     // gray #
-    arms[i][0] := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+    arms[i][0] := W_CacheLumpName(namebuf, PU_STATIC);
 
     // yellow #
     arms[i][1] := shortnum[i + 2];
@@ -1516,7 +1522,7 @@ begin
 
   // face backgrounds for different color players
   sprintf(namebuf, 'STFB%d', [consoleplayer]);
-  faceback := Ppatch_t(W_CacheLumpName(namebuf, PU_STATIC));
+  faceback := W_CacheLumpName(namebuf, PU_STATIC);
 
   // status bar background bits
   lump :=  W_CheckNumForName('STBAR');
@@ -1524,12 +1530,12 @@ begin
   begin
     oldsharewareversion := true;
     lump :=  W_CheckNumForName('STMBARL');
-    sbar := Ppatch_t(W_CacheLumpNum(lump, PU_STATIC));
+    sbar := W_CacheLumpNum(lump, PU_STATIC);
     lump :=  W_CheckNumForName('STMBARR');
-    sbar2 := Ppatch_t(W_CacheLumpNum(lump, PU_STATIC));
+    sbar2 := W_CacheLumpNum(lump, PU_STATIC);
   end
   else
-    sbar := Ppatch_t(W_CacheLumpNum(lump, PU_STATIC));
+    sbar := W_CacheLumpNum(lump, PU_STATIC);
 
 // JVAL
 // Statusbar medikit, use stimpack patch (STIMA0)
@@ -1853,7 +1859,7 @@ begin
   if st_stopped then
     exit;
 
-  pal := PByteArray(W_CacheLumpNum(lu_palette, PU_STATIC));
+  pal := W_CacheLumpNum(lu_palette, PU_STATIC);
   {$IFDEF OPENGL}
   I_SetPalette(pal);
   V_SetPalette(pal);

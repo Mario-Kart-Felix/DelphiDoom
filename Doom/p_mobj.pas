@@ -134,6 +134,7 @@ uses
   p_params,
   p_ladder,
   p_musinfo,
+  p_bouncing,
   r_defs,
   r_sky,
   r_main,
@@ -328,6 +329,13 @@ begin
       begin
         P_SlideMove(mo); // try to slide along it
       end
+      // JVAL: 20211121 - New bounch on walls mechanics
+      else if (G_PlayingEngineVersion >= VERSION207) and (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) and (tmbounceline <> nil) then
+      begin
+        P_WallBounceMobj(mo, tmbounceline);
+        xmove := 0;
+        ymove := 0;
+      end
       // JVAL: 20200308 - Bounce on walls
       else if mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0 then
       begin
@@ -464,7 +472,7 @@ begin
     begin
       player.viewheight := player.viewheight - (mo.floorz - mo.z);
       player.deltaviewheight :=
-        _SHR((PVIEWHEIGHT - player.viewheight), 3);
+        _SHR((PVIEWHEIGHT - player.crouchheight - player.viewheight), 3); // JVAL: 20211101 - Crouch
     end;
   end;
 
@@ -556,6 +564,11 @@ begin
         // after hitting the ground (hard),
         // and utter appropriate sound.
         player.deltaviewheight := _SHR(mo.momz, 3);
+
+        // JVAL: 20211101 - Crouch
+        if G_PlayingEngineVersion >= VERSION207 then
+          player.deltaviewheight := FixedMul(player.deltaviewheight, FixedDiv(mo.height, mo.info.height));
+
         if leveltime > player.nextoof then
         begin
           S_StartSound(mo, Ord(sfx_oof));
@@ -857,6 +870,7 @@ begin
   mobj.scale := info.scale;
   mobj.gravity := info.gravity;
   mobj.pushfactor := info.pushfactor;
+  mobj.friction := info.friction;
   mobj.renderstyle := info.renderstyle;
   mobj.alpha := info.alpha;
   if mobj.flags_ex and MF_EX_FLOATBOB <> 0 then
@@ -865,6 +879,9 @@ begin
   mobj.mass := info.mass;
   mobj.WeaveIndexXY := info.WeaveIndexXY;
   mobj.WeaveIndexZ := info.WeaveIndexZ;
+  mobj.painchance := info.painchance;
+  mobj.spriteDX := info.spriteDX;
+  mobj.spriteDY := info.spriteDY;
 
   if gameskill <> sk_nightmare then
     mobj.reactiontime := info.reactiontime;
@@ -981,7 +998,6 @@ begin
   mobj.momz := mobj.info.vspeed;
 
   mobj.thinker._function.acp1 := @P_MobjThinker;
-  mobj.friction := ORIG_FRICTION;
 
   P_AddThinker(@mobj.thinker);
 
@@ -1168,6 +1184,20 @@ begin
   p.extralight := 0;
   p.fixedcolormap := 0;
   p.viewheight := PVIEWHEIGHT;
+  // JVAL: 20211117 - Reset extra player fields when spawning player
+  p.lastbreath := 0;
+  p.hardbreathtics := 0;
+  p.angletargetticks := 0;
+  p.laddertics := 0;
+  p.slopetics := 0;
+  p.teleporttics := 0;
+  p.nextoof := 0;
+  p.quakeintensity := 0;
+  p.quaketics := 0;
+  p.oldcrouch := 0;
+  p.lastongroundtime := 0;
+  p.lastautocrouchtime := 0;
+  p.crouchheight := 0;
 
   // setup gun psprite
   P_SetupPsprites(p);

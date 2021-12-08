@@ -92,6 +92,7 @@ implementation
 uses
   doomstat,
   d_net,
+  d_main,
   i_system,
   tables,
   doomtype,
@@ -497,7 +498,9 @@ begin
   printf('GL_VENDOR: %s'#13#10 , [glGetString(GL_VENDOR)]);
   printf('GL_RENDERER: %s'#13#10, [glGetString(GL_RENDERER)]);
   printf('GL_VERSION: %s'#13#10, [glGetString(GL_VERSION)]);
-  printf('GL_EXTENSIONS:'#13#10);
+
+  if devparm then
+    printf('GL_EXTENSIONS:'#13#10);
 
   extensions := StringVal(glGetString(GL_EXTENSIONS));
   extensions_l := '';
@@ -512,8 +515,9 @@ begin
   ext_lst := TDStringList.Create;
   try
     ext_lst.Text := extensions_l;
-    for i := 0 to ext_lst.count - 1 do
-      printf('  %s'#13#10, [ext_lst.strings[i]]);
+    if devparm then
+      for i := 0 to ext_lst.count - 1 do
+        printf('  %s'#13#10, [ext_lst.strings[i]]);
     gld_InitExtensions(ext_lst);
   finally
     ext_lst.Free;
@@ -933,7 +937,25 @@ begin
         extra_green := 1.0;
         extra_blue := 0.0;
         extra_alpha := 0.2;
-      end;
+      end
+      {$IFDEF  HEXEN}
+      else if palette < 21 then
+      begin
+        palette := palette - 13;
+        extra_red := 0.0;
+        extra_green := palette / 2.0;
+        extra_blue := 0.0;
+        extra_alpha := palette / 10.0;
+      end
+      else if palette = 21 then
+      begin
+        extra_red := 0.0;
+        extra_green := 0.0;
+        extra_blue := 1.0;
+        extra_alpha := 0.8;
+      end
+      {$ENDIF}
+      ;
     end;
     if extra_red > 1.0 then
       extra_red := 1.0;
@@ -1090,6 +1112,8 @@ type
     ul, ur, vt, vb: float;
     light: float;
     light2: float;
+    whitefog: boolean;  // JVAL: Mars fog sectors
+    whitefog2: boolean; // JVAL: Mars fog sectors
     doublelight: boolean;
     alpha: float;
     skyymid: float;
@@ -1115,6 +1139,7 @@ type
     hasoffset: boolean;
     {$ENDIF}
     ripple: boolean;
+    whitefog: boolean; // JVAL: Mars fog sectors
     ceiling: boolean;
   end;
   PGLFlat = ^GLFlat;
@@ -2366,6 +2391,10 @@ begin
   glEnd();
 end;
 
+procedure gld_StartFog; forward;
+
+procedure gld_StartWhiteFog; forward;
+
 procedure gld_DrawWall(wall: PGLWall; const fblend: boolean);
 var
   seg: PGLSeg;
@@ -2378,6 +2407,7 @@ var
   A: array[0..3] of GLVertexUV;
   iA: integer;
   c: gl_strip_coords_t;
+  didwhitefog: boolean; // JVAL: Mars fog sectors
 
   procedure ADD_A_COORD(const au, av: float);
   begin
@@ -2471,6 +2501,33 @@ var
     end;
   end;
 
+  procedure WALL_WHITEFOG_1; // JVAL: Mars fog sectors
+  begin
+    if wall.whitefog then
+    begin
+      gld_StartWhiteFog;
+      didwhitefog := true;
+    end;
+  end;
+
+  procedure WALL_WHITEFOG_2; // JVAL: Mars fog sectors
+  begin
+    if wall.whitefog2 then
+    begin
+      gld_StartWhiteFog;
+      didwhitefog := true;
+    end;
+  end;
+
+  procedure WALL_WHITEFOG_STOP;  // JVAL: Mars fog sectors
+  begin
+    if didwhitefog then
+    begin
+      gld_StartFog;
+      didwhitefog := false;
+    end;
+  end;
+
 begin
   if not gl_drawsky and (wall.flag >= GLDWF_SKY) then
     exit;
@@ -2481,6 +2538,7 @@ begin
   if wall.blend <> fblend then
     exit;
 
+  didwhitefog := false;
 
   if (wall.flag = GLDWF_TOPFLUD) or (wall.flag = GLDWF_BOTFLUD) then
   begin
@@ -2489,12 +2547,14 @@ begin
     gld_SetupFloodStencil(wall);
     gld_SetupFloodedPlaneCoords(wall, @c);
     gld_SetupFloodedPlaneLight(wall);
+    WALL_WHITEFOG_1; // JVAL: Mars fog sectors
     gld_DrawTriangleStrip(@c);
+    WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
     gld_ClearFloodStencil(wall);
 
     exit;
   end;
-  
+
   gld_BindTexture(wall.gltexture);
   if wall.flag >= GLDWF_SKY then
   begin
@@ -2568,7 +2628,9 @@ begin
       ADD_A_XYZ(seg.x2, floorheight, seg.z2);
       Inc(iA);
 
+      WALL_WHITEFOG_1; // JVAL: Mars fog sectors
       RENDER_A;
+      WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
     end
     else if (frontslope or backslope) and (wall.flag = GLDWF_BOT) then
     begin
@@ -2604,12 +2666,15 @@ begin
       ADD_A_XYZ(seg.x2, floorheight, seg.z2);
       Inc(iA);
 
+      WALL_WHITEFOG_1; // JVAL: Mars fog sectors
       RENDER_A;
+      WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
     end
     else if (frontslope or backslope) and (wall.flag = GLDWF_TOP) then
     begin
       theight := wall.gltexture.buffer_height / MAP_COEFF;
 
+      WALL_WHITEFOG_1; // JVAL: Mars fog sectors
       glBegin(GL_TRIANGLE_STRIP);
         floorheight := gld_CeilingHeight(seg.frontsector, seg.x1, seg.z1);
         ceilingheight := gld_CeilingHeight(seg.backsector, seg.x1, seg.z1);
@@ -2627,11 +2692,13 @@ begin
         glTexCoord2f(wall.ur, wall.vt + (wall.ytop - floorheight) / theight);
         glVertex3f(seg.x2, floorheight, seg.z2);
       glEnd;
+      WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
     end
     else
     begin
       if not wall.doublelight or (wall.ymid < wall.ybottom) or (wall.ymid > wall.ytop) then
       begin
+        WALL_WHITEFOG_1; // JVAL: Mars fog sectors
         glBegin(GL_TRIANGLE_STRIP);
           glTexCoord2f(wall.ul, wall.vt);
           glVertex3f(seg.x1, wall.ytop, seg.z1);
@@ -2642,11 +2709,14 @@ begin
           glTexCoord2f(wall.ur, wall.vb);
           glVertex3f(seg.x2, wall.ybottom, seg.z2);
         glEnd;
+        WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
       end
       else
       begin
         theight := wall.gltexture.buffer_height / MAP_COEFF;
         vm := wall.vt + (wall.ytop - wall.ymid) / theight;
+
+        WALL_WHITEFOG_1; // JVAL: Mars fog sectors
 
         glBegin(GL_TRIANGLE_STRIP);
           glTexCoord2f(wall.ul, wall.vt);
@@ -2658,6 +2728,10 @@ begin
           glTexCoord2f(wall.ur, vm);
           glVertex3f(seg.x2, wall.ymid, seg.z2);
         glEnd;
+
+        WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
+
+        WALL_WHITEFOG_2; // JVAL: Mars fog sectors
 
         gld_StaticLightAlpha(wall.light2, wall.alpha);
 
@@ -2671,6 +2745,8 @@ begin
           glTexCoord2f(wall.ur, wall.vb);
           glVertex3f(seg.x2, wall.ybottom, seg.z2);
         glEnd;
+
+        WALL_WHITEFOG_STOP; // JVAL: Mars fog sectors
       end;
     end;
 
@@ -2767,6 +2843,8 @@ begin
   // get height from plane
   flat.z := zheight / MAP_SCALE;
 
+  flat.whitefog := sector.renderflags and SRF_FOG <> 0; // JVAL: Mars fog sectors
+
   if gld_drawinfo.num_flats >= gld_drawinfo.max_flats then
   begin
     gld_drawinfo.max_flats := gld_drawinfo.max_flats + 128;
@@ -2779,7 +2857,8 @@ end;
 
 // For mid textures (3d Floors)
 procedure gld_AddFlat_3dFloor(sectornum: integer; pic, zheight: integer;
-  ripple: boolean; light: integer; angle: angle_t; anglex, angley: fixed_t);
+  ripple: boolean; light: integer; angle: angle_t; anglex, angley: fixed_t;
+  whitefog: boolean);
 var
   {$IFDEF DOOM_OR_STRIFE}
   tempsec: sector_t; // needed for R_FakeFlat
@@ -2851,6 +2930,8 @@ begin
   // get height from plane
   flat.z := zheight / MAP_SCALE;
 
+  flat.whitefog := whitefog; // JVAL: Mars fog sectors
+
   if gld_drawinfo.num_flats >= gld_drawinfo.max_flats then
   begin
     gld_drawinfo.max_flats := gld_drawinfo.max_flats + 128;
@@ -2884,9 +2965,10 @@ begin
   end
   else
     rellight := 0;
-  
+
   wall.light := gld_CalcLightLevel(ssec.lightlevel + rellight + (extralight shl 5));
-  
+  wall.whitefog := ssec.renderflags and SRF_FOG <> 0;
+
   if ssec = seg.frontsector then
     other := seg.backsector
   else
@@ -2894,17 +2976,20 @@ begin
   if other = nil then
   begin
     wall.light2 := wall.light;
+    wall.whitefog2 := wall.whitefog;
     wall.doublelight := False;
   end
   else if other.midsec < 0 then
   begin
     wall.light2 := wall.light;
+    wall.whitefog2 := wall.whitefog;
     wall.doublelight := False;
   end
   else
   begin
     other := @sectors[other.midsec];
     wall.light2 := gld_CalcLightLevel(other.lightlevel + rellight + (extralight shl 5));
+    wall.whitefog2 := other.renderflags and SRF_FOG <> 0;
     wall.doublelight := true;
     wall.ymid := (other.floorheight / MAP_SCALE + other.ceilingheight / MAP_SCALE) / 2;
   end;
@@ -3000,6 +3085,7 @@ begin
     rellight := 0;
 
   wall.light := gld_CalcLightLevel(frontsector.lightlevel + rellight + (extralight shl 5));
+  wall.whitefog := frontsector.renderflags and SRF_FOG <> 0;
 
 // JVAL: 3d floors
   if seg.frontsector.midsec >= 0 then
@@ -3007,12 +3093,14 @@ begin
     other := @sectors[seg.frontsector.midsec];
     gld_AddMidWall(seg, seg.frontsector, other);
     wall.light2 := gld_CalcLightLevel(other.lightlevel + rellight + (extralight shl 5));
+    wall.whitefog2 := other.renderflags and SRF_FOG <> 0;
     wall.doublelight := true;
     wall.ymid := (other.floorheight / MAP_SCALE + other.ceilingheight / MAP_SCALE) / 2;
   end
   else
   begin
     wall.light2 := wall.light;
+    wall.whitefog2 := wall.whitefog;
     wall.doublelight := False;
   end;
 
@@ -3453,6 +3541,8 @@ begin
     glActiveTextureARB(GL_TEXTURE0_ARB);
   end;
 
+  if flat.whitefog then gld_StartWhiteFog;  // JVAL: Mars fog sectors
+
   gld_BindFlat(flat.gltexture);
   gld_StaticLight(flat.light);
   glMatrixMode(GL_MODELVIEW);
@@ -3573,6 +3663,8 @@ begin
     glActiveTextureARB(GL_TEXTURE0_ARB);
   end;
 
+  if flat.whitefog then gld_StartFog;  // JVAL: Mars fog sectors
+
   glPopMatrix;
 end;
 
@@ -3654,6 +3746,7 @@ begin
       flat.angley := 0.0;
       flat.hasangle := False;
     end;
+    flat.whitefog := sector.renderflags and SRF_FOG <> 0; // JVAL: Mars fog sectors
   end
   else // if it is a floor ...
   begin
@@ -3670,9 +3763,13 @@ begin
     begin
       msec := @sectors[sector.midsec];
       flat.light := gld_CalcLightLevel({$IFDEF DOOM_OR_STRIFE}msec.floorlightlevel{$ELSE}msec.lightlevel{$ENDIF} + (extralight shl 5));
+      flat.whitefog := msec.renderflags and SRF_FOG <> 0; // JVAL: Mars fog sectors
     end
     else
+    begin
       flat.light := gld_CalcLightLevel({$IFDEF DOOM_OR_STRIFE}sector.floorlightlevel{$ELSE}sector.lightlevel{$ENDIF} + (extralight shl 5));
+      flat.whitefog := sector.renderflags and SRF_FOG <> 0; // JVAL: Mars fog sectors
+    end;
     // calculate texture offsets
     {$IFDEF DOOM_OR_STRIFE}
     flat.hasoffset := (sector.floor_xoffs <> 0) or (sector.floor_yoffs <> 0);
@@ -3767,11 +3864,13 @@ begin
       if viewz < msec.floorheight then
         gld_AddFlat_3dFloor(
           secID, msec.floorpic, msec.floorheight, msec.renderflags and SRF_RIPPLE_FLOOR <> 0,
-          msec.lightlevel, msec.floorangle, msec.flooranglex, msec.floorangley);
+          msec.lightlevel, msec.floorangle, msec.flooranglex, msec.floorangley,
+          msec.renderflags and SRF_FOG <> 0);
       if viewz > msec.ceilingheight then
         gld_AddFlat_3dFloor(
           secID, msec.ceilingpic, msec.ceilingheight, msec.renderflags and SRF_RIPPLE_CEILING <> 0,
-          sectors[secID].lightlevel, msec.ceilingangle, msec.ceilinganglex, msec.ceilingangley);
+          sectors[secID].lightlevel, msec.ceilingangle, msec.ceilinganglex, msec.ceilingangley,
+          sectors[secID].renderflags and SRF_FOG <> 0);
     end;
 
     // set rendered true
@@ -4288,18 +4387,28 @@ begin
 end;
 
 procedure gld_DrawSprite(sprite: PGLSprite);
+var
+  haswhitefog: boolean; // JVAL: Mars fog sectors
 begin
+  haswhitefog := Psubsector_t(sprite.mo.subsector).sector.renderflags and SRF_FOG <> 0;
+
   if gl_drawmodels and (sprite.models <> nil) then
   begin
+    if haswhitefog then gld_StartWhiteFog;  // JVAL: Mars fog sectors
     gld_DrawModels(sprite);
+    if haswhitefog then gld_StartFog; // JVAL: Mars fog sectors
     exit;
   end;
 
   if gl_drawvoxels and (sprite.voxels <> nil) then
   begin
+    if haswhitefog then gld_StartWhiteFog;  // JVAL: Mars fog sectors
     gld_DrawVoxels(sprite);
+    if haswhitefog then gld_StartFog; // JVAL: Mars fog sectors
     exit;
   end;
+
+  if haswhitefog then gld_StartWhiteFog;  // JVAL: Mars fog sectors
 
   if gl_uselightmaps then
   begin
@@ -4410,6 +4519,8 @@ begin
       glBlendEquation(GL_FUNC_ADD);
   end;
   glColor3f(1.0, 1.0, 1.0);
+
+  if haswhitefog then gld_StartFog; // JVAL: Mars fog sectors
 end;
 
 const
@@ -4677,7 +4788,7 @@ begin
   sprite.x2 := hoff;
   sprite.y1 := voff;
   sprite.y2 := voff - (tex.realtexheight / MAP_COEFF);
-  
+
   if vspr.infoscale <> FRACUNIT then
   begin
     sprite.x1 := sprite.x1 * vspr.infoscale / FRACUNIT;
@@ -4719,16 +4830,13 @@ end;
  *****************)
 
 procedure gld_StartFog;
-{$IFNDEF HERETIC}
 var
   FogColor: array[0..3] of TGLfloat; // JVAL: set blue fog color if underwater
-{$ENDIF}
 begin
   if use_fog then
     if players[displayplayer].fixedcolormap = 0 then
     begin
 {$IFDEF DOOM_OR_STRIFE}
-
       if customcolormap <> nil then
       begin
         glFogf(GL_FOG_DENSITY, customcolormap.fog_density * fog_density / 1000.0);
@@ -4750,7 +4858,18 @@ begin
 
       glFogfv(GL_FOG_COLOR, @FogColor);
 {$ENDIF}
+{$IFDEF HERETIC}
+      glFogf(GL_FOG_DENSITY, fog_density / 1000.0);
+
+      FogColor[0] := 0.0;
+      FogColor[1] := 0.0;
+      FogColor[2] := 0.0;
+      FogColor[3] := 0.0;
+
+      glFogfv(GL_FOG_COLOR, @FogColor);
+{$ENDIF}
 {$IFDEF HEXEN}
+      glFogf(GL_FOG_DENSITY, fog_density / 1000.0);
       if LevelUseFog then
       begin
         FogColor[0] := 1.0;
@@ -4769,6 +4888,46 @@ begin
       glFogfv(GL_FOG_COLOR, @FogColor);
 {$ENDIF}
 
+      glEnable(GL_FOG);
+      exit;
+    end;
+
+  glDisable(GL_FOG);
+end;
+
+procedure gld_StartWhiteFog;
+var
+  FogColor: array[0..3] of TGLfloat; // JVAL: set blue fog color if underwater
+begin
+  if use_white_fog then
+    if players[displayplayer].fixedcolormap = 0 then
+    begin
+      glFogf(GL_FOG_DENSITY, white_fog_density / 1000.0);
+
+  {$IFDEF DOOM_OR_STRIFE}
+      if customcolormap <> nil then
+      begin
+        FogColor[0] := (customcolormap.fog_r + 1.0) / 2.0;
+        FogColor[1] := (customcolormap.fog_g + 1.0) / 2.0;
+        FogColor[2] := (customcolormap.fog_b + 1.0) / 2.0;
+        FogColor[3] := 0.0;
+      end
+      else
+      begin
+        FogColor[0] := 1.0;
+        FogColor[1] := 1.0;
+        FogColor[2] := 1.0;
+        FogColor[3] := 0.0;
+      end;
+  {$ENDIF}
+  {$IFDEF HERETIC_OR_HEXEN}
+      FogColor[0] := 1.0;
+      FogColor[1] := 1.0;
+      FogColor[2] := 1.0;
+      FogColor[3] := 0.0;
+  {$ENDIF}
+
+      glFogfv(GL_FOG_COLOR, @FogColor);
       glEnable(GL_FOG);
       exit;
     end;

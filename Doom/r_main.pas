@@ -98,6 +98,8 @@ function R_PointOnSideVanilla(const x: fixed_t; const y: fixed_t; const node: Pv
 
 function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): boolean;
 
+function R_PointOnLineSide(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
+
 function R_PointToAngle(x: fixed_t; y: fixed_t): angle_t;
 
 function R_PointToAngleEx(const x: fixed_t; const y: fixed_t): angle_t;
@@ -239,6 +241,7 @@ type
 
 var
   def_scalelight: scalelight_t;
+  fog_scalelight: scalelight_t; // JVAL: Mars fog sectors
   scalelight: Pscalelight_t;
 
 var
@@ -251,6 +254,7 @@ type
 
 var
   def_zlight: zlight_t;
+  fog_zlight: zlight_t;
   zlight: Pzlight_t;
 
 var
@@ -680,6 +684,102 @@ begin
     result := R_PointOnSegSide32(x, y, line);
 end;
 
+function R_PointOnLineSide32(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
+var
+  lx: fixed_t;
+  ly: fixed_t;
+  ldx: fixed_t;
+  ldy: fixed_t;
+  dx: fixed_t;
+  dy: fixed_t;
+  left: fixed_t;
+  right: fixed_t;
+begin
+  lx := line.v1.x;
+  ly := line.v1.y;
+
+  ldx := line.v2.x - lx;
+  ldy := line.v2.y - ly;
+
+  if ldx = 0 then
+  begin
+    if x <= lx then
+      result := ldy > 0
+    else
+      result := ldy < 0;
+    exit;
+  end;
+
+  if ldy = 0 then
+  begin
+    if y <= ly then
+      result := ldx < 0
+    else
+      result := ldx > 0;
+    exit;
+  end;
+
+  dx := x - lx;
+  dy := y - ly;
+
+  left := IntFixedMul(ldy, dx);
+  right := FixedIntMul(dy, ldx);
+
+  result := left <= right;
+end;
+
+function R_PointOnLineSide64(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
+var
+  lx: fixed_t;
+  ly: fixed_t;
+  ldx: fixed_t;
+  ldy: fixed_t;
+  dx64: int64;
+  dy64: int64;
+  left64: int64;
+  right64: int64;
+begin
+  lx := line.v1.x;
+  ly := line.v1.y;
+
+  ldx := line.v2.x - lx;
+  ldy := line.v2.y - ly;
+
+  if ldx = 0 then
+  begin
+    if x <= lx then
+      result := ldy > 0
+    else
+      result := ldy < 0;
+    exit;
+  end;
+
+  if ldy = 0 then
+  begin
+    if y <= ly then
+      result := ldx < 0
+    else
+      result := ldx > 0;
+    exit;
+  end;
+
+  dx64 := int64(x) - int64(lx);
+  dy64 := int64(y) - int64(ly);
+
+  left64 := int64(ldy div 256) * (dx64 div 256);
+  right64 := (dy64 div 256) * int64(ldx div 256);
+
+  result := left64 <= right64;
+end;
+
+function R_PointOnLineSide(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
+begin
+  if largemap then
+    result := R_PointOnLineSide64(x, y, line)
+  else
+    result := R_PointOnLineSide32(x, y, line)
+end;
+
 //
 // R_PointToAngle
 // To get a global angle from cartesian coordinates,
@@ -909,7 +1009,7 @@ begin
   else
     fov := round(arctan(monitor_relative_aspect) * FINEANGLES / D_PI);
   focallength := FixedDiv(centerxfrac, finetangent[FINEANGLES div 4 + fov div 2]);
-  
+
   if focallength = oldfocallength then
     exit;
   oldfocallength := focallength;
@@ -988,6 +1088,7 @@ begin
         level := NUMCOLORMAPS - 1;
 
       def_zlight[i][j] := PByteArray(integer(def_colormaps) + level * 256);
+      fog_zlight[i][j] := PByteArray(integer(fog_colormaps) + level * 256);
     end;
 
     startmaphi := ((LIGHTLEVELS - 1 - i) * 2 * FRACUNIT) div LIGHTLEVELS;
@@ -1700,7 +1801,7 @@ begin
     if setblocks = 10 then
       scaledviewwidth := SCREENWIDTH
     else
-      scaledviewwidth := (setblocks * SCREENWIDTH div 10) and (not 7);
+      scaledviewwidth := (setblocks * SCREENWIDTH div 10) and not 7;
     if setblocks = 10 then
     {$IFDEF OPENGL}
       viewheight := trunc(ST_Y * SCREENHEIGHT / 200)
@@ -1709,9 +1810,9 @@ begin
     {$ENDIF}
     else
     {$IFDEF OPENGL}
-      viewheight := (setblocks * trunc(ST_Y * SCREENHEIGHT / 2000)) and (not 7);
+      viewheight := (setblocks * trunc(ST_Y * SCREENHEIGHT / 2000)) and not 7;
     {$ELSE}
-      viewheight := (setblocks * V_PreserveY(ST_Y) div 10) and (not 7);
+      viewheight := (setblocks * V_PreserveY(ST_Y) div 10) and not 7;
     {$ENDIF}
   end;
 
@@ -1802,6 +1903,7 @@ begin
       end;
 
       def_scalelight[i][j] := PByteArray(integer(def_colormaps) + level * 256);
+      fog_scalelight[i][j] := PByteArray(integer(fog_colormaps) + level * 256);
     end;
   end;
 
@@ -2297,19 +2399,42 @@ begin
 end;
 
 function R_GetColormapLightLevel(const cmap: PByteArray): fixed_t;
+var
+  m: integer;
 begin
   if cmap = nil then
     result := -1
   else
-    result := FRACUNIT - (integer(cmap) - integer(colormaps)) div 256 * FRACUNIT div NUMCOLORMAPS;
+  begin
+    // JVAL: Mars fog sectors
+    m := (integer(cmap) - integer(colormaps));
+    if (m >= 0) and (m <= NUMCOLORMAPS * 256) then
+      result := FRACUNIT - (integer(cmap) - integer(colormaps)) div 256 * FRACUNIT div NUMCOLORMAPS
+    else
+      result := FRACUNIT - (integer(cmap) - integer(fog_colormaps)) div 256 * FRACUNIT div NUMCOLORMAPS;
+  end;
 end;
 
 function R_GetColormap32(const cmap: PByteArray): PLongWordArray;
+var
+  m: integer;
 begin
-  if cmap = nil then
+  if fixedcolormapnum = INVERSECOLORMAP then
+    result := @inversecolormap32
+  else if cmap = nil then
     result := @colormaps32[6 * 256] // FuzzLight
   else
-    result := @colormaps32[(integer(cmap) - integer(colormaps))];
+  begin
+    // JVAL: Mars fog sectors
+    m := (integer(cmap) - integer(colormaps));
+    if (m >= 0) and (m <= NUMCOLORMAPS * 256) then
+      result := @colormaps32[m]
+    else
+    begin
+      m := (integer(cmap) - integer(fog_colormaps));
+      result := @fog_colormaps32[m];
+    end;
+  end;
 end;
 
 //

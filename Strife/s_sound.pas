@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -70,7 +70,7 @@ procedure S_StartSound(origin: pointer; const sndname: string); overload;
 procedure S_StartSoundAtVolume(origin_p: pointer; sfx_id: integer; volume: integer);
 
 // Voice volume
-procedure S_StartVoice(const sndname: string); 
+procedure S_StartVoice(const sndname: string);
 
 procedure S_StartVoiceAtVolume(origin_p: pointer; sfx_id: integer; volume: integer);
 
@@ -121,14 +121,14 @@ var
   numChannels: integer;
 
 var
-  disable_voices: boolean = false;  
+  disable_voices: boolean = false;
 
 const
   MIN_NUMCHANNELS = 8;
   MAX_NUMCHANNELS = 32;
 
 function S_DefaultMusicForMap(const map: integer): integer;
-  
+
 implementation
 
 uses
@@ -149,6 +149,7 @@ uses
   p_mobj,
   p_tick,
   sounds,
+  s_externalmusic,
   z_zone,
   w_folders,
   w_wad,
@@ -298,6 +299,8 @@ begin
   printf('  default voice volume %d'#13#10, [voiceVolume]);
   printf('  default music volume %d'#13#10, [musicVolume]);
 
+  S_ExternalMusicInit;
+
   // Whatever these did with DMX, these are rather dummies now.
   I_SetChannels;
 
@@ -340,6 +343,7 @@ end;
 procedure S_ShutDownSound;
 begin
   S_FreeRandomSoundLists;
+  S_ShutDownExternalMusic;
 end;
 
 function S_DefaultMusicForMap(const map: integer): integer;
@@ -451,7 +455,10 @@ begin
   cnum := S_GetChannel(origin, sfx);
 
   if cnum < 0 then
+  begin
+    I_DevWarning('S_StartSoundAtVolume(): Can not find channel for sfx=%d'#13#10, [sfx_id]);
     exit;
+  end;
 
   //
   // This is supposed to handle the loading/caching.
@@ -869,12 +876,18 @@ begin
     mp3header.ID := MP3MAGIC;
     mp3header.Stream := music.mp3stream;
     music.data := mp3header;
+    music.handle := I_RegisterSong(music.data, W_LumpLength(music.lumpnum));
   end
   else
-    // load & register it
-    music.data := W_CacheLumpNum(music.lumpnum, PU_MUSIC);
+  begin
+    if not S_TryLoadExternalMusic(music) then
+    begin
+      // load & register it
+      music.data := W_CacheLumpNum(music.lumpnum, PU_MUSIC);
+      music.handle := I_RegisterSong(music.data, W_LumpLength(music.lumpnum));
+    end;
+  end;
 
-  music.handle := I_RegisterSong(music.data, W_LumpLength(music.lumpnum));
 
   // play it
   I_PlaySong(music.handle, looping);

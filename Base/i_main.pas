@@ -39,11 +39,8 @@ interface
 uses
   Windows;
 
-var
-  hMainWnd: HWND = 0;
-
 const
-  WINDOW_STYLE = (WS_OVERLAPPED); 
+  WINDOW_STYLE = (WS_OVERLAPPED);
 
 procedure DoomMain;
 
@@ -61,6 +58,7 @@ uses
   i_input,
   i_system,
   i_displaymodes,
+  i_mainwindow,
   m_argv,
   m_base,
   d_main;

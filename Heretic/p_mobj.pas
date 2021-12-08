@@ -147,6 +147,7 @@ uses
   p_params,
   p_ladder,
   p_musinfo,
+  p_bouncing,
   r_defs,
   r_sky,
   r_main,
@@ -260,7 +261,7 @@ begin
   if mo.tics < 1 then
     mo.tics := 1;
 
-  mo.flags := mo.flags and (not MF_MISSILE);
+  mo.flags := mo.flags and not MF_MISSILE;
 
   if mo.info.deathsound <> 0 then
   begin
@@ -276,7 +277,6 @@ end;
 //
 const
   STOPSPEED = $1000;
-  FRICTION_NORMAL = $e800;
   FRICTION_LOW = $f900;
   FRICTION_FLY = $eb00;
   windTab: array[0..2] of integer = (2048 * 5, 2048 * 10, 2048 * 25);
@@ -379,6 +379,13 @@ begin
       begin
         P_SlideMove(mo); // try to slide along it
       end
+      // JVAL: 20211121 - New bounch on walls mechanics
+      else if (G_PlayingEngineVersion >= VERSION207) and (mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0) and (tmbounceline <> nil) then
+      begin
+        P_WallBounceMobj(mo, tmbounceline);
+        xmove := 0;
+        ymove := 0;
+      end
       // JVAL: 20200308 - Bounce on walls
       else if mo.flags3_ex and MF3_EX_WALLBOUNCE <> 0 then
       begin
@@ -424,7 +431,7 @@ begin
   until not ((xmove <> 0) or (ymove <> 0));
 
   // slow down
-  if (player <> nil) and  (player.cheats and CF_NOMOMENTUM <> 0) then
+  if (player <> nil) and (player.cheats and CF_NOMOMENTUM <> 0) then
   begin
     // debug option for no sliding at all
     mo.momx := 0;
@@ -509,8 +516,8 @@ begin
     end
     else
     begin
-      mo.momx := FixedMul(mo.momx, FRICTION_NORMAL);
-      mo.momy := FixedMul(mo.momy, FRICTION_NORMAL);
+      mo.momx := FixedMul(mo.momx, mo.friction);
+      mo.momy := FixedMul(mo.momy, mo.friction);
     end;
   end;
 end;
@@ -555,7 +562,7 @@ begin
   begin
     player.viewheight := player.viewheight - (mo.floorz - mo.z);
     player.deltaviewheight :=
-      _SHR((PVIEWHEIGHT - player.viewheight), 3);
+      _SHR((PVIEWHEIGHT - player.crouchheight - player.viewheight), 3);
   end;
 
   // adjust height
@@ -572,8 +579,8 @@ begin
   if (mo.flags and MF_FLOAT <> 0) and (mo.target <> nil) then
   begin
     // float down towards target if too close
-    if ((mo.flags and MF_SKULLFLY) = 0) and
-       ((mo.flags and MF_INFLOAT) = 0) then
+    if (mo.flags and MF_SKULLFLY = 0) and
+       (mo.flags and MF_INFLOAT = 0) then
     begin
       dist := P_AproxDistance(mo.x - mo.target.x, mo.y - mo.target.y);
 
@@ -655,6 +662,11 @@ begin
         // after hitting the ground (hard),
         // and utter appropriate sound.
         player.deltaviewheight := _SHR(mo.momz, 3);
+
+        // JVAL: 20211101 - Crouch
+        if G_PlayingEngineVersion >= VERSION207 then
+          player.deltaviewheight := FixedMul(player.deltaviewheight, FixedDiv(mo.height, mo.info.height));
+
         if leveltime > player.nextoof then
         begin
           S_StartSound(mo, Ord(sfx_plroof));
@@ -893,7 +905,7 @@ var
   onmo: Pmobj_t;
 begin
   // JVAL: Clear just spawned flag
-  mobj.flags := mobj.flags and (not MF_JUSTAPPEARED);
+  mobj.flags := mobj.flags and not MF_JUSTAPPEARED;
 
   // momentum movement
   if (mobj.momx <> 0) or
@@ -1024,6 +1036,7 @@ begin
   mobj.scale := info.scale;
   mobj.gravity := info.gravity;
   mobj.pushfactor := info.pushfactor;
+  mobj.friction := info.friction;
   mobj.damage := info.damage;
   mobj.renderstyle := info.renderstyle;
   mobj.alpha := info.alpha;
@@ -1033,6 +1046,7 @@ begin
   mobj.mass := info.mass;
   mobj.WeaveIndexXY := info.WeaveIndexXY;
   mobj.WeaveIndexZ := info.WeaveIndexZ;
+  mobj.painchance := info.painchance;
 
   if gameskill <> sk_nightmare then
     mobj.reactiontime := info.reactiontime;
@@ -1325,6 +1339,17 @@ begin
   p.extralight := 0;
   p.fixedcolormap := 0;
   p.viewheight := PVIEWHEIGHT;
+  // JVAL: 20211117 - Reset extra player fields when spawning player
+  p.laddertics := 0;
+  p.slopetics := 0;
+  p.teleporttics := 0;
+  p.nextoof := 0;
+  p.quakeintensity := 0;
+  p.quaketics := 0;
+  p.oldcrouch := 0;
+  p.lastongroundtime := 0;
+  p.lastautocrouchtime := 0;
+  p.crouchheight := 0;
 
   // setup gun psprite
   P_SetupPsprites(p);
@@ -1396,7 +1421,7 @@ begin
   end;
 
   // check for apropriate skill level
-  if (not netgame) and (mthing.options and 16 <> 0) then
+  if not netgame and (mthing.options and 16 <> 0) then
     exit;
 
   if gameskill = sk_baby then

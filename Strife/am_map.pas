@@ -574,7 +574,7 @@ begin
   m_w := FTOM(f_w);
   m_h := FTOM(f_h);
 
-  if gamestate =  gs_level then
+  if gamestate = GS_LEVEL then
   begin
     // find player to center on initially
     pnum := consoleplayer;
@@ -637,7 +637,7 @@ begin
     begin
       sprintf(namebuf, 'AMMNUM%d', [i]);
       marknumsid[i] := W_GetNumForName(namebuf);
-      marknums[i] := W_CacheLumpNum(marknumsid[i], PU_STATIC);      
+      marknums[i] := W_CacheLumpNum(marknumsid[i], PU_STATIC);
     end;
   end
 end;

@@ -424,7 +424,7 @@ begin
   begin
     bystander.target := puncher;
     if bystander.info.seesound <> 0 then
-      A_SeeSound(bystander);
+      A_SeeSound1(bystander);
     P_SetMobjState(bystander, statenum_t(bystander.info.seestate));
   end;
 end;
@@ -648,7 +648,7 @@ end;
 // returns false if the move is blocked.
 //
 // [STRIFE]
-// villsa/haleyjd 09/05/10: Modified for terrain types and 3D object 
+// villsa/haleyjd 09/05/10: Modified for terrain types and 3D object
 // clipping. Below constants are verified to be unmodified:
 //
 const
@@ -904,8 +904,8 @@ end;
 //
 // villsa [STRIFE] new function
 //
-// haleyjd: Almost identical to the tail-end of P_NewChaseDir, this function 
-// finds a purely random direction for an object to walk. Called from 
+// haleyjd: Almost identical to the tail-end of P_NewChaseDir, this function
+// finds a purely random direction for an object to walk. Called from
 // A_RandomWalk.
 //
 // Shockingly similar to the RandomWalk pointer in Eternity :)
@@ -1310,7 +1310,7 @@ begin
 
       if (actor.flags and MF_AMBUSH = 0) or P_CheckSight(actor, actor.target) then
       begin
-        A_SeeSound(actor);
+        A_SeeSound1(actor);
         actor.threshold := 10;
         P_SetMobjState(actor, statenum_t(actor.info.seestate));
       end;
@@ -1379,7 +1379,7 @@ begin
   // check for melee attack
   if (actor.info.meleestate <> 0) and P_CheckMeleeRange(actor) then
   begin
-    A_AttackSound(actor);
+    A_AttackSound1(actor);
     P_SetMobjState(actor, statenum_t(actor.info.meleestate));
     exit;
   end;
@@ -1451,7 +1451,7 @@ begin
        (actor.info.activesound <= Ord(sfx_agrac4)) then
       S_StartSound(actor, Ord(sfx_agrac1) + P_Random mod 4)
     else
-      A_ActiveSound(actor);
+      A_ActiveSound1(actor);
   end;
 end;
 
@@ -1532,7 +1532,7 @@ begin
   begin
     t := P_Random;
     shootangle := actor.angle + _SHLW(t - P_Random, 20);
-    damage := (P_Random and 7) + 1;
+    damage := 3 * (P_Random and 7) + 1;
 
     P_LineAttack(actor, shootangle, 2048 * FRACUNIT, slope, damage);
   end;
@@ -2417,7 +2417,7 @@ begin
   A_FaceTarget(actor);
   if P_CheckMeleeRange(actor) then
   begin
-    damage := 8 * (P_Random mod 10 + 1);
+    damage := 6 * (P_Random mod 10 + 1);
 
     S_StartSound(actor, Ord(sfx_mtalht));
     P_DamageMobj(actor.target, actor, actor, damage);
@@ -2484,7 +2484,7 @@ end;
 
 procedure A_Scream(actor: Pmobj_t);
 begin
-  A_DeathSound(actor);
+  A_DeathSound1(actor);
 end;
 
 procedure A_XScream(actor: Pmobj_t);
@@ -2492,7 +2492,7 @@ begin
   if actor.flags and MF_NOBLOOD <> 0 then
     if actor.info.deathsound <> 0 then
     begin
-      A_DeathSound(actor);
+      A_DeathSound1(actor);
       exit;
     end;
 
@@ -2502,7 +2502,7 @@ end;
 //
 // A_Pain
 //
-// villsa [STRIFE] 
+// villsa [STRIFE]
 // * Play random peasant sounds; otherwise play painsound directly
 //
 // JVAL: adjusted for MF_EX_RANDOMPAINSOUND flag
@@ -2523,7 +2523,7 @@ begin
     exit;
   end;
 
-  A_PainSound(actor);
+  A_PainSound1(actor);
 end;
 
 //
@@ -2608,8 +2608,8 @@ end;
 // A_ProgrammerDie
 //
 // villsa [STRIFE] new codepointer
-// 09/08/10: Action routine for the Programmer's grisly death. Spawns the 
-// separate mechanical base object and sends it flying off in some random 
+// 09/08/10: Action routine for the Programmer's grisly death. Spawns the
+// separate mechanical base object and sends it flying off in some random
 // direction.
 //
 procedure A_ProgrammerDie(actor: Pmobj_t);
@@ -2658,7 +2658,7 @@ end;
 //
 // villsa [STRIFE] new codepointer (unused)
 // 09/08/10: Spawns Spectre A. Or would, if anything actually used this.
-// This is evidence that the Programmer's spectre, which appears in the 
+// This is evidence that the Programmer's spectre, which appears in the
 // Catacombs in the final version, was originally meant to be spawned
 // after his death.
 //
@@ -3311,7 +3311,7 @@ begin
         F_StartFinale();
         G_ExitLevel(0);
       end;
-      
+
   end;
 end;
 
@@ -3399,7 +3399,7 @@ begin
     sound := Ord(sfx_plxdth) // villsa [STRIFE] different sound
   else
     sound := Ord(sfx_pldeth);
-    
+
   S_StartSound(mo, sound);
 end;
 
@@ -3431,6 +3431,9 @@ begin
 
   // beacon no longer special
   actor.flags := actor.flags and not MF_SPECIAL;
+
+  // 20160306: set rebel threshold
+  mobj.threshold := 100;
 
   // set color and flags
   mobj.flags := mobj.flags or ((actor.miscdata shl MF_TRANSSHIFT) or MF_NODIALOG);  // JVAL SOS maybe change flags to LongWord

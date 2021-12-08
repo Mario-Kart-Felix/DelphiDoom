@@ -3,7 +3,7 @@
 //  DelphiDoom: A modified and improved DOOM engine for Windows
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2021 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -766,7 +766,10 @@ begin
   R_Reset32Cache;
 
   for i := 0 to NUMCOLORMAPS * 256 - 1 do
+  begin
     colormaps32[i] := curpal[colormaps[i]];
+    fog_colormaps32[i] := curpal[fog_colormaps[i]]; // JVAL: Mars fog sectors
+  end;
 
   hrtp := @hirestable[0, 0, 0];
 
@@ -948,7 +951,10 @@ begin
   R_Reset32Cache;
 
   for i := 0 to NUMCOLORMAPS * 256 - 1 do
+  begin
     colormaps32[i] := curpal[colormaps[i]];
+    fog_colormaps32[i] := curpal[fog_colormaps[i]]; // JVAL: Mars fog sectors
+  end;
 
   hrtp := @hirestable[0, 0, 0];
 
@@ -1232,7 +1238,7 @@ var
 begin
 {$IFNDEF OPENGL}
   cur_pal_index := palette;
-{$ENDIF}  
+{$ENDIF}
   if palette > 0 then
   begin
     if palette <= 8 then
@@ -1248,12 +1254,34 @@ begin
       r_extra_green := palette * 25;
       r_extra_blue := palette * 8;
     end
-    else
+    else {$IFDEF HEXEN} if palette = 13 then {$ENDIF}
     begin
       r_extra_red := 32;
       r_extra_green := 80;
       r_extra_blue := 0;
-    end;
+    end
+    {$IFDEF HEXEN}
+    else if palette < 21 then
+    begin
+      palette := palette - 13;
+      r_extra_red := 0;
+      r_extra_green := palette * 24;
+      r_extra_blue := 0;
+    end
+    else if palette = 21 then
+    begin
+      r_extra_red := 0;
+      r_extra_green := 0;
+      r_extra_blue := 128;
+    end
+    else
+    begin
+      r_extra_red := 0;
+      r_extra_green := 0;
+      r_extra_blue := 0;
+    end
+    {$ENDIF}
+    ;
     pal_color := r_extra_red shl 16 + r_extra_green shl 8 + r_extra_blue;
   end
   else

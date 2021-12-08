@@ -486,7 +486,7 @@ begin
     dist := dist div 2;
   if actor.flags3_ex and MF3_EX_MISSILEEVENMORE <> 0 then
     dist := dist div 8;
-    
+
   if actor.info.minmissilechance > 0 then
     if actor.info.minmissilechance < dist then
       dist := actor.info.minmissilechance;
@@ -2120,7 +2120,7 @@ end;
 
 procedure A_Pain(actor: Pmobj_t);
 begin
-  A_PainSound(actor);
+  A_PainSound1(actor);
 end;
 
 //

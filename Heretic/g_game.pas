@@ -125,6 +125,8 @@ var
   key_speed: integer;
 // JVAL Jump
   key_jump: integer;
+// JVAL: 20211101 - Crouch
+  key_crouch: integer;
 
 // JVAL 20191207 Key bindings for weapon change
   key_weapon0: integer = Ord('1');
@@ -155,6 +157,7 @@ var
   joybuse: integer;
   joybspeed: integer;
   joybjump: integer;
+  joybcrouch: integer;  // JVAL: 20211101 - Crouch
   joyblleft: integer;
   joyblright: integer;
 
@@ -239,6 +242,7 @@ var
   autorunmode: boolean = false;
   keepcheatsinplayerreborn: boolean = false;
   allowplayerjumps: boolean = true;
+  allowplayercrouch: boolean = true;
 
 var
 // HERETIC Par Times
@@ -428,6 +432,7 @@ var
   base: Pticcmd_t;
   imousex: integer;
   imousey: integer;
+  cmd_jump, cmd_crouch: byte;
 begin
   base := I_BaseTiccmd;    // empty, or external driver
 
@@ -716,13 +721,34 @@ begin
     if allowplayerjumps and (gamekeydown[key_jump] or (usejoystick and joybuttons[joybjump])) then
     begin
       if players[consoleplayer].oldjump <> 0 then
-        cmd.jump := 1
+        cmd_jump := 1
       else
-        cmd.jump := 2
+        cmd_jump := 2
       end
     else
-      cmd.jump := 0;
-    players[consoleplayer].oldjump := cmd.jump;
+      cmd_jump := 0;
+    players[consoleplayer].oldjump := cmd_jump;
+    // JVAL: 20211101 - Crouch
+    // allowplayercrouch variable controls if we accept input for crouching
+    if cmd_jump = 0 then
+    begin
+      if allowplayercrouch and (gamekeydown[key_crouch] or (usejoystick and joybuttons[joybcrouch])) then
+      begin
+        if players[consoleplayer].oldcrouch <> 0 then
+          cmd_crouch := 2
+        else
+          cmd_crouch := 1
+        end
+      else
+        cmd_crouch := 0;
+    end
+    else
+      cmd_crouch := 0;
+    players[consoleplayer].oldcrouch := cmd_crouch;
+
+    cmd.jump_crouch :=
+      ((cmd_jump shl CMD_JUMP_SHIFT) and CMD_JUMP_MASK) +
+      ((cmd_crouch shl CMD_CROUCH_SHIFT) and CMD_CROUCH_MASK);
   end;
 
   // special buttons
@@ -1181,7 +1207,11 @@ begin
   if gameepisode > 5 then
     skytexture := R_TextureNumForName(skyLumpNames[0]) // ???
   else
-    skytexture := R_TextureNumForName(skyLumpNames[gameepisode - 1]);
+  begin
+    skytexture := R_CheckTextureNumForName(skyLumpNames[gameepisode - 1]);
+    if skytexture < 0 then
+      skytexture := R_TextureNumForName(skyLumpNames[0]);
+  end;
 
   levelstarttic := gametic;        // for time calculation
 
@@ -1276,7 +1306,7 @@ begin
   end;
 
   // any other key pops up menu if in demos
-  if (gameaction = ga_nothing) and (not singledemo) and
+  if (gameaction = ga_nothing) and not singledemo and
      (demoplayback or (gamestate = GS_DEMOSCREEN)) then
   begin
     if (ev._type = ev_keydown) or
@@ -1517,7 +1547,7 @@ begin
         players[consoleplayer]._message := msg;
       end;
 
-      if netgame and (not netdemo) and ((gametic mod ticdup) = 0) then
+      if netgame and not netdemo and ((gametic mod ticdup) = 0) then
       begin
         if (gametic > BACKUPTICS) and
            (consistancy[i][buf] <> cmd.consistancy) then
@@ -1636,7 +1666,7 @@ begin
   ZeroMemory(@p.powers, SizeOf(p.powers));
   ZeroMemory(@p.keys, SizeOf(p.keys));
   if p.mo <> nil then
-    p.mo.flags := p.mo.flags and (not MF_SHADOW); // cancel invisibility
+    p.mo.flags := p.mo.flags and not MF_SHADOW; // cancel invisibility
   p.lookdir := 0;       // JVAL cancel lookdir Up/Down
   p.lookdir16 := 0;     // JVAL Smooth Look Up/Down
   p.centering := false;
@@ -1659,6 +1689,8 @@ begin
     key_strafeleft := 44;
     key_straferight := 46;
     key_jump := 97;
+    // JVAL: 20211101 - Crouch
+    key_crouch := 122;
     key_fire := 157;
     key_use := 32;
     key_strafe := 184;
@@ -1692,6 +1724,8 @@ begin
     key_strafeleft := 97;
     key_straferight := 100;
     key_jump := 101;
+    // JVAL: 20211101 - Crouch
+    key_crouch := 113;
     key_fire := 157;
     key_use := 32;
     key_strafe := 184;
@@ -1725,6 +1759,8 @@ begin
     key_strafeleft := 115;
     key_straferight := 102;
     key_jump := 97;
+    // JVAL: 20211101 - Crouch
+    key_crouch := 122;
     key_fire := 157;
     key_use := 32;
     key_strafe := 184;
@@ -2186,6 +2222,8 @@ begin
         savegameversion := 204
       else if vsaved = 'heretic 205' then
         savegameversion := 205
+      else if vsaved = 'heretic 206' then
+        savegameversion := 206
       else
       begin
         I_Warning('G_DoLoadGame(): Saved game is from an unsupported version: %s!'#13#10, [vsaved]);
@@ -2247,7 +2285,7 @@ begin
     R_ExecuteSetViewSize;
 
   P_LevelInfoChangeMusic;
-    
+
   // draw the pattern into the back screen
 {$IFNDEF OPENGL}
   R_FillBackScreen;
@@ -2295,7 +2333,7 @@ begin
   // JVAL
   // Hack:
   //    Strings 'heretic' and 'version' have the same length!!
-  savegameversion := VERSION; 
+  savegameversion := VERSION;
   sprintf(name2, 'heretic %d', [VERSION]);
   while length(name2) < VERSIONSIZE do
     name2 := name2 + ' ';
@@ -2615,7 +2653,7 @@ begin
   cmd.angleturn := PSmallInt(demo_p)^;
   demo_p := @demo_p[2];
 
-  cmd.buttons := demo_p[0] and (not BT_SPECIAL);
+  cmd.buttons := demo_p[0] and not BT_SPECIAL;
   demo_p := @demo_p[1];
 
   cmd.lookfly := demo_p[0];
@@ -2627,7 +2665,7 @@ begin
   cmd.lookleftright := demo_p[0];
   demo_p := @demo_p[1];
 
-  cmd.jump := demo_p[0];
+  cmd.jump_crouch := demo_p[0];
   demo_p := @demo_p[1];
 
   if demoversion < VERSION203 then
@@ -2698,7 +2736,7 @@ begin
   PSmallInt(demo_p)^ := cmd.angleturn;
   demo_p := @demo_p[2];
 
-  demo_p[0] := cmd.buttons and (not BT_SPECIAL);
+  demo_p[0] := cmd.buttons and not BT_SPECIAL;
   demo_p := @demo_p[1];
 
   demo_p[0] := cmd.lookfly;
@@ -2710,7 +2748,7 @@ begin
   demo_p[0] := cmd.lookleftright;
   demo_p := @demo_p[1];
 
-  demo_p[0] := cmd.jump;
+  demo_p[0] := cmd.jump_crouch;
   demo_p := @demo_p[1];
 
   // JVAL Smooth Look Up/Down

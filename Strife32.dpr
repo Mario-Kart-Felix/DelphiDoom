@@ -43,7 +43,7 @@
 {$D Strife to Delphi Total Conversion}
 
 program Strife32;
-                                     
+
 {$R *.RES}
 
 uses
@@ -382,7 +382,20 @@ uses
   scanf_c in 'C_LIB\scanf_c.pas',
   audiolib in 'AUDIOLIB\audiolib.pas',
   p_obituaries in 'Base\p_obituaries.pas',
-  p_gender in 'Base\p_gender.pas';
+  p_gender in 'Base\p_gender.pas',
+  libs3m in 'AUDIOLIB\libs3m.pas',
+  mikmod in 'Base\mikmod.pas',
+  i_mikplay in 'Base\i_mikplay.pas',
+  BTMemoryModule in 'Base\BTMemoryModule.pas',
+  i_s3mmusic in 'Base\i_s3mmusic.pas',
+  i_mainwindow in 'Base\i_mainwindow.pas',
+  i_itmusic in 'Base\i_itmusic.pas',
+  i_xmmusic in 'Base\i_xmmusic.pas',
+  i_modmusic in 'Base\i_modmusic.pas',
+  s_externalmusic in 'Base\s_externalmusic.pas',
+  info_export in 'Base\info_export.pas',
+  p_bouncing in 'Base\p_bouncing.pas',
+  p_simpledialog in 'Base\p_simpledialog.pas';
 
 var
   Saved8087CW: Word;

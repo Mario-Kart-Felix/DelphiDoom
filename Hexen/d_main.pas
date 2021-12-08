@@ -1874,29 +1874,35 @@ begin
   //  and we use the first WAD we find
     filename := findfile('*.wad');
     if filename <> '' then
-      I_Warning('Loading unspecified wad file: %d'#13#10, [filename]);
-    D_AddFile(filename);
+    begin
+      I_Warning('Loading unspecified wad file: %s'#13#10, [filename]);
+      D_AddFile(filename);
+    end;
     if W_InitMultipleFiles(wadfiles) = 0 then
       I_Error('W_InitMultipleFiles(): no files found');
   end;
 
+  SUC_Progress(39);
   printf('W_AutoLoadPakFiles: Autoload required pak files.'#13#10);
   W_AutoLoadPakFiles;
 
   SUC_Progress(40);
 
+  printf('SC_Init: Initializing script engine.'#13#10);
+  SC_Init;
+
+  SUC_Progress(41);
+
   printf('DEH_Init: Initializing dehacked subsystem.'#13#10);
-  DEH_Init;
   SC_DefaultStatedefLump;
+  DEH_Init;
 
   if M_CheckParm('-internalgamedef') = 0 then
     if not DEH_ParseLumpName('GAMEDEF') then
       I_Warning('DEH_ParseLumpName(): GAMEDEF lump not found, using defaults.'#13#10);
 
-  SUC_Progress(41);
+  SUC_Progress(42);
 
-  printf('SC_Init: Initializing script engine.'#13#10);
-  SC_Init;
   // JVAL: PascalScript
   printf('PS_Init: Initializing pascal script compiler.'#13#10);
   PS_Init;
@@ -1918,8 +1924,8 @@ begin
   SUC_Progress(45);
 
   if M_CheckParm('-nowaddehacked') = 0 then
-    if not DEH_ParseLumpName('DEHACKED') then
-      printf('DEH_ParseLumpName: DEHACKED lump not found.'#13#10);
+    if not DEH_ParseLumpNames('DEHACKED') then
+      printf('DEH_ParseLumpName: DEHACKED lump(s) not found.'#13#10);
 
   // JVAL Adding dehached files
   D_AddDEHFiles('-deh');
@@ -2014,7 +2020,7 @@ begin
   // Check for -file in shareware
   // JVAL
   // Allow modified games if -devparm is specified, for debuging reasons
-  if modifiedgame and (not devparm) then
+  if modifiedgame and not devparm then
   begin
     if gamemode = shareware then
       I_DevError(#13#10 + 'D_DoomMain(): You cannot use external files with the shareware version. Register!');

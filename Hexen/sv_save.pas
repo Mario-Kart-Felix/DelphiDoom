@@ -845,6 +845,12 @@ begin
         players[i].quakeintensity := 0;
       incp(saveptr, SizeOf(player_t205));
     end
+    else if LOADVERSION <= VERSION206 then
+    begin
+      ZeroMemory(@players[i], SizeOf(player_t));
+      memcpy(@players[i], saveptr, SizeOf(player_t206));
+      incp(saveptr, SizeOf(player_t206));
+    end
     else
     begin
       memcpy(@players[i], saveptr, SizeOf(player_t));
@@ -1108,7 +1114,7 @@ begin
     if @thinker._function.acp1 = @P_MobjThinker then
     begin
       mobj := Pmobj_t(thinker);
-      if (mobj.player <> nil) and (not SavingPlayers) then
+      if (mobj.player <> nil) and not SavingPlayers then
       begin // Skipping player mobjs
         thinker := thinker.next;
         continue;
@@ -1313,7 +1319,16 @@ begin
       mobj.rendervalidcount := 0;
 
       mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+      mobj.WeaveIndexXY := 0;
+      mobj.WeaveIndexZ := 0;
       mobj.master := nil;
+
+      mobj.friction := ORIG_FRICTION;
+
+      // version 207
+      mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
+      mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
+      mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
     end
     else if LOADVERSION = VERSION141 then
     begin
@@ -1331,7 +1346,16 @@ begin
       mobj.rendervalidcount := 0;
 
       mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+      mobj.WeaveIndexXY := 0;
+      mobj.WeaveIndexZ := 0;
       mobj.master := nil;
+
+      mobj.friction := ORIG_FRICTION;
+
+      // version 207
+      mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
+      mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
+      mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
     end
     else if LOADVERSION <= VERSION204 then
     begin
@@ -1347,7 +1371,16 @@ begin
       mobj.rendervalidcount := 0;
 
       mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+      mobj.WeaveIndexXY := 0;
+      mobj.WeaveIndexZ := 0;
       mobj.master := nil;
+
+      mobj.friction := ORIG_FRICTION;
+
+      // version 207
+      mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
+      mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
+      mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
     end
     else if LOADVERSION <= VERSION205 then
     begin
@@ -1356,6 +1389,23 @@ begin
 
       mobj.mass := mobjinfo[Ord(mobj._type)].mass;
       mobj.master := nil;
+
+      mobj.friction := ORIG_FRICTION;
+
+      // version 207
+      mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
+      mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
+      mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
+    end
+    else if LOADVERSION <= VERSION206 then
+    begin
+      memcpy(mobj, saveptr, SizeOf(mobj_t206));
+      incp(saveptr, SizeOf(mobj_t206));
+
+      // version 207
+      mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
+      mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
+      mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
     end
     else
     begin
@@ -1364,7 +1414,7 @@ begin
     end;
     mobj.thinker._function.acp1 := @P_MobjThinker;
 
-    if mobj.key < 2 then
+    if mobj.key < 1 then
       mobj.key := P_GenGlobalMobjKey;
     P_NotifyMobjKey(mobj);
 
@@ -2081,6 +2131,8 @@ begin
     LOADVERSION := VERSION205
   else if vstring = HXS_VERSION_TEXT_206 then
     LOADVERSION := VERSION206
+  else if vstring = HXS_VERSION_TEXT_207 then
+    LOADVERSION := VERSION207
   else
   begin // Bad version
     I_Warning('SV_LoadGame(): Game is from unsupported version'#13#10);
@@ -2379,7 +2431,6 @@ begin
   result := M_SaveFileName(result);
 end;
 
-
 function SV_GetSaveGameDescription(const slot: integer): string;
 var
   filename: string;
@@ -2401,7 +2452,6 @@ begin
     end;
   end;
 end;
-
 
 procedure P_ArchiveScreenShot;
 var

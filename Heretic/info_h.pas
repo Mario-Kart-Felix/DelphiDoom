@@ -1499,7 +1499,6 @@ type
     painsound: integer;
     meleestate: integer;
     missilestate: integer;
-    crashstate: integer;
     deathstate: integer;
     xdeathstate: integer;
     deathsound: integer;
@@ -1526,8 +1525,11 @@ type
     renderstyle: mobjrenderstyle_t;
     alpha: integer;
     healstate: integer;
+    crashstate: integer;
+    interactstate: integer;
     vspeed: integer;  // Initial vertical speed
     pushfactor: integer; // How much can be pushed? 1..FRACUNIT
+    friction: Integer; // Default is ORIG_FRICTION
     scale: integer;
     gravity: integer;
     flags3_ex: integer;
@@ -1546,6 +1548,8 @@ type
     maxtargetrange: integer;
     WeaveIndexXY: integer;
     WeaveIndexZ: integer;
+    spriteDX: integer;
+    spriteDY: integer;
   end;
 
   Pmobjinfo_t = ^mobjinfo_t;

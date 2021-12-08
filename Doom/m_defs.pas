@@ -120,10 +120,14 @@ var
   lightmapcolorintensity: integer = 128;
   lightwidthfactor: integer = 5;
   r_bltasync: boolean = true;
+  r_blitmultiplier: integer = 1;
+  r_lightmaponmasked: boolean = true;
 {$ELSE}
   tran_filter_pct: integer;
   use_fog: boolean;
   fog_density: integer;
+  use_white_fog: boolean;
+  white_fog_density: integer;
   gl_nearclip: integer;
   gl_tex_filter_string: string;
   gl_texture_filter_anisotropic: boolean;
@@ -132,7 +136,6 @@ var
   gl_screensync: boolean;
   gl_linear_hud: boolean;
   gl_add_all_lines: boolean;
-  gl_reflectsky: boolean;
   gl_SCREENWIDTH,
   gl_SCREENHEIGHT: integer;
   gl_drawmodels: boolean;
@@ -162,7 +165,7 @@ type
   Pdefault_t = ^default_t;
 
 const
-  NUMDEFAULTS = {$IFDEF FPC}196{$ELSE}198{$ENDIF};
+  NUMDEFAULTS = {$IFDEF FPC}204{$ELSE}206{$ENDIF};
 
 // JVAL
 // Note: All setable defaults must be in lowercase, don't ask why. Just do it. :)
@@ -179,7 +182,7 @@ const
      location: @{$IFDEF OPENGL}soft_SCREENWIDTH{$ELSE}SCREENWIDTH{$ENDIF};
      setable: DFS_NEVER;
      defaultsvalue: '';
-     defaultivalue: 640;
+     defaultivalue: -1;
      defaultbvalue: false;
      _type: tInteger),
 
@@ -187,7 +190,7 @@ const
      location: @{$IFDEF OPENGL}soft_SCREENHEIGHT{$ELSE}SCREENHEIGHT{$ENDIF};
      setable: DFS_NEVER;
      defaultsvalue: '';
-     defaultivalue: 400;
+     defaultivalue: -1;
      defaultbvalue: false;
      _type: tInteger),
 
@@ -415,6 +418,14 @@ const
      defaultbvalue: true;
      _type: tBoolean),
 
+    (name: 'uselightboostgodmode';
+     location: @uselightboostgodmode;
+     setable: DFS_ALWAYS;
+     defaultsvalue: '';
+     defaultivalue: 0;
+     defaultbvalue: true;
+     _type: tBoolean),
+
     (name: 'lightboostfactor';
      location: @lightboostfactor;
      setable: DFS_ALWAYS;
@@ -527,6 +538,14 @@ const
      defaultbvalue: true;
      _type: tBoolean),
 
+    (name: 'r_lightmaponmasked';
+     location: @r_lightmaponmasked;
+     setable: DFS_ALWAYS;
+     defaultsvalue: '';
+     defaultivalue: 1;
+     defaultbvalue: true;
+     _type: tBoolean),
+
     (name: 'r_lightmapfadeoutfunc';
      location: @r_lightmapfadeoutfunc;
      setable: DFS_ALWAYS;
@@ -566,6 +585,14 @@ const
      defaultivalue: 1;
      defaultbvalue: true;
      _type: tBoolean),
+
+    (name: 'r_blitmultiplier';
+     location: @r_blitmultiplier;
+     setable: DFS_ALWAYS;
+     defaultsvalue: '';
+     defaultivalue: 1;
+     defaultbvalue: true;
+     _type: tInteger),
 
      // JVAL: Slopes
     (name: 'preciseslopedrawing';
@@ -613,6 +640,22 @@ const
      setable: DFS_ALWAYS;
      defaultsvalue: '100';
      defaultivalue: 100;
+     defaultbvalue: true;
+     _type: tInteger),
+
+    (name: 'use_white_fog';
+     location: @use_white_fog;
+     setable: DFS_ALWAYS;
+     defaultsvalue: '';
+     defaultivalue: 1;
+     defaultbvalue: true;
+     _type: tBoolean),
+
+    (name: 'white_fog_density';
+     location: @fog_density;
+     setable: DFS_ALWAYS;
+     defaultsvalue: '200';
+     defaultivalue: 200;
      defaultbvalue: true;
      _type: tInteger),
 
@@ -923,6 +966,15 @@ const
      defaultbvalue: true;
      _type: tBoolean),
 
+     // JVAL: 20211101 - Crouch
+    (name: 'allowplayercrouch';
+     location: @allowplayercrouch;
+     setable: DFS_SINGLEPLAYER;
+     defaultsvalue: '';
+     defaultivalue: 0;
+     defaultbvalue: true;
+     _type: tBoolean),
+
     (name: 'allowplayerbreath';
      location: @allowplayerbreath;
      setable: DFS_ALWAYS;
@@ -1090,6 +1142,15 @@ const
      setable: DFS_NEVER;
      defaultsvalue: '';
      defaultivalue: Ord('a');
+     defaultbvalue: false;
+     _type: tInteger),
+
+     // JVAL: 20211101 - Crouch
+    (name: 'key_crouch';
+     location: @key_crouch;
+     setable: DFS_NEVER;
+     defaultsvalue: '';
+     defaultivalue: Ord('z');
      defaultbvalue: false;
      _type: tInteger),
 
@@ -1374,6 +1435,15 @@ const
      setable: DFS_ALWAYS;
      defaultsvalue: '';
      defaultivalue: 4;
+     defaultbvalue: false;
+     _type: tInteger),
+
+     // JVAL: 20211101 - Crouch
+    (name: 'joyb_crouch';
+     location: @joybcrouch;
+     setable: DFS_ALWAYS;
+     defaultsvalue: '';
+     defaultivalue: 5;
      defaultbvalue: false;
      _type: tInteger),
 

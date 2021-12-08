@@ -94,7 +94,7 @@ procedure P_PlayerInSpecialSector(player: Pplayer_t; const sector: Psector_t; co
 
 function twoSided(sector: integer; line: integer): boolean;
 
-function twoSidedS(sector: Psector_t; line: integer): boolean; 
+function twoSidedS(sector: Psector_t; line: integer): boolean;
 
 function getSide(currentSector: integer; line: integer; side: integer): Pside_t;
 
@@ -185,11 +185,11 @@ type
   Pbutton_t = ^button_t;
 
 const
- // 8 players, 4 buttons each at once, max.
-   MAXBUTTONS = 32;
+  // 8 players, 4 buttons each at once, max.
+  MAXBUTTONS = 32;
 
- // 1 second, in ticks.
-   BUTTONTIME = 35;
+  // 1 second, in ticks.
+  BUTTONTIME = 35;
 
 
 type
@@ -593,6 +593,7 @@ const
   MORE_FRICTION_MOMENTUM = 15000; // mud factor based on momentum
   ORIG_FRICTION = $E800;          // original value
   ORIG_FRICTION_FACTOR = 2048;    // original value
+  CROUCH_FRICTION_FACTOR = 1536;  // JVAL: 20211101 - Crouch
 
 procedure P_SpawnFriction;
 
@@ -3194,7 +3195,7 @@ begin
     11:
       begin
         // EXIT SUPER DAMAGE! (for E1M8 finale)
-        player.cheats := player.cheats and (not CF_GODMODE);
+        player.cheats := player.cheats and not CF_GODMODE;
 
         if leveltime and $1f = 0 then
           P_DamageMobj(player.mo, nil, nil, 20);

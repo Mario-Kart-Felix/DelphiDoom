@@ -177,6 +177,7 @@ uses
   z_zone,
   m_argv,
   m_bbox,
+  m_sha1,
   g_game,
   i_system,
   w_wad,
@@ -700,7 +701,7 @@ begin
     ss.ceilingheight := ms.ceilingheight * FRACUNIT;
     ss.floorpic := R_FlatNumForName(ms.floorpic);
     ss.ceilingpic := R_FlatNumForName(ms.ceilingpic);
-    ss.lightlevel := ms.lightlevel;
+    ss.lightlevel := ms.lightlevel and $FF; // JVAL: Mars fog sectors
     ss.special := ms.special;
     ss.tag := ms.tag;
     ss.thinglist := nil;
@@ -720,6 +721,8 @@ begin
     ss.midmap := -1;
     ss.bottommap := -1;
     ss.renderflags := 0;
+    if ms.lightlevel > $FF then // JVAL: Mars fog sectors
+      ss.renderflags := ss.renderflags or SRF_FOG;
     ss.flags := 0;
     ss.gravity := GRAVITY;  // JVAL: sector gravity (VERSION 204)
     ss.floorangle := 0;     // JVAL: 20200221 - Texture angle
@@ -886,28 +889,31 @@ begin
     think := think.next;
   end;
 
-  mobjs := Z_Malloc(count * SizeOf(Pmobj_t), PU_STATIC, nil);
-  i := 0;
-  think := thinkercap.next;
-  while think <> @thinkercap do
+  if count > 0 then
   begin
-    if @think._function.acp1 = @P_MobjThinker then
-      if Pmobj_t(think)._type = _type then
-      begin
-        mobjs[i] := Pmobj_t(think);
-        inc(i);
-      end;
-    think := think.next;
+    mobjs := Z_Malloc(count * SizeOf(Pmobj_t), PU_STATIC, nil);
+    i := 0;
+    think := thinkercap.next;
+    while think <> @thinkercap do
+    begin
+      if @think._function.acp1 = @P_MobjThinker then
+        if Pmobj_t(think)._type = _type then
+        begin
+          mobjs[i] := Pmobj_t(think);
+          inc(i);
+        end;
+      think := think.next;
+    end;
+
+    for i := 1 to count - 1 do
+      for j := 0 to i - 1 do
+        if (mobjs[j].x = mobjs[i].x) and
+           (mobjs[j].y = mobjs[i].y) and
+           (mobjs[j].z = mobjs[i].z) then
+           mobjs[j].flags2_ex := mobjs[j].flags2_ex or MF2_EX_DONTDRAW;
+
+    Z_Free(mobjs);
   end;
-
-  for i := 1 to count - 1 do
-    for j := 0 to i - 1 do
-      if (mobjs[j].x = mobjs[i].x) and
-         (mobjs[j].y = mobjs[i].y) and
-         (mobjs[j].z = mobjs[i].z) then
-         mobjs[j].flags2_ex := mobjs[j].flags2_ex or MF2_EX_DONTDRAW;
-
-  Z_Free(mobjs);
 end;
 
 
@@ -975,13 +981,32 @@ var
   ld: Pline_t;
   v1: Pvertex_t;
   v2: Pvertex_t;
+  sz: integer;
+  sha: string;
 begin
-  numlines := W_LumpLength(lump) div SizeOf(maplinedef_t);
+  sz := W_LumpLength(lump);
+  numlines := sz div SizeOf(maplinedef_t);
   lines := Z_Malloc(numlines * SizeOf(line_t), PU_LEVEL, nil);
   ZeroMemory(lines, numlines * SizeOf(line_t));
   data := W_CacheLumpNum(lump, PU_STATIC);
 
   mld := Pmaplinedef_t(data);
+
+  if numlines = 1764 then
+  begin
+    sha := strupper(readablestring(SHA1_CalcSHA1Buf(data^, sz)));
+    if (sha = '86C7KC17C14E1B684A49A2481S9AA9LFB8FF4') or // ver 1.2 - 1.9
+       (sha = 'SAF04WA061FB7AF3E2BF5KC89349D25F5A9') then // ver 1.1
+    begin
+      for i := 0 to numlines - 1 do
+      begin
+        PWord(@mld.flags)^ := PWord(@mld.flags)^ and 511;
+        Inc(mld);
+      end;
+      mld := Pmaplinedef_t(data);
+    end;
+  end;
+
   ld := @lines[0];
   for i := 0 to numlines - 1 do
   begin
