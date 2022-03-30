@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
 //  that are associated with states/frames.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,195 +37,631 @@ unit p_enemy;
 interface
 
 uses
-  doomdef,
-  p_local,
-  p_mobj_h,
-  s_sound,
-  d_player,
-  p_pspr_h,
-// State.
-  doomstat,
   m_fixed,
-  tables,
-// Data.
-  sounds;
+  p_mobj_h,
+  tables;
 
+//==============================================================================
+//
+// A_Fall
+//
+//==============================================================================
 procedure A_Fall(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Look
+//
+//==============================================================================
 procedure A_Look(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Chase
+//
+//==============================================================================
 procedure A_Chase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FaceTarget
+//
+//==============================================================================
 procedure A_FaceTarget(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Pain
+//
+//==============================================================================
 procedure A_Pain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_DripBlood
+//
+//==============================================================================
 procedure A_DripBlood(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_KnightAttack
+//
+//==============================================================================
 procedure A_KnightAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpExplode
+//
+//==============================================================================
 procedure A_ImpExplode(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BeastPuff
+//
+//==============================================================================
 procedure A_BeastPuff(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpMeAttack
+//
+//==============================================================================
 procedure A_ImpMeAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpMsAttack
+//
+//==============================================================================
 procedure A_ImpMsAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpMsAttack2
+//
+//==============================================================================
 procedure A_ImpMsAttack2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpDeath
+//
+//==============================================================================
 procedure A_ImpDeath(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpXDeath1
+//
+//==============================================================================
 procedure A_ImpXDeath1(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ImpXDeath2
+//
+//==============================================================================
 procedure A_ImpXDeath2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ChicAttack
+//
+//==============================================================================
 procedure A_ChicAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ChicLook
+//
+//==============================================================================
 procedure A_ChicLook(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ChicChase
+//
+//==============================================================================
 procedure A_ChicChase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ChicPain
+//
+//==============================================================================
 procedure A_ChicPain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Feathers
+//
+//==============================================================================
 procedure A_Feathers(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MummyAttack
+//
+//==============================================================================
 procedure A_MummyAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MummyAttack2
+//
+//==============================================================================
 procedure A_MummyAttack2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MummyFX1Seek
+//
+//==============================================================================
 procedure A_MummyFX1Seek(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MummySoul
+//
+//==============================================================================
 procedure A_MummySoul(mummy: Pmobj_t);
 
+//==============================================================================
+//
+// A_Sor1Pain
+//
+//==============================================================================
 procedure A_Sor1Pain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Sor1Chase
+//
+//==============================================================================
 procedure A_Sor1Chase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Srcr1Attack
+//
+//==============================================================================
 procedure A_Srcr1Attack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorcererRise
+//
+//==============================================================================
 procedure A_SorcererRise(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Srcr2Decide
+//
+//==============================================================================
 procedure A_Srcr2Decide(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Srcr2Attack
+//
+//==============================================================================
 procedure A_Srcr2Attack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BlueSpark
+//
+//==============================================================================
 procedure A_BlueSpark(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_GenWizard
+//
+//==============================================================================
 procedure A_GenWizard(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Sor2DthInit
+//
+//==============================================================================
 procedure A_Sor2DthInit(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Sor2DthLoop
+//
+//==============================================================================
 procedure A_Sor2DthLoop(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorZap
+//
+//==============================================================================
 procedure A_SorZap(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorRise
+//
+//==============================================================================
 procedure A_SorRise(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorDSph
+//
+//==============================================================================
 procedure A_SorDSph(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorDExp
+//
+//==============================================================================
 procedure A_SorDExp(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorDBon
+//
+//==============================================================================
 procedure A_SorDBon(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SorSightSnd
+//
+//==============================================================================
 procedure A_SorSightSnd(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MinotaurAtk1
+//
+//==============================================================================
 procedure A_MinotaurAtk1(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MinotaurDecide
+//
+//==============================================================================
 procedure A_MinotaurDecide(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MinotaurCharge
+//
+//==============================================================================
 procedure A_MinotaurCharge(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MinotaurAtk2
+//
+//==============================================================================
 procedure A_MinotaurAtk2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MinotaurAtk3
+//
+//==============================================================================
 procedure A_MinotaurAtk3(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MntrFloorFire
+//
+//==============================================================================
 procedure A_MntrFloorFire(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BeastAttack
+//
+//==============================================================================
 procedure A_BeastAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HeadAttack
+//
+//==============================================================================
 procedure A_HeadAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_WhirlwindSeek
+//
+//==============================================================================
 procedure A_WhirlwindSeek(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HeadIceImpact
+//
+//==============================================================================
 procedure A_HeadIceImpact(ice: Pmobj_t);
 
+//==============================================================================
+//
+// A_HeadFireGrow
+//
+//==============================================================================
 procedure A_HeadFireGrow(fire: Pmobj_t);
 
+//==============================================================================
+//
+// A_SnakeAttack
+//
+//==============================================================================
 procedure A_SnakeAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SnakeAttack2
+//
+//==============================================================================
 procedure A_SnakeAttack2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ClinkAttack
+//
+//==============================================================================
 procedure A_ClinkAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_WizAtk1
+//
+//==============================================================================
 procedure A_WizAtk1(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_WizAtk2
+//
+//==============================================================================
 procedure A_WizAtk2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_WizAtk3
+//
+//==============================================================================
 procedure A_WizAtk3(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Scream
+//
+//==============================================================================
 procedure A_Scream(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NoBlocking
+//
+//==============================================================================
 procedure A_NoBlocking(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Explode
+//
+//==============================================================================
 procedure A_Explode(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PodPain
+//
+//==============================================================================
 procedure A_PodPain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_RemovePod
+//
+//==============================================================================
 procedure A_RemovePod(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MakePod
+//
+//==============================================================================
 procedure A_MakePod(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BossDeath
+//
+//==============================================================================
 procedure A_BossDeath(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ESound
+//
+//==============================================================================
 procedure A_ESound(mo: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnTeleGlitter
+//
+//==============================================================================
 procedure A_SpawnTeleGlitter(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnTeleGlitter2
+//
+//==============================================================================
 procedure A_SpawnTeleGlitter2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_AccTeleGlitter
+//
+//==============================================================================
 procedure A_AccTeleGlitter(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InitKeyGizmo
+//
+//==============================================================================
 procedure A_InitKeyGizmo(gizmo: Pmobj_t);
 
+//==============================================================================
+//
+// A_VolcanoSet
+//
+//==============================================================================
 procedure A_VolcanoSet(volcano: Pmobj_t);
 
+//==============================================================================
+//
+// A_VolcanoBlast
+//
+//==============================================================================
 procedure A_VolcanoBlast(volcano: Pmobj_t);
 
+//==============================================================================
+//
+// A_VolcBallImpact
+//
+//==============================================================================
 procedure A_VolcBallImpact(ball: Pmobj_t);
 
+//==============================================================================
+//
+// A_SkullPop
+//
+//==============================================================================
 procedure A_SkullPop(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CheckSkullFloor
+//
+//==============================================================================
 procedure A_CheckSkullFloor(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CheckSkullDone
+//
+//==============================================================================
 procedure A_CheckSkullDone(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CheckBurnGone
+//
+//==============================================================================
 procedure A_CheckBurnGone(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FreeTargMobj
+//
+//==============================================================================
 procedure A_FreeTargMobj(mo: Pmobj_t);
 
+//==============================================================================
+//
+// A_AddPlayerCorpse
+//
+//==============================================================================
 procedure A_AddPlayerCorpse(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FlameSnd
+//
+//==============================================================================
 procedure A_FlameSnd(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HideThing
+//
+//==============================================================================
 procedure A_HideThing(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_UnHideThing
+//
+//==============================================================================
 procedure A_UnHideThing(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ContMobjSound
+//
+//==============================================================================
 procedure A_ContMobjSound(actor: Pmobj_t);
 
+//==============================================================================
+//
+// P_DSparilTeleport
+//
+//==============================================================================
 procedure P_DSparilTeleport(actor: Pmobj_t);
 
+//==============================================================================
+//
+// P_DoChase
+//
+//==============================================================================
 procedure P_DoChase(actor: Pmobj_t; const fast: boolean);
 
+//==============================================================================
+//
+// P_NoiseAlert
+//
+//==============================================================================
 procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 
-function P_CheckMeleeRange(actor: Pmobj_t): boolean;
+//==============================================================================
+//
+// P_CheckMeleeRange
+//
+//==============================================================================
+function P_CheckMeleeRange(actor: Pmobj_t; const factor: Integer = 1): boolean;
 
+//==============================================================================
+//
+// P_TryWalk
+//
+//==============================================================================
 function P_TryWalk(actor: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_Move
+//
+//==============================================================================
 function P_Move(actor: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_Massacre
+//
+//==============================================================================
 procedure P_Massacre;
 
 type
@@ -242,8 +678,18 @@ type
     NUMDIRS
   );
 
+//==============================================================================
+//
+// P_InitMonsters
+//
+//==============================================================================
 procedure P_InitMonsters;
 
+//==============================================================================
+//
+// P_AddBossSpot
+//
+//==============================================================================
 procedure P_AddBossSpot(x, y: fixed_t; angle: angle_t);
 
 implementation
@@ -251,29 +697,34 @@ implementation
 uses
   d_delphi,
   doomdata,
+  s_sound,
+  d_player,
+  sounddata,
   d_think,
   d_main,
+  doomdef,
   g_game,
   i_system,
   info_h,
   info,
-  info_common,
   m_rnd,
   p_common,
+  p_floor,
+  p_friends,
   p_map,
   p_maputl,
   p_setup,
+  p_local,
   p_sight,
   p_switch,
   p_tick,
   p_mobj,
-  p_doors,
+  p_pspr_h,
   p_spec,
   p_inter,
-  p_floor,
-  p_pspr,
-  p_extra,
   p_sounds,
+  p_udmf,
+  udmf_spec,
   ps_main,
   r_defs,
   r_main;
@@ -309,7 +760,8 @@ var
 // Called at level load.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_InitMonsters;
 begin
   BossSpotCount := 0;
@@ -320,7 +772,8 @@ end;
 // PROC P_AddBossSpot
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_AddBossSpot(x, y: fixed_t; angle: angle_t);
 begin
   if BossSpotCount = MAX_BOSS_SPOTS then
@@ -332,7 +785,11 @@ begin
   inc(BossSpotCount);
 end;
 
-
+//==============================================================================
+//
+// A_Fall
+//
+//==============================================================================
 procedure A_Fall(actor: Pmobj_t);
 begin
   // actor is on ground, it can be walked over
@@ -350,7 +807,6 @@ end;
 // but some can be made preaware
 //
 
-
 //
 // Called by P_NoiseAlert.
 // Recursively traverse adjacent sectors,
@@ -360,6 +816,11 @@ end;
 var
   soundtarget: Pmobj_t;
 
+//==============================================================================
+//
+// P_RecursiveSound
+//
+//==============================================================================
 procedure P_RecursiveSound(sec: Psector_t; soundblocks: integer);
 var
   i: integer;
@@ -404,11 +865,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_NoiseAlert
 // If a monster yells at a player,
 // it will alert other monsters to the player.
 //
+//==============================================================================
 procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 begin
   soundtarget := target;
@@ -416,29 +879,48 @@ begin
   P_RecursiveSound(Psubsector_t(emmiter.subsector).sector, 0);
 end;
 
+//==============================================================================
+//
+// P_MeleeRange
+//
+//==============================================================================
+function P_MeleeRange(actor: Pmobj_t): fixed_t;
+begin
+  result := actor.info.meleerange;
+  if result = 0 then
+    result := MELEERANGE
+  else if result < FRACUNIT then
+    result := result * FRACUNIT;
+end;
+
+//==============================================================================
 //
 // P_CheckMeleeRange
 //
-function P_CheckMeleeRange(actor: Pmobj_t): boolean;
+//==============================================================================
+function P_CheckMeleeRange(actor: Pmobj_t; const factor: Integer = 1): boolean;
 var
-  pl: Pmobj_t;
+  mo: Pmobj_t;
   dist: fixed_t;
   mrange: integer;
 begin
-  if actor.target = nil then
+  mo := actor.target;
+  if mo = nil then
   begin
     result := false;
     exit;
   end;
 
-  pl := actor.target;
-  dist := P_AproxDistance(pl.x - actor.x, pl.y - actor.y);
+  // Friendly monsters do not attack each other
+  if P_BothFriends(mo, actor) then
+  begin
+    result := false;
+    exit;
+  end;
 
-  mrange := actor.info.meleerange;
-  if mrange = 0 then
-    mrange := MELEERANGE
-  else if mrange < FRACUNIT then
-    mrange := mrange * FRACUNIT;
+  dist := P_AproxDistance(mo.x - actor.x, mo.y - actor.y);
+
+  mrange := P_MeleeRange(actor) * factor;
 
   if dist >= mrange then
   begin
@@ -452,12 +934,12 @@ begin
     exit;
   end;
 
-  if pl.z > actor.z + actor.height then
+  if mo.z > actor.z + actor.height then
   begin // Target is higher than the attacker
     result := false;
     exit;
   end
-  else if actor.z > pl.z + pl.height then
+  else if actor.z > mo.z + mo.height then
   begin // Attacker is higher
     result := false;
     exit;
@@ -467,9 +949,11 @@ begin
 
 end;
 
+//==============================================================================
 //
 // P_CheckMissileRange
 //
+//==============================================================================
 function P_CheckMissileRange(actor: Pmobj_t): boolean;
 var
   dist: fixed_t;
@@ -482,7 +966,7 @@ begin
 
   if actor.flags and MF_JUSTHIT <> 0 then
   begin
-    // the target just hit the enemy,
+    // The target just hit the enemy,
     // so fight back!
     actor.flags := actor.flags and not MF_JUSTHIT;
     result := true;
@@ -491,7 +975,14 @@ begin
 
   if actor.reactiontime <> 0 then
   begin
-    result := false; // do not attack yet
+    result := false; // Don't attack yet
+    exit;
+  end;
+
+  // Friendly monsters do not attack each other
+  if P_BothFriends(actor, actor.target) then
+  begin
+    result := false;
     exit;
   end;
 
@@ -504,11 +995,35 @@ begin
 
   dist := FixedInt(dist);
 
-  if actor._type = Ord(MT_IMP) then
+  if actor.flags4_ex and MF4_EX_SHORTMRANGE <> 0 then
+    if dist > 14 * 64 then
+    begin
+      result := false; // too far away
+      exit;
+    end;
+
+  if actor.info.meleethreshold > 0 then
+    if dist < actor.info.meleethreshold then
+    begin
+      result := false; // close for fist attack
+      exit;
+    end;
+
+  if actor.flags4_ex and MF4_EX_LONGMELEERANGE <> 0 then
+    if dist < 196 then
+    begin
+      result := false; // close for fist attack
+      exit;
+    end;
+
+  if actor.flags4_ex and MF4_EX_RANGEHALF <> 0 then
     dist := _SHR1(dist);
 
   if dist > 200 then
     dist := 200;
+
+  if (actor.flags4_ex and MF4_EX_HIGHERMPROB <> 0) and (dist > 160) then
+    dist := 160;
 
   if actor.flags3_ex and MF3_EX_MISSILEMORE <> 0 then
     dist := dist div 2;
@@ -531,20 +1046,20 @@ end;
 // returns false if the move is blocked.
 //
 const
-  xspeed: array[0..7] of fixed_t =
-    (FRACUNIT, 47000, 0, -47000, -FRACUNIT, -47000, 0, 47000);
-
-  yspeed: array[0..7] of fixed_t =
-    (0, 47000, FRACUNIT, 47000, 0, -47000, -FRACUNIT, -47000);
-
   MAXSPECIALCROSS = 8;
 
+//==============================================================================
+//
+// P_Move
+//
+//==============================================================================
 function P_Move(actor: Pmobj_t): boolean;
 var
   tryx: fixed_t;
   tryy: fixed_t;
   ld: Pline_t;
   try_ok: boolean;
+  ret1, ret2: boolean;
 begin
   if actor.movedir = Ord(DI_NODIR) then
   begin
@@ -596,8 +1111,9 @@ begin
       // if the special is not a door
       // that can be opened,
       // return false
-      if P_UseSpecialLine(actor, ld, 0) then
-        result := true;
+      ret1 := P_ActivateLine(ld, actor, 0, ULAC_USE);
+      ret2 := P_UseSpecialLine(actor, ld, 0);
+      result := ret1 or ret2;
     end;
     exit;
   end
@@ -610,9 +1126,12 @@ begin
       P_HitFloor(actor);
     actor.z := actor.floorz;
   end;
+
   result := true;
 end;
 
+//==============================================================================
+// P_TryWalk
 //
 // TryWalk
 // Attempts to move actor on
@@ -624,6 +1143,7 @@ end;
 // If a door is in the way,
 // an OpenDoor call is made to start it opening.
 //
+//==============================================================================
 function P_TryWalk(actor: Pmobj_t): boolean;
 begin
   if not P_Move(actor) then
@@ -635,27 +1155,149 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_NewChaseDir
+//
+//==============================================================================
 procedure P_NewChaseDir(actor: Pmobj_t);
 var
   deltax: fixed_t;
   deltay: fixed_t;
+  target: Pmobj_t;
   d: array[0..2] of dirtype_t;
-  tdir: dirtype_t;
   olddir: dirtype_t;
   turnaround: dirtype_t;
   idx: integer;
+  dist: fixed_t;
+
+  procedure _DoNewChaseDir;
+  var
+    tdir: dirtype_t;
+  begin
+    if deltax > 10 * FRACUNIT then
+      d[1] := DI_EAST
+    else if deltax < -10 * FRACUNIT then
+      d[1] := DI_WEST
+    else
+      d[1] := DI_NODIR;
+
+    if deltay < -10 * FRACUNIT then
+      d[2] := DI_SOUTH
+    else if deltay > 10 * FRACUNIT then
+      d[2] := DI_NORTH
+    else
+      d[2] := DI_NODIR;
+
+    // try direct route
+    if (d[1] <> DI_NODIR) and (d[2] <> DI_NODIR) then
+    begin
+      if deltay < 0 then
+        idx := 2
+      else
+        idx := 0;
+      if deltax > 0 then
+        inc(idx);
+      actor.movedir := Ord(diags[idx]);
+      if (actor.movedir <> Ord(turnaround)) and P_TryWalk(actor) then
+        exit;
+    end;
+
+    // try other directions
+    if (P_Random > 200) or (abs(deltay) > abs(deltax)) then
+    begin
+      tdir := d[1];
+      d[1] := d[2];
+      d[2] := tdir;
+    end;
+
+    if d[1] = turnaround then
+      d[1] := DI_NODIR;
+    if d[2] = turnaround then
+      d[2] := DI_NODIR;
+
+    if d[1] <> DI_NODIR then
+    begin
+      actor.movedir := Ord(d[1]);
+      if P_TryWalk(actor) then
+        exit; // either moved forward or attacked
+    end;
+
+    if d[2] <> DI_NODIR then
+    begin
+      actor.movedir := Ord(d[2]);
+      if P_TryWalk(actor) then
+        exit;
+    end;
+
+    // there is no direct path to the player,
+    // so pick another direction.
+    if olddir <> DI_NODIR then
+    begin
+      actor.movedir := Ord(olddir);
+      if P_TryWalk(actor) then
+        exit;
+    end;
+
+    // randomly determine direction of search
+    if P_Random and 1 <> 0 then
+    begin
+      for tdir := DI_EAST to DI_SOUTHEAST do
+      begin
+        if tdir <> turnaround then
+        begin
+          actor.movedir := Ord(tdir);
+          if P_TryWalk(actor) then
+            exit;
+        end;
+      end;
+    end
+    else
+    begin
+      for tdir := DI_SOUTHEAST downto DI_EAST do
+      begin
+        if tdir <> turnaround then
+        begin
+          actor.movedir := Ord(tdir);
+          if P_TryWalk(actor) then
+            exit;
+        end;
+      end;
+    end;
+
+    if turnaround <> DI_NODIR then
+    begin
+      actor.movedir := Ord(turnaround);
+      if P_TryWalk(actor) then
+        exit;
+    end;
+
+    actor.movedir := Ord(DI_NODIR); // can not move
+  end;
+
+  function _weaponinfo(const p: Pplayer_t): Pweaponinfo_t;
+  begin
+    if p.powers[Ord(pw_weaponlevel2)] <> 0 then
+      result := @wpnlev2info[Ord(p.readyweapon)]
+    else
+      result := @wpnlev1info[Ord(p.readyweapon)];
+  end;
+
 begin
-  if actor.target = nil then
+  target := actor.target;
+  if target = nil then
     I_Error('P_NewChaseDir(): called with no target');
 
   olddir := dirtype_t(actor.movedir);
   turnaround := opposite[Ord(olddir)];
 
-  deltax := actor.target.x - actor.x;
-  deltay := actor.target.y - actor.y;
+  deltax := target.x - actor.x;
+  deltay := target.y - actor.y;
+
+  actor.strafecount := 0;
 
   // JVAL: 20210209 - MF3_EX_CAUSEFEAR & MF3_EX_NOFEAR flags
-  if actor.target.flags3_ex and MF3_EX_CAUSEFEAR <> 0 then
+  if target.flags3_ex and MF3_EX_CAUSEFEAR <> 0 then
     if actor.flags3_ex and MF3_EX_NOFEAR <> 0 then
       actor.flags2_ex := actor.flags2_ex or MF2_EX_FRIGHTENED;
 
@@ -663,195 +1305,37 @@ begin
   begin
     deltax := -deltax;
     deltay := -deltay;
-  end;
-
-  if deltax > 10 * FRACUNIT then
-    d[1] := DI_EAST
-  else if deltax < -10 * FRACUNIT then
-    d[1] := DI_WEST
-  else
-    d[1] := DI_NODIR;
-
-  if deltay < -10 * FRACUNIT then
-    d[2] := DI_SOUTH
-  else if deltay > 10 * FRACUNIT then
-    d[2] := DI_NORTH
-  else
-    d[2] := DI_NODIR;
-
-  // try direct route
-  if (d[1] <> DI_NODIR) and (d[2] <> DI_NODIR) then
-  begin
-    if deltay < 0 then
-      idx := 2
-    else
-      idx := 0;
-    if deltax > 0 then
-      inc(idx);
-    actor.movedir := Ord(diags[idx]);
-    if (actor.movedir <> Ord(turnaround)) and P_TryWalk(actor) then
-      exit;
-  end;
-
-  // try other directions
-  if (P_Random > 200) or (abs(deltay) > abs(deltax)) then
-  begin
-    tdir := d[1];
-    d[1] := d[2];
-    d[2] := tdir;
-  end;
-
-  if d[1] = turnaround then
-    d[1] := DI_NODIR;
-  if d[2] = turnaround then
-    d[2] := DI_NODIR;
-
-  if d[1] <> DI_NODIR then
-  begin
-    actor.movedir := Ord(d[1]);
-    if P_TryWalk(actor) then
-      exit; // either moved forward or attacked
-  end;
-
-  if d[2] <> DI_NODIR then
-  begin
-    actor.movedir := Ord(d[2]);
-    if P_TryWalk(actor) then
-      exit;
-  end;
-
-  // there is no direct path to the player,
-  // so pick another direction.
-  if olddir <> DI_NODIR then
-  begin
-    actor.movedir := Ord(olddir);
-    if P_TryWalk(actor) then
-      exit;
-  end;
-
-  // randomly determine direction of search
-  if P_Random and 1 <> 0 then
-  begin
-    for tdir := DI_EAST to DI_SOUTHEAST do
-    begin
-      if tdir <> turnaround then
-      begin
-        actor.movedir := Ord(tdir);
-        if P_TryWalk(actor) then
-          exit;
-      end;
-    end;
   end
-  else
+  else if (target.health > 0) and (actor.flags4_ex and MF4_EX_BACKINGMELEE <> 0) and not P_BothFriends(actor, actor.target) then
   begin
-    for tdir := DI_SOUTHEAST downto DI_EAST do
+    if G_PlayingEngineVersion >= VERSION207 then
     begin
-      if tdir <> turnaround then
-      begin
-        actor.movedir := Ord(tdir);
-        if P_TryWalk(actor) then
-          exit;
+      dist := P_AproxDistance(deltax, deltay);
+      if (actor.info.missilestate <> 0) and
+        (((target.info.missilestate = 0) and (dist < P_MeleeRange(target) * 2)) or
+         ((target.player <> nil) and (dist < P_MeleeRange(target) * 3) and
+          (_weaponinfo(target.player).mbf21bits and WPF_FLEEMELEE <> 0))) then
+      begin// Back away from melee attacker
+        actor.strafecount := P_Random and 15;
+        deltax := -deltax;
+        deltay := -deltay;
       end;
     end;
   end;
 
-  if turnaround <> DI_NODIR then
-  begin
-    actor.movedir := Ord(turnaround);
-    if P_TryWalk(actor) then
-      exit;
-  end;
+  _DoNewChaseDir;
 
-  actor.movedir := Ord(DI_NODIR); // can not move
+  if actor.strafecount > 0 then
+    actor.movecount := actor.strafecount;
 end;
 
-const
-  MONS_LOOK_RANGE = 20 * 64 * FRACUNIT;
-  MONS_LOOK_LIMIT = 64;
-
-function P_LookForMonsters(actor: Pmobj_t): boolean;
-var
-  count: integer;
-  mo: Pmobj_t;
-  think: Pthinker_t;
-  maxrange: fixed_t;
-begin
-  if not P_CheckSight(players[0].mo, actor) then
-  begin // Player can't see monster
-    result := false;
-    exit;
-  end;
-
-  count := 0;
-  think := thinkercap.next;
-  while think <> @thinkercap do
-  begin
-    if @think._function.acp1 <> @P_MobjThinker then
-    begin
-      think := think.next;
-      continue;
-    end;
-
-    mo := Pmobj_t(think);
-
-    if (mo.flags and MF_COUNTKILL = 0) or (mo = actor) or (mo.health <= 0) then
-    begin // Not a valid monster
-      think := think.next;
-      continue;
-    end;
-
-    // JVAL
-    // Same monsters does not kill each other
-    if Info_GetInheritance(mo.info) = Info_GetInheritance(actor.info) then
-    begin
-      think := think.next;
-      continue;
-    end;
-
-    if actor.info.maxtargetrange > 0 then
-      maxrange := actor.info.maxtargetrange * FRACUNIT
-    else
-      maxrange := MONS_LOOK_RANGE;
-
-    if P_AproxDistance(actor.x - mo.x, actor.y - mo.y) > maxrange then
-    begin // Out of range
-      think := think.next;
-      continue;
-    end;
-
-    if P_Random < 16 then
-    begin // Skip
-      think := think.next;
-      continue;
-    end;
-
-    inc(count);
-    if count > MONS_LOOK_LIMIT then
-    begin // Stop searching
-      result := false;
-      exit;
-    end;
-
-    if not P_CheckSight(actor, mo) then
-    begin // Out of sight
-      think := think.next;
-      continue;
-    end;
-
-    // Found a target monster
-    actor.target := mo;
-    result := true;
-    exit;
-  end;
-
-  result := false;
-end;
-
+//==============================================================================
 //
 // P_LookForPlayers
 // If allaround is false, only look 180 degrees in front.
 // Returns true if a player is targeted.
 //
+//==============================================================================
 function P_LookForPlayers(actor: Pmobj_t; allaround: boolean): boolean;
 var
   c: integer;
@@ -903,12 +1387,7 @@ begin
 
     if not allaround then
     begin
-      an := R_PointToAngle2(
-              actor.x,
-              actor.y,
-              player.mo.x,
-              player.mo.y)
-          - actor.angle;
+      an := R_PointToAngle2(actor.x, actor.y, player.mo.x, player.mo.y) - actor.angle;
 
       if (an > ANG90) and (an < ANG270) then
       begin
@@ -944,14 +1423,32 @@ begin
   result := false;
 end;
 
+//==============================================================================
+//
+// P_LookForTargets
+//
+//==============================================================================
+function P_LookForTargets(actor: Pmobj_t; allaround: boolean): boolean;
+begin
+  if actor.flags2_ex and MF2_EX_FRIEND <> 0 then
+  begin
+    result := P_LookForMonsters(actor);
+    if not result then
+      if P_Random < 200 then
+        result := P_LookForPlayers(actor, true);
+  end
+  else
+    result := P_LookForPlayers(actor, allaround);
+end;
+
+//==============================================================================
 //
 // ACTION ROUTINES
-//
-
 //
 // A_Look
 // Stay in state until a player is sighted.
 //
+//==============================================================================
 procedure A_Look(actor: Pmobj_t);
 var
   targ: Pmobj_t;
@@ -975,7 +1472,7 @@ begin
 
   if not seeyou then
   begin
-    if not P_LookForPlayers(actor, actor.flags_ex and MF_EX_LOOKALLAROUND <> 0) then
+    if not P_LookForTargets(actor, actor.flags_ex and MF_EX_LOOKALLAROUND <> 0) then
       exit;
   end;
 
@@ -984,11 +1481,14 @@ begin
   P_SetMobjState(actor, statenum_t(actor.info.seestate));
 end;
 
+//==============================================================================
+// P_DoChase
 //
 // A_Chase
 // Actor has a melee attack,
 // so it tries to close as fast as possible
 //
+//==============================================================================
 procedure P_DoChase(actor: Pmobj_t; const fast: boolean);
 var
   delta: integer;
@@ -1009,7 +1509,10 @@ begin
   end;
 
   // turn towards movement direction if not there yet
-  if actor.movedir < 8 then
+  // killough 9/7/98: keep facing towards target if strafing or backing out
+  if actor.strafecount > 0 then
+    A_FaceTarget(actor)
+  else if actor.movedir < 8 then
   begin
     actor.angle := actor.angle and $E0000000;
     delta := actor.angle - _SHLW(actor.movedir, 29);
@@ -1024,7 +1527,7 @@ begin
      (actor.target.flags and MF_SHOOTABLE = 0) then
   begin
     // look for a new target
-    if P_LookForPlayers(actor, true) then
+    if P_LookForTargets(actor, true) then
       exit; // got a new target
 
     if actor.state <> @states[actor.info.spawnstate] then
@@ -1049,10 +1552,10 @@ begin
     exit;
   end;
 
-  nomissile := false;
   // check for missile attack
   if actor.info.missilestate <> 0 then
   begin
+    nomissile := false;
     if (gameskill < sk_nightmare) and not fastparm and (actor.movecount <> 0) then
       nomissile := true
     else if not P_CheckMissileRange(actor) then
@@ -1070,7 +1573,7 @@ begin
     (actor.threshold = 0) and
     not P_CheckSight(actor, actor.target) then
   begin
-    if P_LookForPlayers(actor, true) then
+    if P_LookForTargets(actor, true) then
       exit;  // got a new target
   end;
 
@@ -1105,20 +1608,29 @@ begin
     end;
   end;
 
+  if actor.strafecount > 0 then
+    Dec(actor.strafecount);
 
   // make active sound
   if P_Random < 3 then
     A_ActiveSound1(actor);
 end;
 
+//==============================================================================
+//
+// A_Chase
+//
+//==============================================================================
 procedure A_Chase(actor: Pmobj_t);
 begin
   P_DoChase(actor, false);
 end;
 
+//==============================================================================
 //
 // A_FaceTarget
 //
+//==============================================================================
 procedure A_FaceTarget(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1134,6 +1646,11 @@ begin
       actor.angle := actor.angle + _SHLW(P_Random - P_Random, 21);
 end;
 
+//==============================================================================
+//
+// A_Pain
+//
+//==============================================================================
 procedure A_Pain(actor: Pmobj_t);
 begin
   A_PainSound1(actor);
@@ -1144,7 +1661,8 @@ end;
 // PROC A_DripBlood
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_DripBlood(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1162,7 +1680,8 @@ end;
 // PROC A_KnightAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_KnightAttack(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1190,7 +1709,8 @@ end;
 // PROC A_ImpExplode
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpExplode(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1214,7 +1734,8 @@ end;
 // PROC A_BeastPuff
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BeastPuff(actor: Pmobj_t);
 begin
   if P_Random > 64 then
@@ -1230,7 +1751,8 @@ end;
 // PROC A_ImpMeAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpMeAttack(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1246,7 +1768,8 @@ end;
 // PROC A_ImpMsAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpMsAttack(actor: Pmobj_t);
 var
   dest: Pmobj_t;
@@ -1280,7 +1803,8 @@ end;
 // Fireball attack of the imp leader.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpMsAttack2(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1301,7 +1825,8 @@ end;
 // PROC A_ImpDeath
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpDeath(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_SOLID;
@@ -1315,7 +1840,8 @@ end;
 // PROC A_ImpXDeath1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpXDeath1(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_SOLID;
@@ -1329,7 +1855,8 @@ end;
 // PROC A_ImpXDeath2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ImpXDeath2(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -1344,7 +1871,8 @@ end;
 // Returns true if the chicken morphs.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_UpdateChicken(actor: Pmobj_t; tics: integer): boolean;
 var
   fog: Pmobj_t;
@@ -1395,7 +1923,8 @@ end;
 // PROC A_ChicAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ChicAttack(actor: Pmobj_t);
 begin
   if P_UpdateChicken(actor, 18) then
@@ -1414,7 +1943,8 @@ end;
 // PROC A_ChicLook
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ChicLook(actor: Pmobj_t);
 begin
   if P_UpdateChicken(actor, 10) then
@@ -1428,7 +1958,8 @@ end;
 // PROC A_ChicChase
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ChicChase(actor: Pmobj_t);
 begin
   if P_UpdateChicken(actor, 3) then
@@ -1442,7 +1973,8 @@ end;
 // PROC A_ChicPain
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ChicPain(actor: Pmobj_t);
 begin
   if P_UpdateChicken(actor, 10) then
@@ -1456,7 +1988,8 @@ end;
 // PROC A_Feathers
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Feathers(actor: Pmobj_t);
 var
   i: integer;
@@ -1491,7 +2024,8 @@ end;
 // PROC A_MummyAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MummyAttack(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1515,7 +2049,8 @@ end;
 // Mummy leader missile attack.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MummyAttack2(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1540,7 +2075,8 @@ end;
 // PROC A_MummyFX1Seek
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MummyFX1Seek(actor: Pmobj_t);
 begin
   P_SeekerMissile(actor, ANG1 * 10, ANG1 * 20);
@@ -1551,7 +2087,8 @@ end;
 // PROC A_MummySoul
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MummySoul(mummy: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1565,7 +2102,8 @@ end;
 // PROC A_Sor1Pain
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Sor1Pain(actor: Pmobj_t);
 begin
   actor.special1 := 20; // Number of steps to walk fast
@@ -1577,7 +2115,8 @@ end;
 // PROC A_Sor1Chase
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Sor1Chase(actor: Pmobj_t);
 begin
   if actor.special1 <> 0 then
@@ -1595,7 +2134,8 @@ end;
 // Sorcerer demon attack.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Srcr1Attack(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1647,7 +2187,8 @@ end;
 // PROC A_SorcererRise
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SorcererRise(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1664,7 +2205,8 @@ end;
 // PROC P_DSparilTeleport
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_DSparilTeleport(actor: Pmobj_t);
 var
   i: integer;
@@ -1715,6 +2257,11 @@ const
     192, 120, 120, 120, 64, 64, 32, 16, 0
   );
 
+//==============================================================================
+//
+// A_Srcr2Decide
+//
+//==============================================================================
 procedure A_Srcr2Decide(actor: Pmobj_t);
 begin
   if BossSpotCount = 0 then
@@ -1731,7 +2278,8 @@ end;
 // PROC A_Srcr2Attack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Srcr2Attack(actor: Pmobj_t);
 var
   chance: integer;
@@ -1767,7 +2315,8 @@ end;
 // PROC A_BlueSpark
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BlueSpark(actor: Pmobj_t);
 var
   i: integer;
@@ -1787,7 +2336,8 @@ end;
 // PROC A_GenWizard
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_GenWizard(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1813,7 +2363,8 @@ end;
 // PROC A_Sor2DthInit
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Sor2DthInit(actor: Pmobj_t);
 begin
   actor.special1 := 7; // Animation loop counter
@@ -1825,7 +2376,8 @@ end;
 // PROC A_Sor2DthLoop
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Sor2DthLoop(actor: Pmobj_t);
 begin
   dec(actor.special1);
@@ -1833,37 +2385,66 @@ begin
     P_SetMobjState(actor, S_SOR2_DIE4);
 end;
 
+//==============================================================================
+// A_SorZap
+//
 //----------------------------------------------------------------------------
 //
 // D'Sparil Sound Routines
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SorZap(actor: Pmobj_t);
 begin
   S_StartSound(nil, Ord(sfx_sorzap));
 end;
 
+//==============================================================================
+//
+// A_SorRise
+//
+//==============================================================================
 procedure A_SorRise(actor: Pmobj_t);
 begin
   S_StartSound(nil, Ord(sfx_sorrise));
 end;
 
+//==============================================================================
+//
+// A_SorDSph
+//
+//==============================================================================
 procedure A_SorDSph(actor: Pmobj_t);
 begin
   S_StartSound(nil, Ord(sfx_sordsph));
 end;
 
+//==============================================================================
+//
+// A_SorDExp
+//
+//==============================================================================
 procedure A_SorDExp(actor: Pmobj_t);
 begin
   S_StartSound(nil, Ord(sfx_sordexp));
 end;
 
+//==============================================================================
+//
+// A_SorDBon
+//
+//==============================================================================
 procedure A_SorDBon(actor: Pmobj_t);
 begin
   S_StartSound(nil, Ord(sfx_sordbon));
 end;
 
+//==============================================================================
+//
+// A_SorSightSnd
+//
+//==============================================================================
 procedure A_SorSightSnd(actor: Pmobj_t);
 begin
   S_StartSound(nil, Ord(sfx_sorsit));
@@ -1876,7 +2457,8 @@ end;
 // Melee attack.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MinotaurAtk1(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1902,6 +2484,11 @@ end;
 const
   MNTR_CHARGE_SPEED = 13 * FRACUNIT;
 
+//==============================================================================
+//
+// A_MinotaurDecide
+//
+//==============================================================================
 procedure A_MinotaurDecide(actor: Pmobj_t);
 var
   angle: angle_t;
@@ -1947,7 +2534,8 @@ end;
 // PROC A_MinotaurCharge
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MinotaurCharge(actor: Pmobj_t);
 var
   puff: Pmobj_t;
@@ -1972,7 +2560,8 @@ end;
 // Swing attack.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MinotaurAtk2(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2008,7 +2597,8 @@ end;
 // Floor fire attack.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MinotaurAtk3(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2040,7 +2630,8 @@ end;
 // PROC A_MntrFloorFire
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MntrFloorFire(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2057,7 +2648,8 @@ end;
 // PROC A_BeastAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BeastAttack(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -2081,6 +2673,11 @@ const
   atkResolve1: array[0..1] of integer = (50, 150);
   atkResolve2: array[0..1] of integer = (150, 200);
 
+//==============================================================================
+//
+// A_HeadAttack
+//
+//==============================================================================
 procedure A_HeadAttack(actor: Pmobj_t);
 var
   i: integer;
@@ -2159,7 +2756,8 @@ end;
 // PROC A_WhirlwindSeek
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_WhirlwindSeek(actor: Pmobj_t);
 begin
   actor.health := actor.health - 3;
@@ -2193,7 +2791,8 @@ end;
 // PROC A_HeadIceImpact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_HeadIceImpact(ice: Pmobj_t);
 var
   i: integer;
@@ -2219,7 +2818,8 @@ end;
 // PROC A_HeadFireGrow
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_HeadFireGrow(fire: Pmobj_t);
 begin
   fire.z := fire.z + 9 * FRACUNIT;
@@ -2231,12 +2831,16 @@ begin
   end;
 end;
 
+//==============================================================================
+// P_SnakeAttack
+//
 //----------------------------------------------------------------------------
 //
 // PROC A_SnakeAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_SnakeAttack(actor: Pmobj_t; missiletype: integer);
 begin
   if actor.target = nil then
@@ -2251,6 +2855,11 @@ begin
   P_SpawnMissile(actor, actor.target, missiletype);
 end;
 
+//==============================================================================
+//
+// A_SnakeAttack
+//
+//==============================================================================
 procedure A_SnakeAttack(actor: Pmobj_t);
 begin
   P_SnakeAttack(actor, Ord(MT_SNAKEPRO_A));
@@ -2261,7 +2870,8 @@ end;
 // PROC A_SnakeAttack2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SnakeAttack2(actor: Pmobj_t);
 begin
   P_SnakeAttack(actor, Ord(MT_SNAKEPRO_B));
@@ -2272,7 +2882,8 @@ end;
 // PROC A_ClinkAttack
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ClinkAttack(actor: Pmobj_t);
 var
   damage: integer;
@@ -2294,7 +2905,8 @@ end;
 // PROC A_WizAtk1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_WizAtk1(actor: Pmobj_t);
 begin
   A_FaceTarget(actor);
@@ -2306,7 +2918,8 @@ end;
 // PROC A_WizAtk2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_WizAtk2(actor: Pmobj_t);
 begin
   A_FaceTarget(actor);
@@ -2318,7 +2931,8 @@ end;
 // PROC A_WizAtk3
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_WizAtk3(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2353,7 +2967,8 @@ end;
 // PROC A_Scream
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Scream(actor: Pmobj_t);
 begin
   case actor._type of
@@ -2394,7 +3009,8 @@ end;
 // PROC P_DropItem
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_DropItem(source: Pmobj_t; _type: integer; special: integer; chance: integer);
 var
   mo: Pmobj_t;
@@ -2415,7 +3031,8 @@ end;
 // PROC A_NoBlocking
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_NoBlocking(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_SOLID;
@@ -2460,12 +3077,13 @@ end;
 // Handles a bunch of exploding things.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_Explode(actor: Pmobj_t);
 var
   damage: integer;
 begin
-  if actor.info.flags_ex and MF_EX_CUSTOMEXPLODE <> 0 then
+  if actor.flags_ex and MF_EX_CUSTOMEXPLODE <> 0 then
     P_RadiusAttackEx(actor, actor.target, actor.info.explosiondamage, actor.info.explosionradius)
   else if actor.state.params <> nil then
     P_RadiusAttackEx(actor, actor.target, actor.state.params.IntVal[0], actor.state.params.IntVal[1])
@@ -2497,7 +3115,8 @@ end;
 // PROC A_PodPain
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_PodPain(actor: Pmobj_t);
 var
   i: integer;
@@ -2529,7 +3148,8 @@ end;
 // PROC A_RemovePod
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_RemovePod(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2551,6 +3171,11 @@ end;
 const
   MAX_GEN_PODS = 16;
 
+//==============================================================================
+//
+// A_MakePod
+//
+//==============================================================================
 procedure A_MakePod(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2585,7 +3210,8 @@ end;
 // Kills all monsters.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_Massacre;
 var
   mo: Pmobj_t;
@@ -2625,12 +3251,97 @@ const
     -1
   );
 
+//==============================================================================
+//
+// A_BossDeath
+//
+//==============================================================================
 procedure A_BossDeath(actor: Pmobj_t);
 var
-  mo: Pmobj_t;
+  mo, mo2: Pmobj_t;
   think: Pthinker_t;
   dummyLine: line_t;
+  i: integer;
 begin
+  // numbossactions == 0 means to use the defaults.
+  // numbossactions == -1 means to do nothing.
+  // positive values mean to check the list of boss actions and run all that apply.
+  if (gamemapinfo <> nil) and (gamemapinfo.numbossactions <> 0) then
+  begin
+    if gamemapinfo.numbossactions < 0 then
+      exit;
+
+    // make sure there is a player alive for victory
+    i := 0;
+    while i < MAXPLAYERS do
+    begin
+      if playeringame[i] and (players[i].health > 0) then
+        break;
+      Inc(i);
+    end;
+
+    if i = MAXPLAYERS then
+      exit; // no one left alive, so do not end game
+
+    i := 0;
+    while i < gamemapinfo.numbossactions do
+    begin
+      if gamemapinfo.bossactions[i].typ = actor._type then
+        break;
+      Inc(i);
+    end;
+
+    if i >= gamemapinfo.numbossactions then
+      exit; // no matches found
+
+    // scan the remaining thinkers to see
+    // if all bosses are dead
+    think := thinkercap.next;
+    while think <> @thinkercap do
+    begin
+      if @think._function.acp1 = @P_MobjThinker then
+      begin
+        mo2 := Pmobj_t(think);
+        if (mo2 <> actor) and (mo2._type = actor._type) and (mo2.health > 0) then
+        begin
+          // other boss not dead
+          exit;
+        end;
+      end;
+      think := think.next;
+    end;
+
+    for i := 0 to gamemapinfo.numbossactions - 1 do
+      if gamemapinfo.bossactions[i].typ = actor._type then
+      begin
+        dummyLine := lines[0];
+        dummyLine.special := gamemapinfo.bossactions[i].special;
+        dummyLine.tag := gamemapinfo.bossactions[i].tag;
+        // use special semantics for line activation to block problem types.
+        if not P_UseSpecialLine(actor, @dummyLine, 0, true) then
+          P_CrossSpecialLinePtr(@dummyLine, 0, actor);
+      end;
+
+    exit;
+  end;
+
+  if gamemap = 7 then
+  begin
+    if actor.flags4_ex and MF4_EX_MAP07BOSS = 0 then
+      exit;
+    if actor.flags4_ex and MF4_EX_MAP07BOSS1 <> 0 then
+    begin
+      dummyLine.tag := 666;
+      EV_DoFloor(@dummyLine, lowerFloorToLowest);
+    end
+    else if actor.flags4_ex and MF4_EX_MAP07BOSS2 <> 0 then
+    begin
+      dummyLine.tag := 667;
+      EV_DoFloor(@dummyLine, raiseToTexture);
+    end;
+    exit;
+  end;
+
   if gamemap <> 8 then  // Not a boss level
     exit;
 
@@ -2662,7 +3373,8 @@ end;
 // PROC A_ESound
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ESound(mo: Pmobj_t);
 var
   sound: integer;
@@ -2678,12 +3390,16 @@ begin
   S_StartSound(mo, sound);
 end;
 
+//==============================================================================
+// P_SpawnTeleGlitter
+//
 //----------------------------------------------------------------------------
 //
 // PROC A_SpawnTeleGlitter
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_SpawnTeleGlitter(actor: Pmobj_t; _type: integer);
 var
   mo: Pmobj_t;
@@ -2695,6 +3411,11 @@ begin
     mo.momz := FRACUNIT div 4;
 end;
 
+//==============================================================================
+//
+// A_SpawnTeleGlitter
+//
+//==============================================================================
 procedure A_SpawnTeleGlitter(actor: Pmobj_t);
 begin
   P_SpawnTeleGlitter(actor, Ord(MT_TELEGLITTER));
@@ -2705,7 +3426,8 @@ end;
 // PROC A_SpawnTeleGlitter2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SpawnTeleGlitter2(actor: Pmobj_t);
 begin
   P_SpawnTeleGlitter(actor, Ord(MT_TELEGLITTER2));
@@ -2716,7 +3438,8 @@ end;
 // PROC A_AccTeleGlitter
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_AccTeleGlitter(actor: Pmobj_t);
 begin
   inc(actor.health);
@@ -2730,7 +3453,8 @@ end;
 // PROC A_InitKeyGizmo
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_InitKeyGizmo(gizmo: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2756,7 +3480,8 @@ end;
 // PROC A_VolcanoSet
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_VolcanoSet(volcano: Pmobj_t);
 begin
   volcano.tics := 105 + (P_Random and 127);
@@ -2767,7 +3492,8 @@ end;
 // PROC A_VolcanoBlast
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_VolcanoBlast(volcano: Pmobj_t);
 var
   i: integer;
@@ -2799,7 +3525,8 @@ end;
 // PROC A_VolcBallImpact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_VolcBallImpact(ball: Pmobj_t);
 var
   i: integer;
@@ -2836,7 +3563,8 @@ end;
 // PROC A_SkullPop
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SkullPop(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2870,7 +3598,8 @@ end;
 // PROC A_CheckSkullFloor
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_CheckSkullFloor(actor: Pmobj_t);
 begin
   if actor.z <= actor.floorz then
@@ -2882,7 +3611,8 @@ end;
 // PROC A_CheckSkullDone
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_CheckSkullDone(actor: Pmobj_t);
 begin
   if actor.special2 = 666 then
@@ -2894,7 +3624,8 @@ end;
 // PROC A_CheckBurnGone
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_CheckBurnGone(actor: Pmobj_t);
 begin
   if actor.special2 = 666 then
@@ -2906,7 +3637,8 @@ end;
 // PROC A_FreeTargMobj
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FreeTargMobj(mo: Pmobj_t);
 begin
   mo.momx := 0;
@@ -2932,6 +3664,11 @@ var
   bodyque: array[0..BODYQUESIZE - 1] of Pmobj_t;
   bodyqueslot: integer;
 
+//==============================================================================
+//
+// A_AddPlayerCorpse
+//
+//==============================================================================
 procedure A_AddPlayerCorpse(actor: Pmobj_t);
 begin
   if bodyqueslot >= BODYQUESIZE then
@@ -2948,7 +3685,8 @@ end;
 // PROC A_FlameSnd
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FlameSnd(actor: Pmobj_t);
 begin
   S_StartSound(actor, Ord(sfx_hedat1)); // Burn sound
@@ -2959,7 +3697,8 @@ end;
 // PROC A_HideThing
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_HideThing(actor: Pmobj_t);
 begin
   //P_UnsetThingPosition(actor);
@@ -2971,20 +3710,21 @@ end;
 // PROC A_UnHideThing
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_UnHideThing(actor: Pmobj_t);
 begin
   //P_SetThingPosition(actor);
   actor.flags2 := actor.flags2 and not MF2_DONTDRAW;
 end;
 
-
 //---------------------------------------------------------------------------
 //
 // PROC A_ContMobjSound
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ContMobjSound(actor: Pmobj_t);
 begin
   case actor._type of
@@ -2996,5 +3736,4 @@ begin
 end;
 
 end.
-
 

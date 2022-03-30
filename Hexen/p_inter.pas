@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Handling interactions (i.e., collisions).
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,8 +37,7 @@ interface
 uses
   doomdef,
   xn_strings,
-  sounds,
-  doomstat,
+  sounddata,
   m_fixed,
   i_system,
   am_map,
@@ -47,70 +46,219 @@ uses
   s_sound,
   d_player;
 
+//==============================================================================
+//
+// P_GiveMana
+//
+//==============================================================================
 function P_GiveMana(player: Pplayer_t; mana: manatype_t; num: integer): boolean;
 
+//==============================================================================
+//
+// P_HideSpecialThing
+//
+//==============================================================================
 procedure P_HideSpecialThing(thing: Pmobj_t);
 
+//==============================================================================
+//
+// P_MaxPlayerHealth
+//
+//==============================================================================
 function P_MaxPlayerHealth(player: Pplayer_t): integer;
 
+//==============================================================================
+//
+// P_GiveBody
+//
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 
+//==============================================================================
+//
+// P_GiveKey
+//
+//==============================================================================
 function P_GiveKey(player: Pplayer_t; key: integer): boolean;
 
+//==============================================================================
+//
+// P_GivePower
+//
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: powertype_t): boolean;
 
+//==============================================================================
+//
+// A_RestoreArtifact
+//
+//==============================================================================
 procedure A_RestoreArtifact(arti: Pmobj_t);
 
+//==============================================================================
+//
+// A_RestoreSpecialThing1
+//
+//==============================================================================
 procedure A_RestoreSpecialThing1(thing: Pmobj_t);
 
+//==============================================================================
+//
+// A_RestoreSpecialThing2
+//
+//==============================================================================
 procedure A_RestoreSpecialThing2(thing: Pmobj_t);
 
+//==============================================================================
+//
+// P_MinotaurSlam
+//
+//==============================================================================
 procedure P_MinotaurSlam(source: Pmobj_t; target: Pmobj_t);
 
+//==============================================================================
+//
+// P_MorphPlayer
+//
+//==============================================================================
 function P_MorphPlayer(player: Pplayer_t): boolean;
 
+//==============================================================================
+//
+// P_ActiveMinotaur
+//
+//==============================================================================
 function P_ActiveMinotaur(master: Pplayer_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_MorphMonster
+//
+//==============================================================================
 function P_MorphMonster(actor: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_AutoUseHealth
+//
+//==============================================================================
 procedure P_AutoUseHealth(player: Pplayer_t; saveHealth: integer);
 
+//==============================================================================
+//
+// P_TryPickupWeapon
+//
+//==============================================================================
 procedure P_TryPickupWeapon(player: Pplayer_t; weaponClass: pclass_t;
   weaponType: weapontype_t; weapon: Pmobj_t; const _message: string);
 
+//==============================================================================
+//
+// P_TryPickupWeaponPiece
+//
+//==============================================================================
 procedure P_TryPickupWeaponPiece(player: Pplayer_t; matchClass: pclass_t;
   pieceValue: integer; pieceMobj: Pmobj_t);
 
+//==============================================================================
+//
+// P_GiveArmor
+//
+//==============================================================================
 function P_GiveArmor(player: Pplayer_t; armortype: armortype_t; amount: integer): boolean;
 
+//==============================================================================
+//
+// P_GiveArtifact
+//
+//==============================================================================
 function P_GiveArtifact(player: Pplayer_t; arti: artitype_t; mo: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_SetDormantArtifact
+//
+//==============================================================================
 procedure P_SetDormantArtifact(arti: Pmobj_t);
 
+//==============================================================================
+//
+// P_TryPickupArtifact
+//
+//==============================================================================
 procedure P_TryPickupArtifact(player: Pplayer_t; artifactType: artitype_t;
   artifact: Pmobj_t);
 
+//==============================================================================
+//
+// P_TouchSpecialThing
+//
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 
+//==============================================================================
+//
+// P_SpawnDroppedMobj
+//
+//==============================================================================
 function P_SpawnDroppedMobj(x, y, z: fixed_t; _type: integer): Pmobj_t;
 
+//==============================================================================
+//
+// P_DamageMobj
+//
+//==============================================================================
 procedure P_DamageMobj(target: Pmobj_t; inflictor: Pmobj_t; source: Pmobj_t; damage: integer);
 
+//==============================================================================
+//
+// P_FallingDamage
+//
+//==============================================================================
 procedure P_FallingDamage(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_PoisonPlayer
+//
+//==============================================================================
 procedure P_PoisonPlayer(player: Pplayer_t; poisoner: Pmobj_t; poison: integer);
 
+//==============================================================================
+//
+// P_PoisonDamage
+//
+//==============================================================================
 procedure P_PoisonDamage(player: Pplayer_t; source: Pmobj_t; damage: integer;
   playPainSound: boolean);
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 
+//==============================================================================
+//
+// P_SetMessage
+//
+//==============================================================================
 procedure P_SetMessage(player: Pplayer_t; const msg: string; ultmsg: boolean = false);
 
+//==============================================================================
+//
+// P_SetYellowMessage
+//
+//==============================================================================
 procedure P_SetYellowMessage(player: Pplayer_t; const msg: string; ultmsg: boolean = false);
 
+//==============================================================================
+//
+// P_ClearMessage
+//
+//==============================================================================
 procedure P_ClearMessage(player: Pplayer_t);
-
 
 var
   p_maxmorphhealth: integer = 30;
@@ -128,7 +276,6 @@ var
   AutoArmorSave: array[0..Ord(NUMCLASSES) - 1] of integer =
   (15 * FRACUNIT, 10 * FRACUNIT, 5 * FRACUNIT, 0 );
 
-
 implementation
 
 uses
@@ -141,6 +288,8 @@ uses
   m_rnd,
   g_demo,
   g_game,
+  p_friends,
+  p_common,
   p_mobj,
   p_obituaries,
   p_3dfloors,
@@ -148,30 +297,32 @@ uses
   p_pspr_h,
   p_tick,
   p_user,
-  p_enemy,
   p_spec,
   p_acs,
   ps_main, // JVAL: Script Events
   r_defs,
   r_main,
   sb_bar,
+  udmf_telept,
   tables;
 
 const
   BONUSADD = 6;
 
+//==============================================================================
 //
 // GET STUFF
 //
+//==============================================================================
 
-//--------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_GiveMana
 //
 // Returns true if the player accepted the mana, false if it was
 // refused (player has MAX_MANA).
 //
-//--------------------------------------------------------------------------
+//==============================================================================
 function P_GiveMana(player: Pplayer_t; mana: manatype_t; num: integer): boolean;
 var
   prevmana: integer;
@@ -209,12 +360,11 @@ begin
   result := true;
 end;
 
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_HideSpecialThing
 //
-//----------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_HideSpecialThing(thing: Pmobj_t);
 begin
   thing.flags := thing.flags and not MF_SPECIAL;
@@ -222,15 +372,13 @@ begin
   P_SetMobjState(thing, S_HIDESPECIAL1);
 end;
 
-
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_MaxPlayerHealth
 //
 // JVAL: Retrieve maximum player health
 //
-//----------------------------------------------------------------------------
-
+//==============================================================================
 function P_MaxPlayerHealth(player: Pplayer_t): integer;
 begin
   if player.morphTics <> 0 then
@@ -247,10 +395,12 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_GiveBody
 // Returns false if the body isn't needed at all
 //
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 var
   maxhealth: integer;
@@ -272,9 +422,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveKey
 //
+//==============================================================================
 function P_GiveKey(player: Pplayer_t; key: integer): boolean;
 begin
   if player.keys and (1 shl key) <> 0 then
@@ -288,9 +440,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GivePower
 //
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: powertype_t): boolean;
 begin
   if power = pw_invulnerability then
@@ -366,13 +520,11 @@ begin
   end;
 end;
 
-
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC A_RestoreArtifact
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure A_RestoreArtifact(arti: Pmobj_t);
 begin
   arti.flags := arti.flags or MF_SPECIAL;
@@ -380,38 +532,35 @@ begin
   S_StartSound(arti, Ord(SFX_RESPAWN));
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC A_RestoreSpecialThing1
 //
 // Make a special thing visible again.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure A_RestoreSpecialThing1(thing: Pmobj_t);
 begin
   thing.flags2 := thing.flags2 and not MF2_DONTDRAW;
   S_StartSound(thing, Ord(SFX_RESPAWN));
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC A_RestoreSpecialThing2
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure A_RestoreSpecialThing2(thing: Pmobj_t);
 begin
   thing.flags := thing.flags or MF_SPECIAL;
   P_SetMobjState(thing, statenum_t(thing.info.spawnstate));
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_MinotaurSlam
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_MinotaurSlam(source: Pmobj_t; target: Pmobj_t);
 var
   angle: angle_t;
@@ -427,14 +576,13 @@ begin
     target.reactiontime := 14 + (P_Random and 7);
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_MorphPlayer
 //
 // Returns true if the player gets turned into a pig.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_MorphPlayer(player: Pplayer_t): boolean;
 var
   pmo: Pmobj_t;
@@ -481,7 +629,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// P_ActiveMinotaur
+//
 // Search thinker list for minotaur
+//
+//==============================================================================
 function P_ActiveMinotaur(master: Pplayer_t): Pmobj_t;
 var
   mo: Pmobj_t;
@@ -540,12 +693,11 @@ begin
   result := nil;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_MorphMonster
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_MorphMonster(actor: Pmobj_t): boolean;
 var
   fog: Pmobj_t;
@@ -618,12 +770,11 @@ begin
   result := true;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_AutoUseHealth
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_AutoUseHealth(player: Pplayer_t; saveHealth: integer);
 var
   i: integer;
@@ -690,12 +841,11 @@ begin
   player.mo.health := player.health;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_TryPickupWeapon
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_TryPickupWeapon(player: Pplayer_t; weaponClass: pclass_t;
   weaponType: weapontype_t; weapon: Pmobj_t; const _message: string);
 var
@@ -797,11 +947,9 @@ begin
   end;
 end;
 
-//==========================================================================
 //
 // P_TryPickupWeaponPiece
 //
-//==========================================================================
 
 var
   pieceValueTrans: array[0..4] of integer = (
@@ -812,6 +960,11 @@ var
     WPIECE3                         // WPIECE3 (4)
   );
 
+//==============================================================================
+//
+// P_TryPickupWeaponPiece
+//
+//==============================================================================
 procedure P_TryPickupWeaponPiece(player: Pplayer_t; matchClass: pclass_t;
   pieceValue: integer; pieceMobj: Pmobj_t);
 var
@@ -915,15 +1068,13 @@ begin
   end;
 end;
 
-
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_GiveArmor
 //
 // Returns false if the armor is worse than the current armor.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_GiveArmor(player: Pplayer_t; armortype: armortype_t; amount: integer): boolean;
 var
   hits: integer;
@@ -963,15 +1114,13 @@ begin
   result := true;
 end;
 
-
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_GiveArtifact
 //
 // Returns true if artifact accepted.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_GiveArtifact(player: Pplayer_t; arti: artitype_t; mo: Pmobj_t): boolean;
 var
   i, j: integer;
@@ -1036,16 +1185,15 @@ begin
   result := true;
 end;
 
-
-//==========================================================================
+//==============================================================================
+// P_SetDormantArtifact
 //
 // SetDormantArtifact
 //
 // Removes the MF_SPECIAL flag and initiates the artifact pickup
 // animation.
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_SetDormantArtifact(arti: Pmobj_t);
 begin
   arti.flags := arti.flags and not MF_SPECIAL;
@@ -1070,13 +1218,11 @@ begin
   end;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // P_TryPickupArtifact
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_TryPickupArtifact(player: Pplayer_t; artifactType: artitype_t;
   artifact: Pmobj_t);
 begin
@@ -1106,12 +1252,11 @@ begin
   end;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_TouchSpecialThing
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 var
   player: Pplayer_t;
@@ -1569,11 +1714,11 @@ begin
   end;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
-// PROC P_KillMobj
+// P_SpawnDroppedMobj
 //
-//---------------------------------------------------------------------------
+//==============================================================================
 function P_SpawnDroppedMobj(x, y, z: fixed_t; _type: integer): Pmobj_t;
 begin
   result := P_SpawnMobj(x, y, z, _type);
@@ -1585,9 +1730,14 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_KillMobj
+//
+//==============================================================================
 procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 var
-  dummy: integer;
+  dummy: int64;
   master: Pmobj_t;
   pl: Pplayer_t;
   item: integer;
@@ -1910,9 +2060,7 @@ begin
     P_SpawnDroppedMobj(target.x, target.y, ONFLOORZ, item);
 end;
 
-
-//
-//=================
+//==============================================================================
 //
 // P_DamageMobj
 //
@@ -1923,9 +2071,8 @@ end;
 //    creature or NULL
 // Source and inflictor are the same for melee attacks
 // source can be null for barrel explosions and other environmental stuff
-//==================
 //
-
+//==============================================================================
 procedure P_DamageMobj(target: Pmobj_t; inflictor: Pmobj_t; source: Pmobj_t; damage: integer);
 var
   ang: angle_t;
@@ -1936,6 +2083,7 @@ var
   thrust: fixed_t;
   i: integer;
   mass: integer;
+  ignore: boolean;
 begin
   if target.flags and MF_SHOOTABLE = 0 then
   begin
@@ -2307,33 +2455,43 @@ begin
       end;
     end;
   end;
+
   target.reactiontime := 0; // we're awake now...
-  if (target.threshold = 0) and
+
+  if ((target.threshold = 0) or (target.flags4_ex and MF4_EX_NOTHRESHOLD <> 0)) and
      (source <> nil) and
      (source.flags2 and MF2_BOSS = 0) and
      (source.flags_ex and MF_EX_BOSS = 0) and
+     (source.flags4_ex and MF4_EX_DMGIGNORED = 0) and
      (target._type <> Ord(MT_BISHOP)) and
      (target._type <> Ord(MT_MINOTAUR)) then
   begin
     // Target actor is not intent on another actor,
     // so make him chase after source
-    if ((target._type = Ord(MT_CENTAUR)) and (source._type = Ord(MT_CENTAURLEADER))) or
-       ((target._type = Ord(MT_CENTAURLEADER)) and (source._type = Ord(MT_CENTAUR))) then
-      exit;
+    if G_PlayingEngineVersion >= VERSION207 then
+      ignore := P_BothFriends(target, source) or P_InfightingImmune(target, source)
+    else
+      ignore := false;
 
-    target.target := source;
-    target.threshold := BASETHRESHOLD;
-    if (target.state = @states[target.info.spawnstate]) and (target.info.seestate <> Ord(S_NULL)) then
-      P_SetMobjState(target, statenum_t(target.info.seestate));
+    if (target.flags2_ex and MF2_EX_DONTINFIGHTMONSTERS = 0) and not ignore then
+    begin
+      if ((target._type = Ord(MT_CENTAUR)) and (source._type = Ord(MT_CENTAURLEADER))) or
+         ((target._type = Ord(MT_CENTAURLEADER)) and (source._type = Ord(MT_CENTAUR))) then
+        exit;
+
+      target.target := source;
+      target.threshold := BASETHRESHOLD;
+      if (target.state = @states[target.info.spawnstate]) and (target.info.seestate <> Ord(S_NULL)) then
+        P_SetMobjState(target, statenum_t(target.info.seestate));
+    end;
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_FallingDamage
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_FallingDamage(player: Pplayer_t);
 var
   damage: integer;
@@ -2358,12 +2516,11 @@ begin
   P_DamageMobj(player.mo, nil, nil, damage);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_PoisonPlayer - Sets up all data concerning poisoning
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_PoisonPlayer(player: Pplayer_t; poisoner: Pmobj_t; poison: integer);
 begin
   if (player.cheats and CF_GODMODE <> 0) or (player.powers[Ord(pw_invulnerability)] <> 0) then
@@ -2375,12 +2532,11 @@ begin
     player.poisoncount := 100;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_PoisonDamage - Similar to P_DamageMobj
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_PoisonDamage(player: Pplayer_t; source: Pmobj_t; damage: integer;
   playPainSound: boolean);
 var
@@ -2440,6 +2596,11 @@ begin
     P_SetMobjState(target, statenum_t(target.info.painstate));
 end;
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 begin
   if demoplayback then
@@ -2468,6 +2629,11 @@ begin
     I_Warning('P_CmdSuicide(): You can''t suicide if you aren''t playing.'#13#10);
 end;
 
+//==============================================================================
+//
+// P_SetMessage
+//
+//==============================================================================
 procedure P_SetMessage(player: Pplayer_t; const msg: string; ultmsg: boolean = false);
 begin
   if (player.ultimateMessage or (showMessages = 0)) and not ultmsg then
@@ -2481,6 +2647,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// P_SetYellowMessage
+//
+//==============================================================================
 procedure P_SetYellowMessage(player: Pplayer_t; const msg: string; ultmsg: boolean = false);
 begin
   if (player.ultimateMessage or (showMessages = 0)) and not ultmsg then
@@ -2494,13 +2665,11 @@ begin
   player.yellowMessage := true;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // P_ClearMessage
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_ClearMessage(player: Pplayer_t);
 begin
   player.messageTics := 0;

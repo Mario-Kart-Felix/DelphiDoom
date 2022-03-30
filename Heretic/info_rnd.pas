@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,12 +36,32 @@ interface
 uses
   info_h;
 
+//==============================================================================
+//
+// Info_SelectRandomMonster
+//
+//==============================================================================
 function Info_SelectRandomMonster(_type: integer): integer;
 
+//==============================================================================
+//
+// Info_InitRandom
+//
+//==============================================================================
 procedure Info_InitRandom;
 
+//==============================================================================
+//
+// Info_ShutDownRandom
+//
+//==============================================================================
 procedure Info_ShutDownRandom;
 
+//==============================================================================
+//
+// Info_IsMonster
+//
+//==============================================================================
 function Info_IsMonster(_type: integer): boolean;
 
 implementation
@@ -69,6 +89,11 @@ var
   rnd_monsters: array[0..NUMMONSTERSCATEGORIES - 1] of randompool_t;
   rnd_monstersinitialized: boolean = false;
 
+//==============================================================================
+//
+// Info_InitRandomMonsters
+//
+//==============================================================================
 procedure Info_InitRandomMonsters;
 var
   i: integer;
@@ -110,6 +135,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// Info_ShutDownRandomMonsters
+//
+//==============================================================================
 procedure Info_ShutDownRandomMonsters;
 var
   i: integer;
@@ -123,6 +153,11 @@ begin
   rnd_monstersinitialized := false;
 end;
 
+//==============================================================================
+//
+// Info_SelectRandomMonster
+//
+//==============================================================================
 function Info_SelectRandomMonster(_type: integer): integer;
 var
   idx: integer;
@@ -140,22 +175,36 @@ begin
   result := rnd_monsters[idx].list[N_Random mod rnd_monsters[idx].list.Count];
 end;
 
+//==============================================================================
+//
+// Info_InitRandom
+//
+//==============================================================================
 procedure Info_InitRandom;
 begin
   Info_InitRandomMonsters
 end;
 
+//==============================================================================
+//
+// Info_ShutDownRandom
+//
+//==============================================================================
 procedure Info_ShutDownRandom;
 begin
   Info_ShutDownRandomMonsters
 end;
 
+//==============================================================================
+//
+// Info_IsMonster
+//
+//==============================================================================
 function Info_IsMonster(_type: integer): boolean;
 begin
   result := (mobjinfo[_type].doomednum > MAXPLAYERS) and // Not player
             (mobjinfo[_type].flags and MF_SHOOTABLE <> 0) and  // Shootable
             ((mobjinfo[_type].flags and MF_COUNTKILL <> 0) or (mobjinfo[_type].missilestate <> 0) or (mobjinfo[_type].meleestate <> 0));  // Count kill or can attack
 end;
-
 
 end.

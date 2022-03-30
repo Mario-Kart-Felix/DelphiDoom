@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 // Globally defined strings.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -110,7 +110,7 @@ var
 
   NETEND: string =
     'you can''t end a netgame!' + #13#10;
-  SENDGAME : string =
+  SENDGAME: string =
     'are you sure you want to end the game?' + #13#10;
 
   DOSY: string =
@@ -228,7 +228,6 @@ var
   TXT_NEEDBLUEKEY: string = 'YOU NEED A BLUE KEY TO OPEN THIS DOOR';
   TXT_NEEDGREENKEY: string = 'YOU NEED A GREEN KEY TO OPEN THIS DOOR';
   TXT_NEEDYELLOWKEY: string = 'YOU NEED A YELLOW KEY TO OPEN THIS DOOR';
-
 
 //
 // G_game.C
@@ -480,7 +479,6 @@ var
         '===========================================================================' + #13#10 +
         '                       Undetermined version! (Ouch)' + #13#10 +
         '===========================================================================' + #13#10;
-
 
 var
   startmsg: array[0..NUM_STARTUPMESSAGES - 1] of string;

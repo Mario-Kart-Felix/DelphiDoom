@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
-//  Copyright (C) 2004-2016 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------
 //  E-Mail: jimmyvalavanis@yahoo.gr
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -148,12 +148,22 @@ const
      (0 {free format}, 32000, 40000, 48000, 56000, 64000, 80000, 96000, 112000, 128000, 160000, 192000, 224000, 256000, 320000, 0))
     );
 
+//==============================================================================
+//
+// THeader.Bitrate
+//
+//==============================================================================
 function THeader.Bitrate: Cardinal;
 begin
   result := BITRATES[FVersion, FLayer - 1, FBitrateIndex];
 end;
 
+//==============================================================================
+// THeader.CalculateFrameSize
+//
 // calculates framesize in bytes excluding header size
+//
+//==============================================================================
 function THeader.CalculateFrameSize: Cardinal;
 var
   Val1, Val2: Cardinal;
@@ -220,6 +230,11 @@ begin
   result := FFrameSize;
 end;
 
+//==============================================================================
+//
+// THeader.Create
+//
+//==============================================================================
 constructor THeader.Create;
 begin
   FFrameSize := 0;
@@ -229,6 +244,11 @@ begin
   FInitialSync := false;
 end;
 
+//==============================================================================
+//
+// THeader.Destroy
+//
+//==============================================================================
 destructor THeader.Destroy;
 begin
   if FOffset <> nil then
@@ -237,33 +257,63 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// THeader.GetChecksumOK
+//
+//==============================================================================
 function THeader.GetChecksumOK: Boolean;
 begin
   result := (FChecksum = FCRC.Checksum);
 end;
 
+//==============================================================================
+//
+// THeader.GetChecksums
+//
+//==============================================================================
 function THeader.GetChecksums: Boolean;
 begin
   result := (FProtectionBit = 0);
 end;
 
+//==============================================================================
+//
+// THeader.GetFrequency
+//
+//==============================================================================
 function THeader.GetFrequency: Cardinal;
 begin
   result := FREQUENCIES[FVersion, FSampleFrequency];
 end;
 
+//==============================================================================
+//
+// THeader.GetPadding
+//
+//==============================================================================
 function THeader.GetPadding: Boolean;
 begin
   result := (FPaddingBit <> 0);
 end;
 
+//==============================================================================
+// THeader.MaxNumberOfFrames
+//
 // Returns the maximum number of frames in the stream
+//
+//==============================================================================
 function THeader.MaxNumberOfFrames(Stream: TBitStream): Integer;
 begin
   result := Stream.FileSize div (FFrameSize + 4 - FPaddingBit);
 end;
 
+//==============================================================================
+// THeader.MinNumberOfFrames
+//
 // Returns the minimum number of frames in the stream
+//
+//==============================================================================
 function THeader.MinNumberOfFrames(Stream: TBitStream): Integer;
 begin
   result := Stream.FileSize div (FFrameSize + 5 - FPaddingBit);
@@ -275,11 +325,21 @@ const
     (26.12245, 24.0, 36.0, 0),
     (26.12245, 24.0, 36.0, 0));
 
+//==============================================================================
+//
+// THeader.MSPerFrame
+//
+//==============================================================================
 function THeader.MSPerFrame: Single;
 begin
   result := MSperFrameArray[FLayer-1, FSampleFrequency];
 end;
 
+//==============================================================================
+//
+// THeader.ReadHeader
+//
+//==============================================================================
 function THeader.ReadHeader(Stream: TBitStream; var CRC: TCRC16): Boolean;
 var
   HeaderString, ChannelBitrate: Cardinal;
@@ -405,7 +465,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// THeader.StreamSeek
+//
 // Stream searching routines
+//
+//==============================================================================
 function THeader.StreamSeek(Stream: TBitStream;
   SeekPos: Cardinal): Boolean;
 begin
@@ -415,6 +480,11 @@ begin
     result := Stream.Seek(SeekPos, FFrameSize);
 end;
 
+//==============================================================================
+//
+// THeader.TotalMS
+//
+//==============================================================================
 function THeader.TotalMS(Stream: TBitStream): Single;
 begin
   result := MaxNumberOfFrames(Stream) * MSPerFrame;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //    LIGHTDEF lump parsing, light animation
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,6 +38,7 @@ uses
   d_delphi,
   {$IFNDEF OPENGL}
   r_vislight,
+  p_mobj_h,
   {$ENDIF}
   m_fixed;
 
@@ -52,7 +53,6 @@ type
     GLDL_NUMDLIGHTTYPES,
     GLDL_UNKNOWN  // unknown light
   );
-
 
   GLDRenderLight = record
     r, g, b: float;     // Color
@@ -87,14 +87,39 @@ type
   GLDLightArray = array[0..$FFFF] of GLDLight;
   PGLDLightArray = ^GLDLightArray;
 
+//==============================================================================
+//
+// R_InitDynamicLights
+//
+//==============================================================================
 procedure R_InitDynamicLights;
 
+//==============================================================================
+//
+// R_DynamicLightsDone
+//
+//==============================================================================
 procedure R_DynamicLightsDone;
 
+//==============================================================================
+//
+// R_AddDynamicLight
+//
+//==============================================================================
 function R_AddDynamicLight(const l: GLDLight): integer;
 
+//==============================================================================
+//
+// R_FindDynamicLight
+//
+//==============================================================================
 function R_FindDynamicLight(const check: string): integer;
 
+//==============================================================================
+//
+// R_GetDynamicLight
+//
+//==============================================================================
 function R_GetDynamicLight(const index: integer): PGLDRenderLight;
 
 var
@@ -108,6 +133,7 @@ type
     {$IFNDEF OPENGL}
     radius: fixed_t;
     vis: Pvislight_t;
+    mo: Pmobj_t;
     {$ENDIF}
   end;
   Pdlsortitem_t = ^dlsortitem_t;
@@ -155,10 +181,13 @@ var
 //       don't bother reseting it....
   lightrnd: integer = 0;
 
+//==============================================================================
+// SC_DoParceDynamicLight
 //
 // SC_ParceDynamicLights
 // JVAL: Parse LIGHTDEF
 //
+//==============================================================================
 procedure SC_DoParceDynamicLight(const in_text: string);
 var
   sc: TScriptEngine;
@@ -364,7 +393,7 @@ begin
     for i := 0 to slist.Count - 1 do
     begin
       stmp := strupper(strtrim(slist.Strings[i]));
-      if firstword(stmp) = 'OBJECT' then
+      if firstword_ch(stmp) = 'OBJECT' then
       begin
         sc.SetText(stmp);
         sc.MustGetString;
@@ -386,7 +415,7 @@ begin
           end;
         end;
       end
-      else if firstword(stmp) = 'FRAME' then
+      else if firstword_ch(stmp) = 'FRAME' then
       begin
         sc.SetText(stmp);
 
@@ -515,15 +544,22 @@ begin
   sc.Free;
 end;
 
+//==============================================================================
+//
+// SC_ParceDynamicLight
+//
+//==============================================================================
 procedure SC_ParceDynamicLight(const in_text: string);
 begin
   SC_DoParceDynamicLight(SC_Preprocess(in_text, false));
 end;
 
+//==============================================================================
 //
 // SC_ParceDynamicLights
 // JVAL: Parse all LIGHTDEF lumps
 //
+//==============================================================================
 procedure SC_ParceDynamicLights;
 var
   i: integer;
@@ -559,12 +595,16 @@ begin
   lightdeflumppresent := lightdeflumppresent or (i > 0);
 end;
 
-
 var
   numdlights: integer;
   realnumdlights: integer;
   dlightslist: PGLDLightArray;
 
+//==============================================================================
+//
+// R_InitDynamicLights
+//
+//==============================================================================
 procedure R_InitDynamicLights;
 begin
   numdlights := 0;
@@ -576,6 +616,11 @@ begin
   SC_ParceDynamicLights;
 end;
 
+//==============================================================================
+//
+// R_DynamicLightsDone
+//
+//==============================================================================
 procedure R_DynamicLightsDone;
 begin
   memfree(pointer(dlightslist), realnumdlights * SizeOf(GLDLight));
@@ -587,6 +632,11 @@ begin
   realdlitems := 0;
 end;
 
+//==============================================================================
+//
+// R_GrowDynlightsArray
+//
+//==============================================================================
 procedure R_GrowDynlightsArray;
 begin
   if numdlights >= realnumdlights then
@@ -605,6 +655,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_AddDynamicLight
+//
+//==============================================================================
 function R_AddDynamicLight(const l: GLDLight): integer;
 var
   i: integer;
@@ -617,6 +672,11 @@ begin
   inc(numdlights);
 end;
 
+//==============================================================================
+//
+// R_FindDynamicLight
+//
+//==============================================================================
 function R_FindDynamicLight(const check: string): integer;
 var
   i: integer;
@@ -633,11 +693,13 @@ begin
   result := -1;
 end;
 
+//==============================================================================
 //
 // R_GetDynamicLight
 // JVAL: Retrieving rendering information for lights
 //       Dynamic lights animations
 //
+//==============================================================================
 function R_GetDynamicLight(const index: integer): PGLDRenderLight;
 var
   l: PGLDLight;

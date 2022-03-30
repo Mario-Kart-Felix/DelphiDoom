@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //    External DMX & DDModel model support
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -70,6 +70,11 @@ uses
   w_folders,
   w_pak;
 
+//==============================================================================
+//
+// TDDModel.Create
+//
+//==============================================================================
 constructor TDDModel.Create(const name: string;
   const xoffset, yoffset, zoffset: float;
   const xscale, yscale, zscale: float;
@@ -102,6 +107,11 @@ begin
   precalc := mallocz(fNumFrames * SizeOf(GLuint));
 end;
 
+//==============================================================================
+//
+// TDDModel.LoadFrom
+//
+//==============================================================================
 procedure TDDModel.LoadFrom(const fn: string);
 var
   strm: TPakStream;
@@ -132,6 +142,11 @@ begin
   strm.Free;
 end;
 
+//==============================================================================
+//
+// TDDModel.Destroy
+//
+//==============================================================================
 destructor TDDModel.Destroy;
 var
   i: integer;
@@ -146,6 +161,11 @@ begin
   Inherited;
 end;
 
+//==============================================================================
+//
+// TDDModel.Draw
+//
+//==============================================================================
 procedure TDDModel.Draw(const frm1, frm2: integer; const offset: float);
 var
   idx1, idx2: integer;
@@ -185,6 +205,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TDDModel.DrawSimpleIdx
+//
+//==============================================================================
 procedure TDDModel.DrawSimpleIdx(const idx: integer);
 begin
   if precalc[idx] > 0 then
@@ -208,6 +233,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TDDModel.DrawSimple
+//
+//==============================================================================
 procedure TDDModel.DrawSimple(const frm: integer);
 var
   idx: integer;

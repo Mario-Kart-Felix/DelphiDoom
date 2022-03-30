@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Multithreading flat rendering - 8 bit color
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -57,29 +57,70 @@ type
   flatrenderinfo8_tArray = array[0..$FFF] of flatrenderinfo8_t;
   Pflatrenderinfo8_tArray = ^flatrenderinfo8_tArray;
 
+//==============================================================================
+//
+// R_StoreFlatSpan8
+//
+//==============================================================================
 procedure R_StoreFlatSpan8;
 
+//==============================================================================
+//
+// R_InitFlatsCache8
+//
+//==============================================================================
 procedure R_InitFlatsCache8;
 
+//==============================================================================
+//
+// R_ShutDownFlatsCache8
+//
+//==============================================================================
 procedure R_ShutDownFlatsCache8;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFlats8
+//
+//==============================================================================
 procedure R_RenderMultiThreadFlats8;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFFloors8
+//
+//==============================================================================
 procedure R_RenderMultiThreadFFloors8;
 
 var
   force_numflatrenderingthreads_8bit: integer = 0;
 
+//==============================================================================
+//
+// R_DrawSpanLowMT
+//
+//==============================================================================
 procedure R_DrawSpanLowMT(const fi: pointer);
 
+//==============================================================================
+//
+// R_DrawSpanMediumMT
+//
+//==============================================================================
 procedure R_DrawSpanMediumMT(const fi: pointer);
 
+//==============================================================================
+//
+// R_DrawSpanMedium_RippleMT
+//
+//==============================================================================
 procedure R_DrawSpanMedium_RippleMT(const fi: pointer);
 
 implementation
 
 uses
   i_system,
+  i_threads,
   mt_utils,
   r_draw,
   r_main,
@@ -91,6 +132,11 @@ var
   flatcachesize8: integer;
   flatcacherealsize8: integer;
 
+//==============================================================================
+//
+// R_GrowFlatsCache8
+//
+//==============================================================================
 procedure R_GrowFlatsCache8;
 begin
   if flatcachesize8 >= flatcacherealsize8 then
@@ -100,6 +146,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_StoreFlatSpan8
+//
+//==============================================================================
 procedure R_StoreFlatSpan8;
 var
   flat: Pflatrenderinfo8_t;
@@ -125,6 +176,11 @@ begin
   inc(flatcachesize8);
 end;
 
+//==============================================================================
+//
+// R_InitFlatsCache8
+//
+//==============================================================================
 procedure R_InitFlatsCache8;
 begin
   flatcache8 := nil;
@@ -132,6 +188,11 @@ begin
   flatcacherealsize8 := 0;
 end;
 
+//==============================================================================
+//
+// R_ShutDownFlatsCache8
+//
+//==============================================================================
 procedure R_ShutDownFlatsCache8;
 begin
   if flatcacherealsize8 <> 0 then
@@ -144,22 +205,72 @@ end;
 const
   MAXFLATRENDERINGTHREADS8 = 16;
 
-procedure _flat_thread_worker8(const p: pointer) stdcall;
-var
-  item1, item2: Pflatrenderinfo8_t;
-begin
-  item1 := @flatcache8[mt_range_p(p).start];
-  item2 := @flatcache8[mt_range_p(p).finish];
-  while integer(item1) <= integer(item2) do
-  begin
-    item1.func(item1);
-    inc(item1);
+type
+  Pflatthreadparams8_t = ^flatthreadparams8_t;
+  flatthreadparams8_t = record
+    start, stop: integer;
+    next: Pflatthreadparams8_t;
   end;
+
+var
+  R: array[0..MAXFLATRENDERINGTHREADS8 - 1] of flatthreadparams8_t; // JVAL: 20220320 - Made global
+
+//==============================================================================
+//
+// _flat_thread_worker8
+//
+//==============================================================================
+function _flat_thread_worker8(parms: Pflatthreadparams8_t): integer; stdcall;
+var
+  item: Pflatrenderinfo8_t;
+  start, stop, part: integer;
+  i: integer;
+begin
+  while parms.start <= parms.stop do
+  begin
+    item := @flatcache8[parms.start];
+    item.func(item);
+    ThreadInc(parms.start);
+  end;
+
+  // No further operations in main thread
+  if parms = @R[0] then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  while true do
+  begin
+    parms := parms.next;
+    start := parms.start;
+    stop := parms.stop;
+    part := (stop - start) div 2;
+    if part > 2 then
+    begin
+      ThreadSet(parms.stop, parms.stop - part);
+      start := parms.stop + 1;
+      for i := start to stop do
+      begin
+        item := @flatcache8[i];
+        item.func(item);
+      end;
+    end
+    else if part < 1 then
+      Break;
+  end;
+
+  result := 0;
 end;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFlats8
+//
+//==============================================================================
 procedure R_RenderMultiThreadFlats8;
 var
-  R: array[0..MAXFLATRENDERINGTHREADS8 - 1] of mt_range_t;
+  step: float;
   numthreads: integer;
   i: integer;
 begin
@@ -192,18 +303,24 @@ begin
   if flatcachesize8 < numthreads then
   begin
     R[0].start := 0;
-    R[0].finish := flatcachesize8 - 1;
+    R[0].stop := flatcachesize8 - 1;
+    R[0].next := @R[0];
     _flat_thread_worker8(@R[0]);
     flatcachesize8 := 0;
     exit;
   end;
 
+  step := flatcachesize8 / numthreads;
   R[0].start := 0;
   for i := 1 to numthreads - 1 do
-    R[i].start := Round((flatcachesize8 / numthreads) * i);
+    R[i].start := Round(step * i);
   for i := 0 to numthreads - 2 do
-    R[i].finish := R[i + 1].start - 1;
-  R[numthreads - 1].finish := flatcachesize8 - 1;
+    R[i].stop := R[i + 1].start - 1;
+  R[numthreads - 1].stop := flatcachesize8 - 1;
+
+  for i := 0 to numthreads - 2 do
+    R[i].next := @R[i + 1];
+  R[numthreads - 1].next := @R[0];
 
   case numthreads of
    2:
@@ -391,15 +508,20 @@ begin
   flatcachesize8 := 0;
 end;
 
-procedure _flat3D_thread_worker8(const p: pointer) stdcall;
+//==============================================================================
+//
+// _flat3D_thread_worker8
+//
+//==============================================================================
+function _flat3D_thread_worker8(parms: Pflatthreadparams8_t): integer; stdcall;
 var
   item1, item2: Pflatrenderinfo8_t;
   start, finish: integer;
 begin
   item1 := @flatcache8[0];
   item2 := @flatcache8[flatcachesize8 - 1];
-  start := mt_range_p(p).start;
-  finish := mt_range_p(p).finish;
+  start := parms.start;
+  finish := parms.stop;
   while integer(item1) <= integer(item2) do
   begin
     if item1.ds_y >= start then
@@ -407,11 +529,18 @@ begin
         item1.func(item1);
     inc(item1);
   end;
+
+  Result := 0;
 end;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFFloors8
+//
+//==============================================================================
 procedure R_RenderMultiThreadFFloors8;
 var
-  R: array[0..MAXFLATRENDERINGTHREADS8 - 1] of mt_range_t;
+  step: float;
   numthreads: integer;
   i: integer;
 begin
@@ -444,18 +573,24 @@ begin
   if viewheight < numthreads then
   begin
     R[0].start := 0;
-    R[0].finish := viewheight - 1;
+    R[0].stop := viewheight - 1;
+    R[0].next := @R[0];
     _flat3D_thread_worker8(@R[0]);
     flatcachesize8 := 0;
     exit;
   end;
 
+  step := viewheight / numthreads;
   R[0].start := 0;
   for i := 1 to numthreads - 1 do
-    R[i].start := Round((viewheight / numthreads) * i);
+    R[i].start := Round(step * i);
   for i := 0 to numthreads - 2 do
-    R[i].finish := R[i + 1].start - 1;
-  R[numthreads - 1].finish := viewheight - 1;
+    R[i].stop := R[i + 1].start - 1;
+  R[numthreads - 1].stop := viewheight - 1;
+
+  for i := 0 to numthreads - 2 do
+    R[i].next := @R[i + 1];
+  R[numthreads - 1].next := @R[0];
 
   case numthreads of
    2:
@@ -643,10 +778,12 @@ begin
   flatcachesize8 := 0;
 end;
 
-
+//==============================================================================
+// R_DrawSpanLowMT
 //
 // Draws the actual span (Low resolution).
 //
+//==============================================================================
 procedure R_DrawSpanLowMT(const fi: pointer);
 var
   ds_source: PByteArray;
@@ -684,7 +821,6 @@ begin
   ds_size := Pflatrenderinfo8_t(fi).ds_size;
 
   dest := @((ylookup[ds_y]^)[columnofs[ds_x1]]);
-
 
   case ds_size of
   FS64x64:
@@ -913,9 +1049,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// R_DrawSpanMediumMT
 //
 // Draws the actual span (Medium resolution).
 //
+//==============================================================================
 procedure R_DrawSpanMediumMT(const fi: pointer);
 var
   ds_source: PByteArray;
@@ -935,7 +1074,6 @@ var
   count: integer;
   i: integer;
   spot: integer;
-  fb: fourbytes_t;
 begin
   ds_source := Pflatrenderinfo8_t(fi).ds_source;
   ds_colormap := Pflatrenderinfo8_t(fi).ds_colormap;
@@ -957,6 +1095,11 @@ begin
   {$I R_DrawSpanMedium.inc}
 end;
 
+//==============================================================================
+//
+// R_DrawSpanMedium_RippleMT
+//
+//==============================================================================
 procedure R_DrawSpanMedium_RippleMT(const fi: pointer);
 var
   ds_source: PByteArray;
@@ -977,7 +1120,6 @@ var
   i: integer;
   spot: integer;
   rpl: PIntegerArray;
-  fb: fourbytes_t;
 begin
   ds_source := Pflatrenderinfo8_t(fi).ds_source;
   ds_colormap := Pflatrenderinfo8_t(fi).ds_colormap;

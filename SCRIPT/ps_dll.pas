@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Dll loading (inside PK3 files)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,12 +33,32 @@ unit ps_dll;
 
 interface
 
+//==============================================================================
+//
+// PS_InitDLLLoader
+//
+//==============================================================================
 procedure PS_InitDLLLoader;
 
+//==============================================================================
+//
+// PS_PAKLoadDll
+//
+//==============================================================================
 function PS_PAKLoadDll(const dllname: string): LongWord;
 
+//==============================================================================
+//
+// PS_PAKUnLoadDll
+//
+//==============================================================================
 function PS_PAKUnLoadDll(const dllname: string): boolean;
 
+//==============================================================================
+//
+// PS_ShutDownDLLLoader
+//
+//==============================================================================
 procedure PS_ShutDownDLLLoader;
 
 implementation
@@ -68,6 +88,11 @@ type
     property Filename: string read fFilename write fFilename;
   end;
 
+//==============================================================================
+//
+// THandleClass.Create
+//
+//==============================================================================
 constructor THandleClass.Create(const aHandle: LongWord);
 begin
   inherited Create;
@@ -76,11 +101,21 @@ begin
   fFilename := '';
 end;
 
+//==============================================================================
+//
+// PS_InitDLLLoader
+//
+//==============================================================================
 procedure PS_InitDLLLoader;
 begin
   dlls := TDStringList.Create;
 end;
 
+//==============================================================================
+//
+// PS_PAKLoadDll
+//
+//==============================================================================
 function PS_PAKLoadDll(const dllname: string): LongWord;
 var
   ps: TPakStream;
@@ -128,6 +163,11 @@ begin
   dlls.AddObject(strupper(fname), hc);
 end;
 
+//==============================================================================
+//
+// PS_PAKUnLoadDll
+//
+//==============================================================================
 function PS_PAKUnLoadDll(const dllname: string): boolean;
 var
   fname: string;
@@ -158,6 +198,11 @@ begin
   Result := True;
 end;
 
+//==============================================================================
+//
+// PS_ShutDownDLLLoader
+//
+//==============================================================================
 procedure PS_ShutDownDLLLoader;
 var
   i: integer;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   Menu widget stuff, episode selection and such.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -41,28 +41,57 @@ uses
 // MENUS
 //
 
-{ Called by main loop, }
-{ saves config file and calls I_Quit when user exits. }
-{ Even when the menu is not displayed, }
-{ this can resize the view and change game parameters. }
-{ Does all the real work of the menu interaction. }
-
+//==============================================================================
+//
+// M_Responder
+//
+// Called by main loop,
+// saves config file and calls I_Quit when user exits.
+// Even when the menu is not displayed,
+// this can resize the view and change game parameters.
+// Does all the real work of the menu interaction.
+//
+//==============================================================================
 function M_Responder(ev: Pevent_t): boolean;
 
-{ Called by main loop, }
-{ only used for menu (skull cursor) animation. }
+//==============================================================================
+//
+// M_Ticker
+//
+// Called by main loop,
+// only used for menu (skull cursor) animation.
+//
+//==============================================================================
 procedure M_Ticker;
 
-{ Called by main loop, }
-{ draws the menus directly into the screen buffer. }
+//==============================================================================
+//
+// M_Drawer
+//
+// Called by main loop,
+// draws the menus directly into the screen buffer.
+//
+//==============================================================================
 procedure M_Drawer;
 
-{ Called by D_DoomMain, }
-{ loads the config file. }
+//==============================================================================
+//
+// M_Init
+//
+// Called by D_DoomMain,
+// loads the config file.
+//
+//==============================================================================
 procedure M_Init;
 
-{ Called by intro code to force menu up upon a keypress, }
-{ does nothing if menu is already up. }
+//==============================================================================
+//
+// M_StartControlPanel
+//
+// Called by intro code to force menu up upon a keypress,
+// does nothing if menu is already up.
+//
+//==============================================================================
 procedure M_StartControlPanel;
 
 var
@@ -89,10 +118,25 @@ var
 const
   DEFMENUBACKGROUNDFLAT = 'FLOOR4_6';
 
+//==============================================================================
+//
+// M_ShutDownMenus
+//
+//==============================================================================
 procedure M_ShutDownMenus;
 
+//==============================================================================
+//
+// M_InitMenus
+//
+//==============================================================================
 procedure M_InitMenus;
 
+//==============================================================================
+//
+// M_SetKeyboardMode
+//
+//==============================================================================
 procedure M_SetKeyboardMode(const mode: integer);
 
 type
@@ -115,6 +159,7 @@ type
     pBoolVal: PBoolean;
     // hotkey in menu
     alphaKey: char;
+    alttext: string[30];
   end;
   Pmenuitem_t = ^menuitem_t;
   menuitem_tArray = packed array[0..$FFFF] of menuitem_t;
@@ -136,6 +181,11 @@ type
     runonselect: boolean;
   end;
 
+//==============================================================================
+//
+// M_SetupNextMenu
+//
+//==============================================================================
 procedure M_SetupNextMenu(menudef: Pmenu_t);
 
 type
@@ -143,12 +193,48 @@ type
     x, y: integer;
   end;
 
+//==============================================================================
+//
+// M_WriteText
+//
+//==============================================================================
 function M_WriteText(x, y: integer; const str: string): menupos_t;
+
+//==============================================================================
+//
+// M_StringWidth
+//
+//==============================================================================
+function M_StringWidth(const str: string): integer;
+
+//==============================================================================
+//
+// M_StringHeight
+//
+//==============================================================================
+function M_StringHeight(const str: string): integer;
+
+//==============================================================================
+//
+// M_ClearEpisodes
+//
+//==============================================================================
+procedure M_ClearEpisodes;
+
+//==============================================================================
+//
+// M_AddEpisode
+//
+//==============================================================================
+procedure M_AddEpisode(const map: string; const gfx: string; const txt: string; const alpha: char);
 
 var
 // current menudef
   currentMenu: Pmenu_t;
 
+var
+  EpiCustom: boolean;
+  
 implementation
 
 uses
@@ -165,12 +251,10 @@ uses
   g_game,
   m_argv,
   m_misc,
-  m_fixed,
   mn_screenshot,
   mt_utils,
   i_system,
   i_threads,
-  i_io,
   i_mp3,
   i_sound,
   i_displaymodes,
@@ -197,6 +281,7 @@ uses
   p_user,
   p_adjust,
   p_obituaries,
+  p_playertrace,
   r_aspect,
   r_data,
   r_dynlights,
@@ -211,13 +296,12 @@ uses
   r_camera,
   r_draw,
   t_main,
-  vx_voxelsprite,
   v_data,
   v_video,
   hu_stuff,
   sc_actordef,
   s_sound,
-  sounds,
+  sounddata,
   w_wad,
   z_zone;
 
@@ -241,7 +325,6 @@ var
 var
   messageRoutine: PmessageRoutine;
 
-
 var
   gammamsg: array[0..GAMMASIZE - 1] of string;
 
@@ -259,7 +342,6 @@ const
   LINEHEIGHT = 16;
   LINEHEIGHT2 = 8;
 
-
 var
   savegamestrings: array[0..9] of string;
   savegameshots: array[0..Ord(load_end) - 1] of menuscreenbuffer_t;
@@ -274,9 +356,12 @@ var
 // warning: initializer-string for array of chars is too long
   skullName: array[0..1] of string;
 
+//==============================================================================
+// M_DrawThermo
 //
 //      Menu Functions
 //
+//==============================================================================
 procedure M_DrawThermo(x, y, thermWidth, thermDot: integer; numdots: integer = -1);
 var
   xx: integer;
@@ -305,18 +390,33 @@ begin
     'M_THERMO', false);
 end;
 
+//==============================================================================
+//
+// M_DrawEmptyCell
+//
+//==============================================================================
 procedure M_DrawEmptyCell(menu: Pmenu_t; item: integer);
 begin
   V_DrawPatch(menu.x - 10, menu.y + item * menu.itemheight - 1, SCN_TMP,
     'M_CELL1', false);
 end;
 
+//==============================================================================
+//
+// M_DrawSelCell
+//
+//==============================================================================
 procedure M_DrawSelCell(menu: Pmenu_t; item: integer);
 begin
   V_DrawPatch(menu.x - 10, menu.y + item * menu.itemheight - 1, SCN_TMP,
     'M_CELL2', false);
 end;
 
+//==============================================================================
+//
+// M_StartMessage
+//
+//==============================================================================
 procedure M_StartMessage(const str: string; routine: PmessageRoutine; const input: boolean);
 begin
   messageLastMenuActive := menuactive;
@@ -331,15 +431,23 @@ begin
   menuactive := true;
 end;
 
+//==============================================================================
+//
+// M_StopMessage
+//
+//==============================================================================
 procedure M_StopMessage;
 begin
   menuactive := messageLastMenuActive;
   messageToPrint := 0;
 end;
 
+//==============================================================================
+// M_StringWidth
 //
 // Find string width from hu_font chars
 //
+//==============================================================================
 function M_StringWidth(const str: string): integer;
 var
   i: integer;
@@ -356,9 +464,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// M_StringHeight
 //
 // Find string height from hu_font chars
 //
+//==============================================================================
 function M_StringHeight(const str: string): integer;
 var
   i: integer;
@@ -372,9 +483,12 @@ begin
       result := result + height;
 end;
 
+//==============================================================================
+// M_WriteText
 //
 // Write a string using the hu_font
 //
+//==============================================================================
 function M_WriteText(x, y: integer; const str: string): menupos_t;
 var
   w: integer;
@@ -437,6 +551,11 @@ begin
   result.y := cy;
 end;
 
+//==============================================================================
+//
+// M_WriteWhiteText
+//
+//==============================================================================
 function M_WriteWhiteText(x, y: integer; const str: string): menupos_t;
 var
   w: integer;
@@ -504,17 +623,21 @@ begin
   result.y := cy;
 end;
 
+//==============================================================================
 //
 // M_ClearMenus
 //
+//==============================================================================
 procedure M_ClearMenus;
 begin
   menuactive := false;
 end;
 
+//==============================================================================
 //
 // M_SetupNextMenu
 //
+//==============================================================================
 procedure M_SetupNextMenu(menudef: Pmenu_t);
 begin
   currentMenu := menudef;
@@ -539,7 +662,7 @@ type
   );
 
 var
-  MainMenu: array[0..5] of menuitem_t;
+  MainMenu: array[0..Ord(main_end) - 1] of menuitem_t;
   MainDef: menu_t;
 
 type
@@ -555,7 +678,7 @@ type
   );
 
 var
-  EpisodeMenu: array[0..3] of menuitem_t;
+  EpisodeMenu: array[0..7] of menuitem_t;
   EpiDef: menu_t;
 
 type
@@ -660,6 +783,7 @@ var
 type
   optionsdisplayappearance_e = (
     od_drawfps,
+    od_drawcrosshair,
     od_shademenubackground,
     od_displaydiskbusyicon,
     od_displayendscreen,
@@ -680,6 +804,8 @@ type
     od_allowautomaprotate,
     od_texturedautomap,
     od_automapgrid,
+    od_automapplayertrace,
+    od_automap_empty1,
     optdispautomap_end
   );
 
@@ -695,6 +821,7 @@ type
 {$IFNDEF OPENGL}
     od_lightmap,
 {$ENDIF}
+    od_uncapped,
 {$IFNDEF OPENGL}
     od_bltasync,
 {$ENDIF}
@@ -702,8 +829,6 @@ type
 {$IFNDEF OPENGL}
     od_diher8bittransparency,
 {$ENDIF}
-    od_interpolate,
-    od_interpolateoncapped,
 {$IFNDEF OPENGL}
     od_usefake3d,
 {$ENDIF}
@@ -760,6 +885,8 @@ var
 type
   optionslightmap_e = (
     ol_uselightmaps,
+    ol_lightmaponmasked,
+    ol_lightmaponemitters,
     ol_lightmapfunc,
     ol_colorintensity,
     ol_filler1,
@@ -775,6 +902,20 @@ var
   OptionsLightmapMenu: array[0..Ord(ol_lightmap_end) - 1] of menuitem_t;
   OptionsLightmapDef: menu_t;
 {$ENDIF}
+
+type
+  optionsuncappedframerate_e = (
+    ou_interpolate,
+    ou_interpolateoncapped,
+    ou_interpolateprecise,
+    ou_interpolatereducelag,
+    ou_interpolatepolyobjs,
+    ou_uncapped_end
+  );
+
+var
+  OptionsUncappedFrameRateMenu: array[0..Ord(ou_uncapped_end) - 1] of menuitem_t;
+  OptionsUncappedFrameRateDef: menu_t;
 
 // DISPLAY 32 BIT RENDERING MENU
 type
@@ -920,7 +1061,6 @@ var
   ReadMenuExt: array[0..0] of menuitem_t;
   ReadDefExt: menu_t;
 
-
 type
 //
 // SOUND MENU
@@ -931,6 +1071,7 @@ type
     snd_preferemp3namesingamedirectory,
     snd_usewav,
     snd_preferewavnamesingamedirectory,
+    snd_fullsounds,
     sound_end
   );
 
@@ -1018,7 +1159,6 @@ var
   SensitivityMenu: array[0..Ord(sens_end) - 1] of menuitem_t;
   SensitivityDef: menu_t;
 
-
 type
 //
 // KEY BINDINGS MENU
@@ -1037,11 +1177,13 @@ type
     kb_use,
     kb_strafe,
     kb_speed,
+
     kb_lookup,
     kb_lookdown,
     kb_lookcenter,
     kb_lookleft,
     kb_lookright,
+
     kb_weapon0,
     kb_weapon1,
     kb_weapon2,
@@ -1050,6 +1192,15 @@ type
     kb_weapon5,
     kb_weapon6,
     kb_weapon7,
+
+    kb_am_gobigkey,
+    kb_am_followkey,
+    kb_am_gridkey,
+    kb_am_rotatekey,
+    kb_am_texturedautomap,
+    kb_am_markkey,
+    kb_am_clearmarkkey,
+
     kb_end
   );
 
@@ -1058,8 +1209,10 @@ var
   KeyBindingsDef1: menu_t;
   KeyBindingsMenu2: array[0..Ord(kb_weapon0) - Ord(kb_lookup) - 1] of menuitem_t;
   KeyBindingsDef2: menu_t;
-  KeyBindingsMenu3: array[0..Ord(kb_end) - Ord(kb_weapon0) - 1] of menuitem_t;
+  KeyBindingsMenu3: array[0..Ord(kb_am_gobigkey) - Ord(kb_weapon0) - 1] of menuitem_t;
   KeyBindingsDef3: menu_t;
+  KeyBindingsMenu4: array[0..Ord(kb_end) - Ord(kb_am_gobigkey) - 1] of menuitem_t;
+  KeyBindingsDef4: menu_t;
 
 type
   bindinginfo_t = record
@@ -1081,11 +1234,13 @@ const
     (text: 'Use'; pkey: @key_use),
     (text: 'Strafe'; pkey: @key_strafe),
     (text: 'Run'; pkey: @key_speed),
+
     (text: 'Look up'; pkey: @key_lookup),
     (text: 'Look down'; pkey: @key_lookdown),
     (text: 'Look center'; pkey: @key_lookcenter),
     (text: 'Look left'; pkey: @key_lookleft),
     (text: 'Look right'; pkey: @key_lookright),
+
     (text: 'Fists/Chainsaw'; pkey: @key_weapon0),
     (text: 'Pistol'; pkey: @key_weapon1),
     (text: 'Shotgun'; pkey: @key_weapon2),
@@ -1093,7 +1248,15 @@ const
     (text: 'Rocket launcher'; pkey: @key_weapon4),
     (text: 'Plasma gun'; pkey: @key_weapon5),
     (text: 'BFG 9000'; pkey: @key_weapon6),
-    (text: 'Chainsaw'; pkey: @key_weapon7)
+    (text: 'Chainsaw'; pkey: @key_weapon7),
+
+    (text: 'Automap max zoom'; pkey: @AM_GOBIGKEY),
+    (text: 'Automap follow on/off'; pkey: @AM_FOLLOWKEY),
+    (text: 'Automap grid on/off'; pkey: @AM_GRIDKEY),
+    (text: 'Automap rotate on/off'; pkey: @AM_ROTATEKEY),
+    (text: 'Automap texture on/off'; pkey: @AM_TEXTUREDAUTOMAP),
+    (text: 'Automap add mark'; pkey: @AM_MARKKEY),
+    (text: 'Automap clear mark'; pkey: @AM_CLEARMARKKEY)
   );
 
 var
@@ -1101,6 +1264,11 @@ var
   bindkeySlot: integer;
   saveOldkey: integer;
 
+//==============================================================================
+//
+// M_KeyToString
+//
+//==============================================================================
 function M_KeyToString(const k: integer): string;
 begin
   if (k >= 33) and (k <= 126) then
@@ -1156,6 +1324,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_SetKeyBinding
+//
+//==============================================================================
 function M_SetKeyBinding(const slot: integer; key: integer): boolean;
 var
   i: integer;
@@ -1202,6 +1375,11 @@ begin
   KeyBindingsInfo[slot].pkey^ := key;
 end;
 
+//==============================================================================
+//
+// M_DrawBindings
+//
+//==============================================================================
 procedure M_DrawBindings(const m: menu_t; const start, stop: integer);
 var
   i: integer;
@@ -1225,16 +1403,31 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_DrawBindings1
+//
+//==============================================================================
 procedure M_DrawBindings1;
 begin
   M_DrawBindings(KeyBindingsDef1, 0, Ord(kb_lookup));
 end;
 
+//==============================================================================
+//
+// M_DrawBindings2
+//
+//==============================================================================
 procedure M_DrawBindings2;
 begin
   M_DrawBindings(KeyBindingsDef2, Ord(kb_lookup), Ord(kb_weapon0));
 end;
 
+//==============================================================================
+//
+// M_DrawBindings3
+//
+//==============================================================================
 procedure M_DrawBindings3;
 begin
   case customgame of
@@ -1271,12 +1464,25 @@ begin
     KeyBindingsInfo[Ord(kb_weapon7)].text := 'Chainsaw';
   end;
 
-  M_DrawBindings(KeyBindingsDef3, Ord(kb_weapon0), Ord(kb_end));
+  M_DrawBindings(KeyBindingsDef3, Ord(kb_weapon0), Ord(kb_am_gobigkey));
 end;
 
+//==============================================================================
+//
+// M_DrawBindings4
+//
+//==============================================================================
+procedure M_DrawBindings4;
+begin
+  M_DrawBindings(KeyBindingsDef4, Ord(kb_am_gobigkey), Ord(kb_end));
+end;
+
+//==============================================================================
+// M_KeyBindingSelect1
 //
 // Select key binding
 //
+//==============================================================================
 procedure M_KeyBindingSelect1(choice: integer);
 begin
   bindkeyEnter := true;
@@ -1286,6 +1492,11 @@ begin
   saveOldkey := KeyBindingsInfo[choice].pkey^;
 end;
 
+//==============================================================================
+//
+// M_KeyBindingSelect2
+//
+//==============================================================================
 procedure M_KeyBindingSelect2(choice: integer);
 begin
   bindkeyEnter := true;
@@ -1295,6 +1506,11 @@ begin
   saveOldkey := KeyBindingsInfo[Ord(kb_lookup) + choice].pkey^;
 end;
 
+//==============================================================================
+//
+// M_KeyBindingSelect3
+//
+//==============================================================================
 procedure M_KeyBindingSelect3(choice: integer);
 begin
   bindkeyEnter := true;
@@ -1302,6 +1518,20 @@ begin
   bindkeySlot := Ord(kb_weapon0) + choice;
 
   saveOldkey := KeyBindingsInfo[Ord(kb_weapon0) + choice].pkey^;
+end;
+
+//==============================================================================
+//
+// M_KeyBindingSelect4
+//
+//==============================================================================
+procedure M_KeyBindingSelect4(choice: integer);
+begin
+  bindkeyEnter := true;
+
+  bindkeySlot := Ord(kb_am_gobigkey) + choice;
+
+  saveOldkey := KeyBindingsInfo[Ord(kb_am_gobigkey) + choice].pkey^;
 end;
 
 type
@@ -1327,10 +1557,12 @@ var
   SaveMenu: array[0..Ord(load_end) - 1] of menuitem_t;
   SaveDef: menu_t;
 
+//==============================================================================
 //
 // M_ReadSaveStrings
 //  read the strings from the savegame files
 //
+//==============================================================================
 procedure M_ReadSaveStrings;
 var
   handle: file;
@@ -1360,9 +1592,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// M_DrawSaveLoadBorder
 //
 // Draw border for the savegame description
 //
+//==============================================================================
 procedure M_DrawSaveLoadBorder(x, y: integer);
 var
   i: integer;
@@ -1385,6 +1620,11 @@ end;
 var
   sspatch: integer = -2;
 
+//==============================================================================
+//
+// ss_patch
+//
+//==============================================================================
 function ss_patch: integer;
 begin
   if sspatch <> -2 then
@@ -1402,6 +1642,11 @@ begin
   sspatch := result;
 end;
 
+//==============================================================================
+//
+// M_DrawSaveLoadScreenShot
+//
+//==============================================================================
 procedure M_DrawSaveLoadScreenShot(const screenshot: Pmenuscreenbuffer_t; const mnpos: integer);
 const
   SHOT_X = 320 - MN_SCREENSHOTWIDTH - 4;
@@ -1444,9 +1689,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// M_DrawLoad
 //
 // M_LoadGame & Cie.
 //
+//==============================================================================
 procedure M_DrawLoad;
 var
   i: integer;
@@ -1461,9 +1709,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// M_LoadSelect
 //
 // User wants to load this game
 //
+//==============================================================================
 procedure M_LoadSelect(choice: integer);
 var
   name: string;
@@ -1473,9 +1724,12 @@ begin
   M_ClearMenus;
 end;
 
+//==============================================================================
+// M_LoadGame
 //
 // Selected from DOOM menu
 //
+//==============================================================================
 procedure M_LoadGame(choice: integer);
 begin
   if netgame then
@@ -1488,9 +1742,12 @@ begin
   M_ReadSaveStrings;
 end;
 
+//==============================================================================
+// M_DrawSave
 //
 //  M_SaveGame & Cie.
 //
+//==============================================================================
 procedure M_DrawSave;
 var
   i: integer;
@@ -1512,22 +1769,28 @@ begin
   end;
 end;
 
+//==============================================================================
+// M_DoSave
 //
 // M_Responder calls this when user is finished
 //
+//==============================================================================
 procedure M_DoSave(slot: integer);
 begin
   G_SaveGame(slot, savegamestrings[slot]);
   M_ClearMenus;
 
   // PICK QUICKSAVE SLOT YET?
-  if (quickSaveSlot = -2) then
+  if quickSaveSlot = -2 then
     quickSaveSlot := slot;
 end;
 
+//==============================================================================
+// M_SaveSelect
 //
 // User wants to save. Start string input for M_Responder
 //
+//==============================================================================
 procedure M_SaveSelect(choice: integer);
 var
   s: string;
@@ -1558,9 +1821,12 @@ begin
   saveCharIndex := Length(savegamestrings[choice]);
 end;
 
+//==============================================================================
+// M_SaveGame
 //
 // Selected from DOOM menu
 //
+//==============================================================================
 procedure M_SaveGame(choice: integer);
 begin
   if not usergame then
@@ -1576,6 +1842,11 @@ begin
   M_ReadSaveStrings;
 end;
 
+//==============================================================================
+//
+// M_StartSound
+//
+//==============================================================================
 procedure M_StartSound(origin: pointer; sfx_id: integer);
 begin
   if gamestate = GS_ENDOOM then
@@ -1583,20 +1854,32 @@ begin
   S_StartSound(origin, sfx_id);
 end;
 
+//==============================================================================
+// M_SwtchnSound
 //
 //      M_QuickSave
 //
+//==============================================================================
 procedure M_SwtchnSound;
 begin
   M_StartSound(nil, Ord(sfx_swtchn));
 end;
 
+//==============================================================================
+//
+// M_SwtchxSound
+//
+//==============================================================================
 procedure M_SwtchxSound;
 begin
   M_StartSound(nil, Ord(sfx_swtchx));
 end;
 
-
+//==============================================================================
+//
+// M_QuickSaveResponse
+//
+//==============================================================================
 procedure M_QuickSaveResponse(ch: integer);
 begin
   if ch = Ord('y') then
@@ -1606,6 +1889,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_QuickSave
+//
+//==============================================================================
 procedure M_QuickSave;
 var
   tempstring: string;
@@ -1632,9 +1920,12 @@ begin
   M_StartMessage(tempstring, @M_QuickSaveResponse, true);
 end;
 
+//==============================================================================
+// M_QuickLoadResponse
 //
 // M_QuickLoad
 //
+//==============================================================================
 procedure M_QuickLoadResponse(ch: integer);
 begin
   if ch = Ord('y') then
@@ -1644,6 +1935,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_QuickLoad
+//
+//==============================================================================
 procedure M_QuickLoad;
 var
   tempstring: string;
@@ -1664,10 +1960,13 @@ begin
   M_StartMessage(tempstring, @M_QuickLoadResponse, true);
 end;
 
+//==============================================================================
+// M_DrawReadThis1
 //
 // Read This Menus
 // Had a "quick hack to fix romero bug"
 //
+//==============================================================================
 procedure M_DrawReadThis1;
 begin
   inhelpscreens := true;
@@ -1681,9 +1980,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// M_DrawReadThis2
 //
 // Read This Menus - optional second page.
 //
+//==============================================================================
 procedure M_DrawReadThis2;
 begin
   inhelpscreens := true;
@@ -1698,15 +2000,23 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_DrawReadThisExt
+//
+//==============================================================================
 procedure M_DrawReadThisExt;
 begin
   inhelpscreens := true;
   V_PageDrawer(char8tostring(W_GetNameForNum(extrahelpscreens.Numbers[extrahelpscreens_idx])));
 end;
 
+//==============================================================================
+// M_DrawSoundVol
 //
 // Change Sfx & Music volumes
 //
+//==============================================================================
 procedure M_DrawSoundVol;
 begin
   V_DrawPatch(60, 38, SCN_TMP, 'M_SVOL', false);
@@ -1718,6 +2028,11 @@ begin
     SoundVolDef.x, SoundVolDef.y + SoundVolDef.itemheight * (Ord(music_vol) + 1), 16, snd_MusicVolume);
 end;
 
+//==============================================================================
+//
+// M_ChangeDogs
+//
+//==============================================================================
 procedure M_ChangeDogs(choice: integer);
 begin
   dogs := GetIntegerInRange(dogs, 0, MAXPLAYERS - 1);
@@ -1726,6 +2041,11 @@ begin
     dogs := 0;
 end;
 
+//==============================================================================
+//
+// M_DrawCompatibility
+//
+//==============================================================================
 procedure M_DrawCompatibility;
 var
   ppos: menupos_t;
@@ -1741,6 +2061,11 @@ end;
 const
   mkeyboardmodes: array[0..3] of string = ('ARROWS', 'WASD', 'ESDF', 'CUSTOM');
 
+//==============================================================================
+//
+// M_SetKeyboardMode
+//
+//==============================================================================
 procedure M_SetKeyboardMode(const mode: integer);
 begin
   if mode = 0 then
@@ -1772,6 +2097,13 @@ begin
     key_weapon5 := Ord('6');
     key_weapon6 := Ord('7');
     key_weapon7 := Ord('8');
+    AM_GOBIGKEY := Ord('o');
+    AM_FOLLOWKEY := Ord('f');
+    AM_GRIDKEY := Ord('g');
+    AM_ROTATEKEY := Ord('r');
+    AM_TEXTUREDAUTOMAP := Ord('t');
+    AM_MARKKEY := Ord('m');
+    AM_CLEARMARKKEY := Ord('c');
   end
   else if mode = 1 then
   begin
@@ -1801,6 +2133,13 @@ begin
     key_weapon5 := Ord('6');
     key_weapon6 := Ord('7');
     key_weapon7 := Ord('8');
+    AM_GOBIGKEY := Ord('o');
+    AM_FOLLOWKEY := Ord('f');
+    AM_GRIDKEY := Ord('g');
+    AM_ROTATEKEY := Ord('r');
+    AM_TEXTUREDAUTOMAP := Ord('t');
+    AM_MARKKEY := Ord('m');
+    AM_CLEARMARKKEY := Ord('c');
   end
   else if mode = 2 then
   begin
@@ -1830,9 +2169,21 @@ begin
     key_weapon5 := Ord('6');
     key_weapon6 := Ord('7');
     key_weapon7 := Ord('8');
+    AM_GOBIGKEY := Ord('o');
+    AM_FOLLOWKEY := Ord('l');
+    AM_GRIDKEY := Ord('g');
+    AM_ROTATEKEY := Ord('r');
+    AM_TEXTUREDAUTOMAP := Ord('t');
+    AM_MARKKEY := Ord('m');
+    AM_CLEARMARKKEY := Ord('c');
   end;
 end;
 
+//==============================================================================
+//
+// M_GetKeyboardMode
+//
+//==============================================================================
 function M_GetKeyboardMode: integer;
 begin
   if (key_right = 174) and
@@ -1860,7 +2211,14 @@ begin
      (key_weapon4 = Ord('5')) and
      (key_weapon5 = Ord('6')) and
      (key_weapon6 = Ord('7')) and
-     (key_weapon7 = Ord('8')) then
+     (key_weapon7 = Ord('8')) and
+     (AM_GOBIGKEY = Ord('o')) and
+     (AM_FOLLOWKEY = Ord('f')) and
+     (AM_GRIDKEY = Ord('g')) and
+     (AM_ROTATEKEY = Ord('r')) and
+     (AM_TEXTUREDAUTOMAP = Ord('t')) and
+     (AM_MARKKEY = Ord('m')) and
+     (AM_CLEARMARKKEY = Ord('c')) then
   begin
     result := 0;
     exit;
@@ -1891,7 +2249,14 @@ begin
      (key_weapon4 = Ord('5')) and
      (key_weapon5 = Ord('6')) and
      (key_weapon6 = Ord('7')) and
-     (key_weapon7 = Ord('8')) then
+     (key_weapon7 = Ord('8')) and
+     (AM_GOBIGKEY = Ord('o')) and
+     (AM_FOLLOWKEY = Ord('f')) and
+     (AM_GRIDKEY = Ord('g')) and
+     (AM_ROTATEKEY = Ord('r')) and
+     (AM_TEXTUREDAUTOMAP = Ord('t')) and
+     (AM_MARKKEY = Ord('m')) and
+     (AM_CLEARMARKKEY = Ord('c')) then
   begin
     result := 1;
     exit;
@@ -1922,7 +2287,14 @@ begin
      (key_weapon4 = Ord('5')) and
      (key_weapon5 = Ord('6')) and
      (key_weapon6 = Ord('7')) and
-     (key_weapon7 = Ord('8')) then
+     (key_weapon7 = Ord('8')) and
+     (AM_GOBIGKEY = Ord('o')) and
+     (AM_FOLLOWKEY = Ord('l')) and
+     (AM_GRIDKEY = Ord('g')) and
+     (AM_ROTATEKEY = Ord('r')) and
+     (AM_TEXTUREDAUTOMAP = Ord('t')) and
+     (AM_MARKKEY = Ord('m')) and
+     (AM_CLEARMARKKEY = Ord('c')) then
   begin
     result := 2;
     exit;
@@ -1931,21 +2303,41 @@ begin
   result := 3;
 end;
 
+//==============================================================================
+//
+// M_KeyboardModeArrows
+//
+//==============================================================================
 procedure M_KeyboardModeArrows(choice: integer);
 begin
   M_SetKeyboardMode(0);
 end;
 
+//==============================================================================
+//
+// M_KeyboardModeWASD
+//
+//==============================================================================
 procedure M_KeyboardModeWASD(choice: integer);
 begin
   M_SetKeyboardMode(1);
 end;
 
+//==============================================================================
+//
+// M_KeyboardModeESDF
+//
+//==============================================================================
 procedure M_KeyboardModeESDF(choice: integer);
 begin
   M_SetKeyboardMode(2);
 end;
 
+//==============================================================================
+//
+// M_SwitchKeyboardMode
+//
+//==============================================================================
 procedure M_SwitchKeyboardMode(choice: integer);
 var
   old: integer;
@@ -1959,6 +2351,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_CmdKeyboardMode
+//
+//==============================================================================
 procedure M_CmdKeyboardMode(const parm1, parm2: string);
 var
   wrongparms: boolean;
@@ -1992,6 +2389,11 @@ begin
     M_SetKeyboardMode(2);
 end;
 
+//==============================================================================
+//
+// M_DrawControls
+//
+//==============================================================================
 procedure M_DrawControls;
 var
   ppos: menupos_t;
@@ -2003,12 +2405,22 @@ begin
   M_WriteWhiteText(ppos.x, ppos.y, mkeyboardmodes[M_GetKeyboardMode]);
 end;
 
+//==============================================================================
+//
+// M_DrawSound
+//
+//==============================================================================
 procedure M_DrawSound;
 begin
   V_DrawPatch(108, 15, SCN_TMP, 'M_OPTTTL', false);
   V_DrawPatch(20, 48, SCN_TMP, 'MENU_SOU', false);
 end;
 
+//==============================================================================
+//
+// M_DrawSystem
+//
+//==============================================================================
 procedure M_DrawSystem;
 var
   ppos: menupos_t;
@@ -2021,46 +2433,91 @@ begin
   M_WriteWhiteText(ppos.x, ppos.y, screenshotformat);
 end;
 
+//==============================================================================
+//
+// M_OptionsSound
+//
+//==============================================================================
 procedure M_OptionsSound(choice: integer);
 begin
   M_SetupNextMenu(@SoundDef);
 end;
 
+//==============================================================================
+//
+// M_SoundVolume
+//
+//==============================================================================
 procedure M_SoundVolume(choice: integer);
 begin
   M_SetupNextMenu(@SoundVolDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsConrols
+//
+//==============================================================================
 procedure M_OptionsConrols(choice: integer);
 begin
   M_SetupNextMenu(@ControlsDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsSensitivity
+//
+//==============================================================================
 procedure M_OptionsSensitivity(choice: integer);
 begin
   M_SetupNextMenu(@SensitivityDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsCompatibility
+//
+//==============================================================================
 procedure M_OptionsCompatibility(choice: integer);
 begin
   M_SetupNextMenu(@CompatibilityDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsSystem
+//
+//==============================================================================
 procedure M_OptionsSystem(choice: integer);
 begin
   M_SetupNextMenu(@SystemDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsGeneral
+//
+//==============================================================================
 procedure M_OptionsGeneral(choice: integer);
 begin
   M_SetupNextMenu(@OptionsGeneralDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplay
+//
+//==============================================================================
 procedure M_OptionsDisplay(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayDetail
+//
+//==============================================================================
 procedure M_OptionsDisplayDetail(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayDetailDef);
@@ -2069,6 +2526,11 @@ end;
 var
   mdisplaymode_idx: integer = 0;
 
+//==============================================================================
+//
+// M_SetVideoMode
+//
+//==============================================================================
 procedure M_SetVideoMode(choice: integer);
 var
   idx: integer;
@@ -2081,33 +2543,74 @@ begin
   M_SetupNextMenu(@OptionsDisplayVideoModeDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayAutomap
+//
+//==============================================================================
 procedure M_OptionsDisplayAutomap(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayAutomapDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayAppearance
+//
+//==============================================================================
 procedure M_OptionsDisplayAppearance(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayAppearanceDef);
 end;
 
+//==============================================================================
+//
+// M_OptionAspectRatio
+//
+//==============================================================================
 procedure M_OptionAspectRatio(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayAspectRatioDef);
 end;
 
+//==============================================================================
+//
+// M_OptionCameraShift
+//
+//==============================================================================
 procedure M_OptionCameraShift(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayCameraDef);
 end;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// M_OptionsDisplayLightmap
+//
+//==============================================================================
 procedure M_OptionsDisplayLightmap(choice: integer);
 begin
   M_SetupNextMenu(@OptionsLightmapDef);
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// M_OptionsDisplayUncappedFrameRate
+//
+//==============================================================================
+procedure M_OptionsDisplayUncappedFrameRate(choice: integer);
+begin
+  M_SetupNextMenu(@OptionsUncappedFrameRateDef);
+end;
+
+//==============================================================================
+//
+// M_ChangeCameraXY
+//
+//==============================================================================
 procedure M_ChangeCameraXY(choice: integer);
 begin
   case choice of
@@ -2117,6 +2620,11 @@ begin
   chasecamera_viewxy := ibetween(chasecamera_viewxy, CHASECAMERA_XY_MIN, CHASECAMERA_XY_MAX);
 end;
 
+//==============================================================================
+//
+// M_ChangeCameraZ
+//
+//==============================================================================
 procedure M_ChangeCameraZ(choice: integer);
 begin
   case choice of
@@ -2134,6 +2642,11 @@ const
 var
   aspectratioidx: integer;
 
+//==============================================================================
+//
+// M_SwitchForcedAspectRatio
+//
+//==============================================================================
 procedure M_SwitchForcedAspectRatio(choice: integer);
 begin
   aspectratioidx := (aspectratioidx + 1) mod NUMSTRASPECTRATIOS;
@@ -2147,6 +2660,11 @@ begin
   setsizeneeded := true;
 end;
 
+//==============================================================================
+//
+// _nearest_aspect_index
+//
+//==============================================================================
 function _nearest_aspect_index: integer;
 var
   asp: single;
@@ -2183,43 +2701,84 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayAdvanced
+//
+//==============================================================================
 procedure M_OptionsDisplayAdvanced(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayAdvancedDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplay32bit
+//
+//==============================================================================
 procedure M_OptionsDisplay32bit(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplay32bitDef);
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// M_OptionsDisplayOpenGL
+//
+//==============================================================================
 procedure M_OptionsDisplayOpenGL(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayOpenGLModels
+//
+//==============================================================================
 procedure M_OptionsDisplayOpenGLModels(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLModelsDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayOpenGLVoxels
+//
+//==============================================================================
 procedure M_OptionsDisplayOpenGLVoxels(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLVoxelsDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayOpenGLFilter
+//
+//==============================================================================
 procedure M_OptionsDisplayOpenGLFilter(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLFilterDef);
 end;
 
+//==============================================================================
+//
+// M_OptionsDisplayOpenGLFog
+//
+//==============================================================================
 procedure M_OptionsDisplayOpenGLFog(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDisplayOpenGLFogDef);
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// M_SfxVol
+//
+//==============================================================================
 procedure M_SfxVol(choice: integer);
 begin
   case choice of
@@ -2229,6 +2788,11 @@ begin
   S_SetSfxVolume(snd_SfxVolume);
 end;
 
+//==============================================================================
+//
+// M_MusicVol
+//
+//==============================================================================
 procedure M_MusicVol(choice: integer);
 begin
   case choice of
@@ -2238,23 +2802,33 @@ begin
   S_SetMusicVolume(snd_MusicVolume);
 end;
 
+//==============================================================================
 //
 // M_DrawMainMenu
 //
+//==============================================================================
 procedure M_DrawMainMenu;
 begin
   V_DrawPatch(94, 2, SCN_TMP, 'M_DOOM', false);
 end;
 
+//==============================================================================
+// M_DrawNewGame
 //
 // M_NewGame
 //
+//==============================================================================
 procedure M_DrawNewGame;
 begin
   V_DrawPatch(96, 14, SCN_TMP, 'M_NEWG', false);
   V_DrawPatch(54, 38, SCN_TMP, 'M_SKILL', false);
 end;
 
+//==============================================================================
+//
+// M_NewGame
+//
+//==============================================================================
 procedure M_NewGame(choice: integer);
 begin
   if netgame and not demoplayback then
@@ -2263,10 +2837,14 @@ begin
     exit;
   end;
 
-  if gamemode = commercial then
+  if ((gamemode = commercial) and not EpiCustom) or (EpiDef.numitems = 0) then
   begin
     if oldsharewareversion then
+    begin
       NewDef.numitems := Ord(newg_nightmare); // No nightmare in old shareware
+      if NewDef.lastOn = Ord(newg_nightmare) then
+        dec(NewDef.lastOn);
+    end;
     M_SetupNextMenu(@NewDef);
   end
   else
@@ -2279,26 +2857,93 @@ begin
   end;
 end;
 
+// This is for customized episode menus
+var
+  EpiMenuMap: array[0..7] of Integer = (1, 1, 1, 1, -1, -1, -1, -1);
+  EpiMenuEpi: array[0..7] of Integer = (1, 2, 3, 4, -1, -1, -1, -1);
+
+//==============================================================================
+//
+// M_ClearEpisodes
+//
+//==============================================================================
+procedure M_ClearEpisodes;
+begin
+  EpiDef.numitems := 0;
+  NewDef.prevMenu := @MainDef;
+end;
+
+//==============================================================================
+//
+// M_AddEpisode
+//
+//==============================================================================
+procedure M_AddEpisode(const map: string; const gfx: string; const txt: string; const alpha: char);
+var
+  episd, mapnum: integer;
+begin
+  if not EpiCustom then
+  begin
+    EpiCustom := true;
+    NewDef.prevMenu := @EpiDef;
+
+    if gamemode = commercial then
+      EpiDef.numitems := 0;
+  end;
+
+  if EpiDef.numitems >= 8 then
+    exit;
+  G_ValidateMapName(map, @episd, @mapnum);
+  EpiMenuEpi[EpiDef.numitems] := episd;
+  EpiMenuMap[EpiDef.numitems] := mapnum;
+  EpisodeMenu[EpiDef.numitems].name := gfx;
+  EpisodeMenu[EpiDef.numitems].alttext := txt;
+  EpisodeMenu[EpiDef.numitems].alphaKey := alpha;
+  inc(EpiDef.numitems);
+
+  if EpiDef.numitems <= 4 then
+    EpiDef.y := 63
+  else
+    EpiDef.y := 63 - (EpiDef.numitems - 5) * (LINEHEIGHT div 2);
+end;
+
 //
 //      M_Episode
 //
 var
   epi: integer;
 
+//==============================================================================
+//
+// M_DrawEpisode
+//
+//==============================================================================
 procedure M_DrawEpisode;
 begin
   V_DrawPatch(54, 38, SCN_TMP, 'M_EPISOD', false);
 end;
 
+//==============================================================================
+//
+// M_VerifyNightmare
+//
+//==============================================================================
 procedure M_VerifyNightmare(ch: integer);
 begin
   if ch <> Ord('y') then
     exit;
 
+  defaultskill := Ord(sk_nightmare);
+
   G_DeferedInitNew(sk_nightmare, epi + 1, 1); // JVAL nightmare become sk_nightmare
   M_ClearMenus;
 end;
 
+//==============================================================================
+//
+// M_ChooseSkill
+//
+//==============================================================================
 procedure M_ChooseSkill(choice: integer);
 begin
   if choice = Ord(newg_nightmare) then
@@ -2307,30 +2952,43 @@ begin
     exit;
   end;
 
-  G_DeferedInitNew(skill_t(choice), epi + 1, 1);
+  defaultskill := choice;
+
+  if not EpiCustom then
+    G_DeferedInitNew(skill_t(choice), epi + 1, 1)
+  else
+    G_DeferedInitNew(skill_t(choice), EpiMenuEpi[epi], EpiMenuMap[epi]);
   M_ClearMenus;
 end;
 
+//==============================================================================
+//
+// M_Episode
+//
+//==============================================================================
 procedure M_Episode(choice: integer);
 begin
-  if (gamemode = shareware) and (choice <> 0) then
+  if not EpiCustom then
   begin
-    M_StartMessage(SWSTRING + #13#10 + PRESSKEY, nil, false);
-    M_SetupNextMenu(@ReadDef1);
-    exit;
-  end;
+    if (gamemode = shareware) and (choice <> 0) then
+    begin
+      M_StartMessage(SWSTRING + #13#10 + PRESSKEY, nil, false);
+      M_SetupNextMenu(@ReadDef1);
+      exit;
+    end;
 
-  // Yet another hack...
-  if (gamemode = registered) and (choice > 2) then
-  begin
-    I_Warning('M_Episode(): 4th episode requires UltimateDOOM'#13#10);
-    choice := 0;
+    // Yet another hack...
+    if (gamemode = registered) and (choice > 2) then
+    begin
+      I_Warning('M_Episode(): 4th episode requires UltimateDOOM'#13#10);
+      choice := 0;
+    end;
+
+    if oldsharewareversion then
+      NewDef.numitems := Ord(newg_nightmare); // No nightmare in old shareware shareware
   end;
 
   epi := choice;
-
-  if oldsharewareversion then
-    NewDef.numitems := Ord(newg_nightmare); // No nightmare in old shareware shareware
   M_SetupNextMenu(@NewDef);
 end;
 
@@ -2340,11 +2998,21 @@ end;
 var
   msgNames: array[0..1] of string = ('M_MSGOFF', 'M_MSGON');
 
+//==============================================================================
+//
+// M_DrawOptions
+//
+//==============================================================================
 procedure M_DrawOptions;
 begin
   V_DrawPatch(108, 15, SCN_TMP, 'M_OPTTTL', false);
 end;
 
+//==============================================================================
+//
+// M_DrawGeneralOptions
+//
+//==============================================================================
 procedure M_DrawGeneralOptions;
 begin
   V_DrawPatch(108, 15, SCN_TMP, 'M_OPTTTL', false);
@@ -2359,6 +3027,11 @@ begin
     OptionsGeneralDef.x, OptionsGeneralDef.y + OptionsGeneralDef.itemheight * (Ord(mousesens) + 1), 20, mouseSensitivity);
 end;
 
+//==============================================================================
+//
+// M_DrawSensitivity
+//
+//==============================================================================
 procedure M_DrawSensitivity;
 begin
   V_DrawPatch(108, 15, SCN_TMP, 'M_OPTTTL', false);
@@ -2374,6 +3047,11 @@ begin
     SensitivityDef.x, SensitivityDef.y + SensitivityDef.itemheight * (Ord(sens_mousesensitivityy) + 1), 11, mouseSensitivityY);
 end;
 
+//==============================================================================
+//
+// M_DrawDisplayOptions
+//
+//==============================================================================
 procedure M_DrawDisplayOptions;
 var
   lump: integer;
@@ -2388,6 +3066,11 @@ end;
 var
   colordepths: array[boolean] of string = ('8bit', '32bit');
 
+//==============================================================================
+//
+// M_DrawDisplayDetailOptions
+//
+//==============================================================================
 procedure M_DrawDisplayDetailOptions;
 var
   stmp: string;
@@ -2404,6 +3087,11 @@ begin
   M_WriteWhiteText(ppos.x, ppos.y, stmp);
 end;
 
+//==============================================================================
+//
+// M_ChangeFullScreen
+//
+//==============================================================================
 procedure M_ChangeFullScreen(choice: integer);
 begin
   {$IFDEF OPENGL}
@@ -2418,6 +3106,11 @@ const
     'SHARED', 'EXCLUSIVE', 'OFF'
   );
 
+//==============================================================================
+//
+// M_DrawDisplaySetVideoMode
+//
+//==============================================================================
 procedure M_DrawDisplaySetVideoMode;
 var
   stmp: string;
@@ -2449,6 +3142,11 @@ begin
   M_WriteText(OptionsDisplayVideoModeDef.x, OptionsDisplayVideoModeDef.y + OptionsDisplayVideoModeDef.itemheight * Ord(odm_setvideomode), stmp);
 end;
 
+//==============================================================================
+//
+// M_SwitchShadeMode
+//
+//==============================================================================
 procedure M_SwitchShadeMode(choice: integer);
 begin
   shademenubackground := (shademenubackground + 1) mod 3;
@@ -2458,6 +3156,11 @@ const
   menubackrounds: array[0..2] of string =
     ('NONE', 'SHADOW', 'TEXTURE');
 
+//==============================================================================
+//
+// M_DrawDisplayAppearanceOptions
+//
+//==============================================================================
 procedure M_DrawDisplayAppearanceOptions;
 var
   ppos: menupos_t;
@@ -2468,16 +3171,50 @@ begin
   M_WriteWhiteText(ppos.x, ppos.y, menubackrounds[shademenubackground mod 3]);
 end;
 
+//==============================================================================
+//
+// M_AutomapTraceSize
+//
+//==============================================================================
+procedure M_AutomapTraceSize(choice: integer);
+begin
+  case choice of
+    0: automaptraceplayer := automaptraceplayer - 64;
+    1: automaptraceplayer := automaptraceplayer + 64;
+  end;
+
+  automaptraceplayer := ibetween(automaptraceplayer, 0, NUMPLAYERTRACEHISTORY - 1);
+end;
+
+//==============================================================================
+//
+// M_DrawDisplayAutomapOptions
+//
+//==============================================================================
 procedure M_DrawDisplayAutomapOptions;
 begin
   M_DrawDisplayOptions;
+
+  automaptraceplayer := ibetween(automaptraceplayer, 0, NUMPLAYERTRACEHISTORY - 1);
+  M_DrawThermo(
+    OptionsDisplayAutomapDef.x, OptionsDisplayAutomapDef.y + OptionsDisplayAutomapDef.itemheight * (Ord(od_automapplayertrace) + 1), 16, (automaptraceplayer + 31) div 64);
 end;
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayAdvanced
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayAdvanced;
 begin
   M_DrawDisplayOptions;
 end;
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayAspectRatio
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayAspectRatio;
 var
   ppos: menupos_t;
@@ -2490,6 +3227,11 @@ begin
   M_WriteWhiteText(ppos.x, ppos.y, straspectratios[_nearest_aspect_index]);
 end;
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayCamera
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayCamera;
 var
   ppos: menupos_t;
@@ -2516,6 +3258,11 @@ end;
 var
   lightmapcolorintensityidx: integer = DEFLMCOLORSENSITIVITY div 8;
 
+//==============================================================================
+//
+// M_ChangeLightmapColorIntensity
+//
+//==============================================================================
 procedure M_ChangeLightmapColorIntensity(choice: integer);
 begin
   case choice of
@@ -2527,11 +3274,21 @@ begin
   lightmapcolorintensity := MINLMCOLORSENSITIVITY + lightmapcolorintensityidx * 8;
 end;
 
+//==============================================================================
+//
+// M_ChangeLightmapFadeoutFunc
+//
+//==============================================================================
 procedure M_ChangeLightmapFadeoutFunc(choice: integer);
 begin
   r_lightmapfadeoutfunc :=  (r_lightmapfadeoutfunc + 1) mod NUMLIGHTMAPFADEOUTFUNCS;
 end;
 
+//==============================================================================
+//
+// M_ChangeLightmapLightWidthFactor
+//
+//==============================================================================
 procedure M_ChangeLightmapLightWidthFactor(choice: integer);
 begin
   case choice of
@@ -2542,10 +3299,17 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_LightmapDefaults
+//
+//==============================================================================
 procedure M_LightmapDefaults(choice: integer);
 begin
   lightmapcolorintensity := DEFLMCOLORSENSITIVITY;
   lightwidthfactor := DEFLIGHTWIDTHFACTOR;
+  r_lightmaponmasked := true;
+  r_lightmaponemitters := false;
   r_lightmapfadeoutfunc := 0;
 end;
 
@@ -2553,6 +3317,11 @@ const
   strlightmapfadefunc: array[0..NUMLIGHTMAPFADEOUTFUNCS - 1] of string =
     ('LINEAR', 'CURVED', 'PERSIST', 'COSINE', 'SIGMOID');
 
+//==============================================================================
+//
+// M_DrawOptionsLightmap
+//
+//==============================================================================
 procedure M_DrawOptionsLightmap;
 var
   ppos: menupos_t;
@@ -2578,6 +3347,22 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// M_DrawOptionsUncappedFrameRate
+//
+//==============================================================================
+procedure M_DrawOptionsUncappedFrameRate;
+begin
+  M_DrawDisplayOptions;
+  V_DrawPatch(20, 48, SCN_TMP, 'MENU_UNC', false);
+end;
+
+//==============================================================================
+//
+// M_DrawOptionsDisplay32bit
+//
+//==============================================================================
 procedure M_DrawOptionsDisplay32bit;
 var
   ppos: menupos_t;
@@ -2590,16 +3375,32 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// M_DrawOptionsDisplayOpenGL
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayOpenGL;
 begin
   M_DrawDisplayOptions;
 end;
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayOpenGLModels
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayOpenGLModels;
 begin
   M_DrawDisplayOptions;
 end;
 
+//==============================================================================
+//
+// M_ChangeVoxelOptimization
+//
+//==============================================================================
 procedure M_ChangeVoxelOptimization(choice: integer);
 begin
   vx_maxoptimizerpasscount := GetIntegerInRange(vx_maxoptimizerpasscount, 0, MAX_VX_OPTIMIZE);
@@ -2614,6 +3415,11 @@ const
     'FAST', 'GOOD', 'BETTER', 'BEST'
   );
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayOpenGLVoxels
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayOpenGLVoxels;
 var
   ppos: menupos_t;
@@ -2625,12 +3431,22 @@ begin
   M_WriteWhiteText(ppos.x, ppos.y, str_voxeloptimizemethod[vx_maxoptimizerpasscount]);
 end;
 
+//==============================================================================
+//
+// M_ChangeTextureFiltering
+//
+//==============================================================================
 procedure M_ChangeTextureFiltering(choice: integer);
 begin
   gld_SetCurrTexFiltering(gl_filter_t((Ord(gld_GetCurrTexFiltering) + 1) mod Ord(NUM_GL_FILTERS)));
   gld_ClearTextureMemory;
 end;
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayOpenGLFilter
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayOpenGLFilter;
 var
   ppos: menupos_t;
@@ -2649,6 +3465,11 @@ var
     25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500
   );
 
+//==============================================================================
+//
+// _ChangeFogDensity
+//
+//==============================================================================
 procedure _ChangeFogDensity(choice: integer; var density: integer);
 begin
   density := GetIntegerInRange(density, fogdensities[0], fogdensities[NUMFOGDENSITIES - 1]);
@@ -2659,16 +3480,31 @@ begin
   density := GetIntegerInRange(density, fogdensities[0], fogdensities[NUMFOGDENSITIES - 1]);
 end;
 
+//==============================================================================
+//
+// M_ChangeFogDensity
+//
+//==============================================================================
 procedure M_ChangeFogDensity(choice: integer);
 begin
   _ChangeFogDensity(choice, fog_density);
 end;
 
+//==============================================================================
+//
+// M_ChangeWhiteFogDensity
+//
+//==============================================================================
 procedure M_ChangeWhiteFogDensity(choice: integer);
 begin
   _ChangeFogDensity(choice, white_fog_density);
 end;
 
+//==============================================================================
+//
+// _fog_thermo_index
+//
+//==============================================================================
 function _fog_thermo_index(const density: integer): integer;
 var
   i: integer;
@@ -2688,6 +3524,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_DrawOptionsDisplayOpenGLFog
+//
+//==============================================================================
 procedure M_DrawOptionsDisplayOpenGLFog;
 begin
   M_DrawDisplayOptions;
@@ -2701,14 +3542,22 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// M_Options
+//
+//==============================================================================
 procedure M_Options(choice: integer);
 begin
   M_SetupNextMenu(@OptionsDef);
 end;
 
+//==============================================================================
+// M_ChangeMessages
 //
 //      Toggle messages on/off
 //
+//==============================================================================
 procedure M_ChangeMessages(choice: integer);
 begin
   showMessages := 1 - showMessages;
@@ -2721,9 +3570,12 @@ begin
   message_dontfuckwithme := true;
 end;
 
+//==============================================================================
+// M_EndGameResponse
 //
 // M_EndGame
 //
+//==============================================================================
 procedure M_EndGameResponse(ch: integer);
 begin
   if ch <> Ord('y') then
@@ -2734,6 +3586,11 @@ begin
   D_StartTitle;
 end;
 
+//==============================================================================
+//
+// M_CmdEndGame
+//
+//==============================================================================
 procedure M_CmdEndGame;
 begin
   if not usergame then
@@ -2752,24 +3609,41 @@ begin
   C_ExecuteCmd('closeconsole', '1');
 end;
 
+//==============================================================================
+//
+// M_EndGame
+//
+//==============================================================================
 procedure M_EndGame(choice: integer);
 begin
   M_CmdEndGame;
 end;
 
+//==============================================================================
 //
 // M_ReadThis
 //
+//==============================================================================
 procedure M_ReadThis(choice: integer);
 begin
   M_SetupNextMenu(@ReadDef1);
 end;
 
+//==============================================================================
+//
+// M_ReadThis2
+//
+//==============================================================================
 procedure M_ReadThis2(choice: integer);
 begin
   M_SetupNextMenu(@ReadDef2);
 end;
 
+//==============================================================================
+//
+// M_FinishReadThis
+//
+//==============================================================================
 procedure M_FinishReadThis(choice: integer);
 begin
   if extrahelpscreens.Count > 0 then
@@ -2781,6 +3655,11 @@ begin
     M_SetupNextMenu(@MainDef);
 end;
 
+//==============================================================================
+//
+// M_FinishReadExtThis
+//
+//==============================================================================
 procedure M_FinishReadExtThis(choice: integer);
 begin
   inc(extrahelpscreens_idx);
@@ -2817,6 +3696,11 @@ const
     Ord(sfx_sgtatk)
   );
 
+//==============================================================================
+//
+// M_CmdQuit
+//
+//==============================================================================
 procedure M_CmdQuit;
 begin
   if not netgame then
@@ -2830,7 +3714,11 @@ begin
   G_Quit;
 end;
 
-
+//==============================================================================
+//
+// M_QuitResponse
+//
+//==============================================================================
 procedure M_QuitResponse(ch: integer);
 begin
   if ch <> Ord('y') then
@@ -2839,6 +3727,11 @@ begin
   M_CmdQuit;
 end;
 
+//==============================================================================
+//
+// M_QuitDOOM
+//
+//==============================================================================
 procedure M_QuitDOOM(choice: integer);
 begin
   // We pick index 0 which is language sensitive,
@@ -2851,6 +3744,11 @@ begin
   M_StartMessage(endstring, @M_QuitResponse, true);
 end;
 
+//==============================================================================
+//
+// M_ChangeSensitivity
+//
+//==============================================================================
 procedure M_ChangeSensitivity(choice: integer);
 begin
   case choice of
@@ -2863,6 +3761,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_ChangeSensitivityX
+//
+//==============================================================================
 procedure M_ChangeSensitivityX(choice: integer);
 begin
   case choice of
@@ -2875,6 +3778,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_ChangeSensitivityY
+//
+//==============================================================================
 procedure M_ChangeSensitivityY(choice: integer);
 begin
   case choice of
@@ -2887,11 +3795,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_KeyBindings
+//
+//==============================================================================
 procedure M_KeyBindings(choice: integer);
 begin
   M_SetupNextMenu(@KeyBindingsDef1);
 end;
 
+//==============================================================================
+//
+// M_ScreenShotCmd
+//
+//==============================================================================
 procedure M_ScreenShotCmd(choice: integer);
 begin
   M_FixScreenshotFormat;
@@ -2905,6 +3823,11 @@ begin
     screenshotformat := 'PNG';
 end;
 
+//==============================================================================
+//
+// M_ChangeDetail
+//
+//==============================================================================
 procedure M_ChangeDetail(choice: integer);
 begin
   detailLevel := (detailLevel + 1) mod DL_NUMRESOLUTIONS;
@@ -2928,6 +3851,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// M_ChangeScreenSize
+//
+//==============================================================================
 procedure M_ChangeScreenSize(choice: integer);
 begin
   case choice of
@@ -2940,6 +3868,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_ApplyScreenSize
+//
+//==============================================================================
 procedure M_ApplyScreenSize(choice: integer);
 begin
   if mdisplaymode_idx < 0 then
@@ -2953,11 +3886,21 @@ begin
   D_NotifyVideoModeChange(displaymodes[mdisplaymode_idx].width, displaymodes[mdisplaymode_idx].height);
 end;
 
+//==============================================================================
+//
+// M_ChangeFlatFiltering
+//
+//==============================================================================
 procedure M_ChangeFlatFiltering(choice: integer);
 begin
   C_ExecuteCmd('extremeflatfiltering', yesnoStrings[not extremeflatfiltering]);
 end;
 
+//==============================================================================
+//
+// M_BoolCmd
+//
+//==============================================================================
 procedure M_BoolCmd(choice: integer);
 var
   s: string;
@@ -2968,12 +3911,22 @@ begin
   C_ExecuteCmd(s, yesnoStrings[not currentMenu.menuitems[choice].pBoolVal^]);
 end;
 
+//==============================================================================
+//
+// M_BoolCmdSetSize
+//
+//==============================================================================
 procedure M_BoolCmdSetSize(choice: integer);
 begin
   M_BoolCmd(choice);
   setsizeneeded := true;
 end;
 
+//==============================================================================
+//
+// M_SizeDisplay
+//
+//==============================================================================
 procedure M_SizeDisplay(choice: integer);
 begin
   case choice of
@@ -3014,6 +3967,11 @@ var
   mlasty: integer;
   m_altdown: boolean = false;
 
+//==============================================================================
+//
+// M_Responder
+//
+//==============================================================================
 function M_Responder(ev: Pevent_t): boolean;
 var
   ch: integer;
@@ -3193,8 +4151,7 @@ begin
   // Take care of any messages that need input
   if messageToPrint <> 0 then
   begin
-    if messageNeedsInput and ( not(
-      (ch = Ord(' ')) or (ch = Ord('n')) or (ch = Ord('y')) or (ch = KEY_ESCAPE))) then
+    if messageNeedsInput and not ((ch = Ord(' ')) or (ch = Ord('n')) or (ch = Ord('y')) or (ch = KEY_ESCAPE)) then
     begin
       result := false;
       exit;
@@ -3542,9 +4499,11 @@ begin
   result := false;
 end;
 
+//==============================================================================
 //
 // M_StartControlPanel
 //
+//==============================================================================
 procedure M_StartControlPanel;
 begin
   // intro might call this repeatedly
@@ -3557,12 +4516,13 @@ begin
   itemOn := currentMenu.lastOn; // JDC
 end;
 
-//
-
+//==============================================================================
+// M_Thr_ShadeScreen
 //
 // JVAL
 // Threaded shades the half screen
 //
+//==============================================================================
 function M_Thr_ShadeScreen(p: pointer): integer; stdcall;
 var
   half: integer;
@@ -3580,6 +4540,11 @@ end;
 var
   threadmenushader: TDThread;
 
+//==============================================================================
+//
+// M_MenuShader
+//
+//==============================================================================
 procedure M_MenuShader;
 begin
   shademenubackground := shademenubackground mod 3;
@@ -3606,6 +4571,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_FinishUpdate
+//
+//==============================================================================
 procedure M_FinishUpdate(const height: integer);
 begin
   // JVAL
@@ -3623,6 +4593,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_DrawFlatBackground
+//
+//==============================================================================
 procedure M_DrawFlatBackground(const sflat: string);
 var
   x, y: integer;
@@ -3658,11 +4633,13 @@ begin
   Z_ChangeTag(src, PU_CACHE);
 end;
 
+//==============================================================================
 //
 // M_Drawer
 // Called after the view has been rendered,
 // but before it has been blitted.
 //
+//==============================================================================
 procedure M_Drawer;
 var
   i: integer;
@@ -3674,6 +4651,7 @@ var
   ppos: menupos_t;
   rstr: string;
   rlen: integer;
+  lump: integer;
 begin
   // Horiz. & Vertically center string and print it.
   if messageToPrint <> 0 then
@@ -3742,8 +4720,13 @@ begin
           M_WriteText(x, y, str);
       end
       else
-        V_DrawPatch(x, y, SCN_TMP,
-          currentMenu.menuitems[i].name, false);
+      begin
+        lump := W_CheckNumForName(currentMenu.menuitems[i].name);
+        if lump >= 0 then
+          V_DrawPatch(x, y, SCN_TMP, lump, false)
+        else
+          M_WriteWhiteText(x, y, currentMenu.menuitems[i].alttext);
+      end;
     end;
     y := y + currentMenu.itemheight;
   end;
@@ -3768,9 +4751,11 @@ begin
   M_FinishUpdate(200);
 end;
 
+//==============================================================================
 //
 // M_Ticker
 //
+//==============================================================================
 procedure M_Ticker;
 begin
   dec(skullAnimCounter);
@@ -3781,6 +4766,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_CmdSetupNextMenu
+//
+//==============================================================================
 procedure M_CmdSetupNextMenu(menudef: Pmenu_t);
 begin
   menuactive := true;
@@ -3790,96 +4780,184 @@ begin
   C_ExecuteCmd('closeconsole');
 end;
 
+//==============================================================================
+//
+// M_CmdMenuMainDef
+//
+//==============================================================================
 procedure M_CmdMenuMainDef;
 begin
   M_CmdSetupNextMenu(@MainDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuNewDef
+//
+//==============================================================================
 procedure M_CmdMenuNewDef;
 begin
   M_CmdSetupNextMenu(@NewDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsDef;
 begin
   M_CmdSetupNextMenu(@OptionsDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsGeneralDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsGeneralDef;
 begin
   M_CmdSetupNextMenu(@OptionsGeneralDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsDisplayDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsDisplayDef;
 begin
   M_CmdSetupNextMenu(@OptionsDisplayDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsDisplayDetailDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsDisplayDetailDef;
 begin
   M_CmdSetupNextMenu(@OptionsDisplayDetailDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsDisplayAppearanceDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsDisplayAppearanceDef;
 begin
   M_CmdSetupNextMenu(@OptionsDisplayAppearanceDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsDisplayAdvancedDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsDisplayAdvancedDef;
 begin
   M_CmdSetupNextMenu(@OptionsDisplayAdvancedDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuOptionsDisplay32bitDef
+//
+//==============================================================================
 procedure M_CmdMenuOptionsDisplay32bitDef;
 begin
   M_CmdSetupNextMenu(@OptionsDisplay32bitDef);
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// M_CmdOptionsDisplayOpenGL
+//
+//==============================================================================
 procedure M_CmdOptionsDisplayOpenGL;
 begin
   M_CmdSetupNextMenu(@OptionsDisplayOpenGLDef);
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// M_CmdMenuSoundDef
+//
+//==============================================================================
 procedure M_CmdMenuSoundDef;
 begin
   M_CmdSetupNextMenu(@SoundDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuSoundVolDef
+//
+//==============================================================================
 procedure M_CmdMenuSoundVolDef;
 begin
   M_CmdSetupNextMenu(@SoundVolDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuCompatibilityDef
+//
+//==============================================================================
 procedure M_CmdMenuCompatibilityDef;
 begin
   M_CmdSetupNextMenu(@CompatibilityDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuControlsDef
+//
+//==============================================================================
 procedure M_CmdMenuControlsDef;
 begin
   M_CmdSetupNextMenu(@ControlsDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuSystemDef
+//
+//==============================================================================
 procedure M_CmdMenuSystemDef;
 begin
   M_CmdSetupNextMenu(@SystemDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuLoadDef
+//
+//==============================================================================
 procedure M_CmdMenuLoadDef;
 begin
   M_CmdSetupNextMenu(@LoadDef);
 end;
 
+//==============================================================================
+//
+// M_CmdMenuSaveDef
+//
+//==============================================================================
 procedure M_CmdMenuSaveDef;
 begin
   M_CmdSetupNextMenu(@SaveDef);
 end;
 
+//==============================================================================
 //
 // M_Init
 //
+//==============================================================================
 procedure M_Init;
 var
   i: integer;
@@ -3971,12 +5049,22 @@ begin
   C_AddCmd('menu_save, menu_savegame', @M_CmdMenuSaveDef);
 end;
 
+//==============================================================================
+//
+// M_ShutDownMenus
+//
+//==============================================================================
 procedure M_ShutDownMenus;
 begin
   threadmenushader.Free;
   extrahelpscreens.Free;
 end;
 
+//==============================================================================
+//
+// M_InitMenus
+//
+//==============================================================================
 procedure M_InitMenus;
 var
   i: integer;
@@ -4094,6 +5182,38 @@ begin
   pmi.pBoolVal := nil;
   pmi.alphaKey := 't';
 
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := @M_Episode;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := @M_Episode;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := @M_Episode;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := @M_Episode;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
 ////////////////////////////////////////////////////////////////////////////////
 //EpiDef
   EpiDef.numitems := Ord(ep_end); // # of menu items
@@ -4156,7 +5276,7 @@ begin
   NewDef.drawproc := @M_DrawNewGame;  // draw routine
   NewDef.x := 48;
   NewDef.y := 63; // x,y of menu
-  NewDef.lastOn := Ord(newg_hurtme); // last item user was on in menu
+  NewDef.lastOn := defaultskill; // last item user was on in menu
   NewDef.itemheight := LINEHEIGHT;
   NewDef.texturebk := false;
 
@@ -4483,6 +5603,22 @@ begin
   pmi.pBoolVal := @automapgrid;
   pmi.alphaKey := 'g';
 
+  inc(pmi);
+  pmi.status := 2;
+  pmi.name := '!Player trace distance';
+  pmi.cmd := '';
+  pmi.routine := @M_AutomapTraceSize;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'p';
+
+  inc(pmi);
+  pmi.status := -1;
+  pmi.name := '';
+  pmi.cmd := '';
+  pmi.routine := nil;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := #0;
+
 ////////////////////////////////////////////////////////////////////////////////
 //OptionsDisplayAutomapDef
   OptionsDisplayAutomapDef.numitems := Ord(optdispautomap_end); // # of menu items
@@ -4506,6 +5642,14 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @drawfps;
   pmi.alphaKey := 'f';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Display Crosshair';
+  pmi.cmd := 'drawcrosshair';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @drawcrosshair;
+  pmi.alphaKey := 'c';
 
   inc(pmi);
   pmi.status := 1;
@@ -4597,6 +5741,14 @@ begin
   pmi.alphaKey := 'l';
   {$ENDIF}
 
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Uncapped framerate...';
+  pmi.cmd := '';
+  pmi.routine := @M_OptionsDisplayUncappedFrameRate;
+  pmi.pBoolVal := nil;
+  pmi.alphaKey := 'u';
+
   {$IFNDEF OPENGL}
   inc(pmi);
   pmi.status := 1;
@@ -4623,25 +5775,7 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @diher8bittransparency;
   pmi.alphaKey := 'd';
-{$ENDIF}
 
-  inc(pmi);
-  pmi.status := 1;
-  pmi.name := '!Uncapped framerate';
-  pmi.cmd := 'interpolate';
-  pmi.routine := @M_BoolCmd;
-  pmi.pBoolVal := @interpolate;
-  pmi.alphaKey := 'u';
-
-  inc(pmi);
-  pmi.status := 1;
-  pmi.name := '!Interpolate on capped';
-  pmi.cmd := 'interpolateoncapped';
-  pmi.routine := @M_BoolCmd;
-  pmi.pBoolVal := @interpolateoncapped;
-  pmi.alphaKey := 'i';
-
-{$IFNDEF OPENGL}
   inc(pmi);
   pmi.status := 1;
   pmi.name := '!True 3d emulation';
@@ -4837,7 +5971,6 @@ begin
   pmi.pBoolVal := nil;
   pmi.alphaKey := #0;
 
-
 ////////////////////////////////////////////////////////////////////////////////
 //OptionsDisplayCameraDef
   OptionsDisplayCameraDef.numitems := Ord(optdispcamera_end); // # of menu items
@@ -4861,6 +5994,22 @@ begin
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @r_uselightmaps;
   pmi.alphaKey := 'l';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Lightmap on masked';
+  pmi.cmd := 'r_lightmaponmasked';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @r_lightmaponmasked;
+  pmi.alphaKey := 'm';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Always cast light to its emitter';
+  pmi.cmd := 'r_lightmaponemitters';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @r_lightmaponemitters;
+  pmi.alphaKey := 'e';
 
   inc(pmi);
   pmi.status := 1;
@@ -4938,6 +6087,59 @@ begin
   OptionsLightmapDef.itemheight := LINEHEIGHT2;
   OptionsLightmapDef.texturebk := true;
 {$ENDIF}
+////////////////////////////////////////////////////////////////////////////////
+//OptionsUncappedFrameRateMenu
+  pmi := @OptionsUncappedFrameRateMenu[0];
+
+  pmi.status := 1;
+  pmi.name := '!Uncapped framerate';
+  pmi.cmd := 'interpolate';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @interpolate;
+  pmi.alphaKey := 'u';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Interpolate on capped';
+  pmi.cmd := 'interpolateoncapped';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @interpolateoncapped;
+  pmi.alphaKey := 'i';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Precise timing';
+  pmi.cmd := 'interpolateprecise';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @interpolateprecise;
+  pmi.alphaKey := 'p';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Reduce lag';
+  pmi.cmd := 'interpolatereducelag';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @interpolatereducelag;
+  pmi.alphaKey := 'r';
+
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Interpolate polyobjs';
+  pmi.cmd := 'interpolatepolyobjs';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @interpolatepolyobjs;
+  pmi.alphaKey := 'o';
+////////////////////////////////////////////////////////////////////////////////
+//OptionsUncappedFrameRateDef
+  OptionsUncappedFrameRateDef.numitems := Ord(ou_uncapped_end); // # of menu items
+  OptionsUncappedFrameRateDef.prevMenu := @OptionsDisplayAdvancedDef; // previous menu
+  OptionsUncappedFrameRateDef.menuitems := Pmenuitem_tArray(@OptionsUncappedFrameRateMenu);  // menu items
+  OptionsUncappedFrameRateDef.drawproc := @M_DrawOptionsUncappedFrameRate;  // draw routine
+  OptionsUncappedFrameRateDef.x := 32;
+  OptionsUncappedFrameRateDef.y := 68; // x,y of menu
+  OptionsUncappedFrameRateDef.lastOn := 0; // last item user was on in menu
+  OptionsUncappedFrameRateDef.itemheight := LINEHEIGHT2;
+  OptionsUncappedFrameRateDef.texturebk := true;
 ////////////////////////////////////////////////////////////////////////////////
 //OptionsDisplay32bitMenu
   pmi := @OptionsDisplay32bitMenu[0];
@@ -5457,6 +6659,14 @@ begin
   pmi.pBoolVal := @preferewavnamesingamedirectory;
   pmi.alphaKey := 's';
 
+  inc(pmi);
+  pmi.status := 1;
+  pmi.name := '!Removed Actors finish sounds';
+  pmi.cmd := 'full_sounds';
+  pmi.routine := @M_BoolCmd;
+  pmi.pBoolVal := @full_sounds;
+  pmi.alphaKey := 'r';
+
 ////////////////////////////////////////////////////////////////////////////////
 //SoundDef
   SoundDef.numitems := Ord(sound_end); // # of menu items
@@ -5657,7 +6867,7 @@ begin
 
   inc(pmi);
   pmi.status := 1;
-  pmi.name := '!Use joystic';
+  pmi.name := '!Use joystick';
   pmi.cmd := 'use_joystick';
   pmi.routine := @M_BoolCmd;
   pmi.pBoolVal := @usejoystick;
@@ -5861,7 +7071,7 @@ begin
 //KeyBindingsDef1
   KeyBindingsDef1.numitems := Ord(kb_lookup); // # of menu items
   KeyBindingsDef1.prevMenu := @ControlsDef; // previous menu
-  KeyBindingsDef1.leftMenu := @KeyBindingsDef3; // left menu
+  KeyBindingsDef1.leftMenu := @KeyBindingsDef4; // left menu
   KeyBindingsDef1.rightMenu := @KeyBindingsDef2; // right menu
   KeyBindingsDef1.menuitems := Pmenuitem_tArray(@KeyBindingsMenu1);  // menu items
   KeyBindingsDef1.drawproc := @M_DrawBindings1;  // draw routine
@@ -5902,7 +7112,7 @@ begin
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsMenu3
   pmi := @KeyBindingsMenu3[0];
-  for i := 0 to Ord(kb_end) - Ord(kb_weapon0) - 1 do
+  for i := 0 to Ord(kb_am_gobigkey) - Ord(kb_weapon0) - 1 do
   begin
     pmi.status := 1;
     pmi.name := '';
@@ -5915,10 +7125,10 @@ begin
 
 ////////////////////////////////////////////////////////////////////////////////
 //KeyBindingsDef3
-  KeyBindingsDef3.numitems := Ord(kb_end) - Ord(kb_weapon0); // # of menu items
+  KeyBindingsDef3.numitems := Ord(kb_am_gobigkey) - Ord(kb_weapon0); // # of menu items
   KeyBindingsDef3.prevMenu := @ControlsDef; // previous menu
   KeyBindingsDef3.leftMenu := @KeyBindingsDef2; // left menu
-  KeyBindingsDef3.rightMenu := @KeyBindingsDef1; // right menu
+  KeyBindingsDef3.rightMenu := @KeyBindingsDef4; // right menu
   KeyBindingsDef3.menuitems := Pmenuitem_tArray(@KeyBindingsMenu3);  // menu items
   KeyBindingsDef3.drawproc := @M_DrawBindings3;  // draw routine
   KeyBindingsDef3.x := 32;
@@ -5926,6 +7136,35 @@ begin
   KeyBindingsDef3.lastOn := 0; // last item user was on in menu
   KeyBindingsDef3.itemheight := LINEHEIGHT2;
   KeyBindingsDef3.texturebk := true;
+
+////////////////////////////////////////////////////////////////////////////////
+//KeyBindingsMenu4
+  pmi := @KeyBindingsMenu4[0];
+  for i := 0 to Ord(kb_end) - Ord(kb_am_gobigkey) - 1 do
+  begin
+    pmi.status := 1;
+    pmi.name := '';
+    pmi.cmd := '';
+    pmi.routine := @M_KeyBindingSelect4;
+    pmi.pBoolVal := nil;
+    pmi.alphaKey := Chr(Ord('1') + i);
+    inc(pmi);
+  end;
+
+////////////////////////////////////////////////////////////////////////////////
+//KeyBindingsDef4
+  KeyBindingsDef4.numitems := Ord(kb_end) - Ord(kb_am_gobigkey); // # of menu items
+  KeyBindingsDef4.prevMenu := @ControlsDef; // previous menu
+  KeyBindingsDef4.leftMenu := @KeyBindingsDef3; // left menu
+  KeyBindingsDef4.rightMenu := @KeyBindingsDef1; // right menu
+  KeyBindingsDef4.menuitems := Pmenuitem_tArray(@KeyBindingsMenu4);  // menu items
+  KeyBindingsDef4.drawproc := @M_DrawBindings4;  // draw routine
+  KeyBindingsDef4.x := 32;
+  KeyBindingsDef4.y := 34; // x,y of menu
+  KeyBindingsDef4.lastOn := 0; // last item user was on in menu
+  KeyBindingsDef4.itemheight := LINEHEIGHT2;
+  KeyBindingsDef4.texturebk := true;
+
 ////////////////////////////////////////////////////////////////////////////////
 //LoadMenu
   pmi := @LoadMenu[0];

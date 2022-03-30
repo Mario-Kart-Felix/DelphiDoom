@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -41,6 +41,9 @@ uses
   p_tick,
   r_defs;
 
+//==============================================================================
+// getNextSector
+//
 //-----------------------------------------------------------------------------
 //
 // DESCRIPTION:
@@ -51,45 +54,150 @@ uses
 //  Line Tag handling. Line and Sector triggers.
 //
 //-----------------------------------------------------------------------------
-
+//
+//==============================================================================
 function getNextSector(line: Pline_t; sec: Psector_t): Psector_t;
 
+//==============================================================================
+//
+// twoSided
+//
+//==============================================================================
+function twoSided(sector: integer; line: integer): boolean;
+
+//==============================================================================
+//
+// getSide
+//
+//==============================================================================
+function getSide(currentSector: integer; line: integer; side: integer): Pside_t;
+
+//==============================================================================
+//
+// P_FindLowestFloorSurrounding
+//
+//==============================================================================
 function P_FindLowestFloorSurrounding(sec: Psector_t): fixed_t;
 
+//==============================================================================
+//
+// P_FindHighestFloorSurrounding
+//
+//==============================================================================
 function P_FindHighestFloorSurrounding(sec: Psector_t): fixed_t;
 
+//==============================================================================
+//
+// P_FindNextHighestFloor
+//
+//==============================================================================
 function P_FindNextHighestFloor(sec: Psector_t; currentheight: integer): fixed_t;
 
+//==============================================================================
+//
+// P_InitLava
+//
+//==============================================================================
 procedure P_InitLava;
 
+//==============================================================================
+//
+// P_FindLowestCeilingSurrounding
+//
+//==============================================================================
 function P_FindLowestCeilingSurrounding(sec: Psector_t): fixed_t;
 
+//==============================================================================
+//
+// P_FindHighestCeilingSurrounding
+//
+//==============================================================================
 function P_FindHighestCeilingSurrounding(sec: Psector_t): fixed_t;
 
+//==============================================================================
+//
+// P_FindSectorFromTag
+//
+//==============================================================================
 function P_FindSectorFromTag(tag: integer; start: integer): integer;
 
+//==============================================================================
+//
+// P_FindSectorFromTag2
+//
+//==============================================================================
 function P_FindSectorFromTag2(const tag: integer; var sec: integer): integer;
 
-function EV_SectorSoundChange(args: PByteArray): boolean;
+//==============================================================================
+//
+// EVH_SectorSoundChange
+//
+//==============================================================================
+function EVH_SectorSoundChange(args: PByteArray): boolean;
 
+//==============================================================================
+//
+// CheckedLockedDoor
+//
+//==============================================================================
 function CheckedLockedDoor(mo: Pmobj_t; lock: byte): boolean;
 
-function EV_LineSearchForPuzzleItem(line: Pline_t; args: PByteArray; mo: Pmobj_t): boolean;
+//==============================================================================
+//
+// EVH_LineSearchForPuzzleItem
+//
+//==============================================================================
+function EVH_LineSearchForPuzzleItem(line: Pline_t; args: PByteArray; mo: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_ExecuteLineSpecial
+//
+//==============================================================================
 function P_ExecuteLineSpecial(special: integer; args: PByteArray; line: Pline_t;
   side: integer; mo: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_ActivateLine
+//
+//==============================================================================
 function P_ActivateLine(line: Pline_t; mo: Pmobj_t; side: integer;
   activationType: integer): boolean;
 
+//==============================================================================
+//
+// P_PlayerInSpecialSector
+//
+//==============================================================================
 procedure P_PlayerInSpecialSector(player: Pplayer_t; const sector: Psector_t; const height: fixed_t);  // JVAL: 3d Floors
 
+//==============================================================================
+//
+// P_PlayerOnSpecialFlat
+//
+//==============================================================================
 procedure P_PlayerOnSpecialFlat(player: Pplayer_t; floorType: integer);
 
+//==============================================================================
+//
+// P_UpdateSpecials
+//
+//==============================================================================
 procedure P_UpdateSpecials;
 
+//==============================================================================
+//
+// P_SpawnSpecials
+//
+//==============================================================================
 procedure P_SpawnSpecials;
 
+//==============================================================================
+//
+// P_FindLine
+//
+//==============================================================================
 function P_FindLine(lineTag: integer; searchPosition: PInteger): Pline_t;
 
 //
@@ -159,15 +267,14 @@ type
   Pbutton_t = ^button_t;
 
 const
- // max # of wall switches in a level
+  // max # of wall switches in a level
   MAXSWITCHES = 50;
 
- // 4 players, 4 buttons each at once, max.
-   MAXBUTTONS = 16;
+  // 4 players, 4 buttons each at once, max.
+  MAXBUTTONS = 16;
 
- // 1 second, in ticks.
-   BUTTONTIME = 35;
-
+  // 1 second, in ticks.
+  BUTTONTIME = 35;
 
 type
 //
@@ -184,7 +291,11 @@ type
     PLAT_DOWNWAITUPSTAY,
     PLAT_DOWNBYVALUEWAITUPSTAY,
     PLAT_UPWAITDOWNSTAY,
-    PLAT_UPBYVALUEWAITDOWNSTAY
+    PLAT_UPBYVALUEWAITDOWNSTAY,
+    // JVAL: 20220227 - Added new plat types
+    PLAT_PERPETUALRAISELIP,
+    PLAT_DOWNWAITUPSTAYLIP,
+    PLAT_UPNEARESTWAITDOWNSTAY
   );
 
   plat_t = record
@@ -217,7 +328,9 @@ type
     DREV_CLOSE30THENOPEN,
     DREV_CLOSE,
     DREV_OPEN,
-    DREV_RAISEIN5MINS
+    DREV_RAISEIN5MINS,
+    // JVAL: 20220227 - Added new door types
+    DREV_CLOSEWAITTHENOPEN
   );
 
   vldoor_t = record
@@ -254,7 +367,15 @@ type
     CLEV_LOWERBYVALUE,
     CLEV_RAISEBYVALUE,
     CLEV_CRUSHRAISEANDSTAY,
-    CLEV_MOVETOVALUETIMES8
+    CLEV_MOVETOVALUETIMES8,
+    // JVAL: 20220227 - Added new ceiling types
+    CLEV_LOWERTOMAXFLOOR,
+    CLEV_LOWERTOLOWEST,
+    CLEV_MOVETOVALUEANDCRUSH,
+    CLEV_MOVETOVALUE,
+    CLEV_LOWERBYVALUETIMES8,
+    CLEV_RAISEBYVALUETIMES8,
+    CLEV_RAISETOHIGHESTFLOOR
   );
 
   ceiling_t = record
@@ -284,11 +405,11 @@ type
 // P_FLOOR
 //
   floor_e = (
-    FLEV_LOWERFLOOR,             // lower floor to highest surrounding floor
-    FLEV_LOWERFLOORTOLOWEST,     // lower floor to lowest surrounding floor
+    FLEV_LOWERFLOOR,            // lower floor to highest surrounding floor
+    FLEV_LOWERFLOORTOLOWEST,    // lower floor to lowest surrounding floor
     FLEV_LOWERFLOORBYVALUE,
-    FLEV_RAISEFLOOR,             // raise floor to lowest surrounding CEILING
-    FLEV_RAISEFLOORTONEAREST,  // raise floor to next highest surrounding floor
+    FLEV_RAISEFLOOR,            // raise floor to lowest surrounding CEILING
+    FLEV_RAISEFLOORTONEAREST,   // raise floor to next highest surrounding floor
     FLEV_RAISEFLOORBYVALUE,
     FLEV_RAISEFLOORCRUSH,
     FLEV_RAISEBUILDSTEP,        // One step of a staircase
@@ -296,7 +417,18 @@ type
     FLEV_LOWERBYVALUETIMES8,
     FLEV_LOWERTIMES8INSTANT,
     FLEV_RAISETIMES8INSTANT,
-    FLEV_MOVETOVALUETIMES8
+    FLEV_MOVETOVALUETIMES8,
+    FLEV_RAISETOTEXTURE,
+    // JVAL: 20220227 - Added new floor types
+    FLEV_LOWERFLOORTOHIGHEST,
+    FLEV_LOWERFLOORTOLOWESTCEILING,
+    FLEV_MOVETOVALUE,
+    FLEV_RAISEFLOORCRUSHDOOM,
+    FLEV_RAISEFLOORTOCEILING,
+    FLEV_RAISETOLOWESTCEILING,
+    FLEV_RAISEFLOORBYVALUETIMES8,
+    FLEV_RAISETOCEILING,
+    FLEV_FLOORTOCEILINGINSTANT
   );
 
   floormove_t = record
@@ -365,6 +497,11 @@ type
 var
   LavaInflictor: mobj_t;
 
+//==============================================================================
+//
+// P_FindSectorFromLineTag2
+//
+//==============================================================================
 function P_FindSectorFromLineTag2(line: Pline_t; var start: integer): integer;
 
 const
@@ -377,31 +514,23 @@ uses
   a_action,
   xn_strings,
   doomdef,
-  doomstat,
   doomdata,
   i_system,
-  i_io,
-  z_zone,
-  m_argv,
-  m_rnd,
-  w_wad,
-  r_data,
   info_h,
-  {$IFNDEF OPENGL}
   r_ripple,
-  {$ENDIF}
   g_game,
+  p_mapinfo,
   p_setup,
   p_inter,
   p_switch,
-  p_ceilng,
-  p_plats,
-  p_lights,
-  p_doors,
+  udmf_ceilng,
+  udmf_plats,
+  udmf_lights,
+  udmf_doors,
   p_mobj,
   p_user,
-  p_floor,
-  p_telept,
+  udmf_floor,
+  udmf_telept,
   p_acs,
   p_anim,
   p_things,
@@ -411,9 +540,13 @@ uses
   sb_bar,
   s_sound,
   s_sndseq,
-  sounds;
+  sounddata;
 
-
+//==============================================================================
+//
+// P_InitLava
+//
+//==============================================================================
 procedure P_InitLava;
 begin
   memset(@LavaInflictor, 0, SizeOf(mobj_t));
@@ -421,14 +554,40 @@ begin
   LavaInflictor.flags2 := MF2_FIREDAMAGE or MF2_NODMGTHRUST;
 end;
 
-//==================================================================
+//==============================================================================
+//
+// getSide()
+// Will return a side_t*
+//  given the number of the current sector,
+//  the line number, and the side (0/1) that you want.
+//
+//==============================================================================
+function getSide(currentSector: integer; line: integer; side: integer): Pside_t;
+begin
+  result := @sides[(sectors[currentSector].lines[line]).sidenum[side]];
+end;
+
+//==============================================================================
+//
+// twoSided()
+// Given the sector number and the line number,
+//  it will tell you whether the line is two-sided or not.
+//
+//==============================================================================
+function twoSided(sector: integer; line: integer): boolean;
+begin
+  result := sectors[sector].lines[line].sidenum[1] <> -1;
+end;
+
+//==============================================================================
+// getNextSector
 //
 //      Return sector_t * of sector next to current. NULL if not two-sided line
 //
-//==================================================================
+//==============================================================================
 function getNextSector(line: Pline_t; sec: Psector_t): Psector_t;
 begin
-  if (line.flags and ML_TWOSIDED) = 0 then
+  if line.flags and ML_TWOSIDED = 0 then
     result := nil
   else
   begin
@@ -439,12 +598,12 @@ begin
   end;
 end;
 
-
-//==================================================================
+//==============================================================================
+// P_FindLowestFloorSurrounding
 //
 //      FIND LOWEST FLOOR HEIGHT IN SURROUNDING SECTORS
 //
-//==================================================================
+//==============================================================================
 function P_FindLowestFloorSurrounding(sec: Psector_t): fixed_t;
 var
   i: integer;
@@ -464,18 +623,22 @@ begin
   end;
 end;
 
-//==================================================================
+//==============================================================================
+// P_FindHighestFloorSurrounding
 //
 //      FIND HIGHEST FLOOR HEIGHT IN SURROUNDING SECTORS
 //
-//==================================================================
+//==============================================================================
 function P_FindHighestFloorSurrounding(sec: Psector_t): fixed_t;
 var
   i: integer;
   check: Pline_t;
   other: Psector_t;
 begin
-  result := -500 * FRACUNIT;
+  if G_PlayingEngineVersion >= VERSION207 then
+    result := -32000 * FRACUNIT
+  else
+    result := -500 * FRACUNIT;
 
   for i := 0 to sec.linecount - 1 do
   begin
@@ -488,18 +651,19 @@ begin
   end;
 end;
 
-
-
-//==================================================================
 //
 //      FIND NEXT HIGHEST FLOOR IN SURROUNDING SECTORS
 //
-//==================================================================
 
 // 20 adjoining sectors max!  // JVAL changed to 64
 const
   MAX_ADJOINING_SECTORS = 64; // JVAL was = 20
 
+//==============================================================================
+//
+// P_FindNextHighestFloor
+//
+//==============================================================================
 function P_FindNextHighestFloor(sec: Psector_t; currentheight: integer): fixed_t;
 var
   i: integer;
@@ -554,12 +718,12 @@ begin
       result := heightlist[i];
 end;
 
-
-//==================================================================
+//==============================================================================
+// P_FindLowestCeilingSurrounding
 //
 //      FIND LOWEST CEILING IN THE SURROUNDING SECTORS
 //
-//==================================================================
+//==============================================================================
 function P_FindLowestCeilingSurrounding(sec: Psector_t): fixed_t;
 var
   i: integer;
@@ -579,11 +743,12 @@ begin
   end;
 end;
 
-//==================================================================
+//==============================================================================
+// P_FindHighestCeilingSurrounding
 //
 // FIND HIGHEST CEILING IN THE SURROUNDING SECTORS
 //
-//==================================================================
+//==============================================================================
 function P_FindHighestCeilingSurrounding(sec: Psector_t): fixed_t;
 var
   i: integer;
@@ -606,12 +771,11 @@ begin
   end;
 end;
 
-
-//=========================================================================
+//==============================================================================
 //
 // P_FindSectorFromTag
 //
-//=========================================================================
+//==============================================================================
 function P_FindSectorFromTag(tag: integer; start: integer): integer;
 var
   i: integer;
@@ -626,6 +790,11 @@ begin
   result := -1;
 end;
 
+//==============================================================================
+//
+// P_FindSectorFromTag2
+//
+//==============================================================================
 function P_FindSectorFromTag2(const tag: integer; var sec: integer): integer;
 begin
   result := P_FindSectorFromTag(tag, sec);
@@ -634,7 +803,6 @@ end;
 
 const
   MAX_TAGGED_LINES = 64;
-
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 type
@@ -647,13 +815,12 @@ var
   TaggedLines: array[0..MAX_TAGGED_LINES - 1] of taggedlineitem_t;
   TaggedLineCount: integer = 0;
 
-//=========================================================================
+//==============================================================================
 //
-// EV_SectorSoundChange
+// EVH_SectorSoundChange
 //
-//=========================================================================
-
-function EV_SectorSoundChange(args: PByteArray): boolean;
+//==============================================================================
+function EVH_SectorSoundChange(args: PByteArray): boolean;
 var
   secNum: integer;
 begin
@@ -673,12 +840,11 @@ begin
   end;
 end;
 
-//============================================================================
+//==============================================================================
 //
 // CheckedLockedDoor
 //
-//============================================================================
-
+//==============================================================================
 function CheckedLockedDoor(mo: Pmobj_t; lock: byte): boolean;
 var
   LockedBuffer: string;
@@ -707,14 +873,12 @@ begin
   result := true;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
-// EV_LineSearchForPuzzleItem
+// EVH_LineSearchForPuzzleItem
 //
-//==========================================================================
-
-function EV_LineSearchForPuzzleItem(line: Pline_t; args: PByteArray; mo: Pmobj_t): boolean;
+//==============================================================================
+function EVH_LineSearchForPuzzleItem(line: Pline_t; args: PByteArray; mo: Pmobj_t): boolean;
 var
   player: Pplayer_t;
   i: integer;
@@ -766,25 +930,20 @@ begin
   result := false;
 end;
 
-
-
 //
-//==============================================================================
 //
 // EVENTS
 //
 // Events are operations triggered by using, crossing, or shooting special lines,
 // or by timed thinkers
 //
-//==============================================================================
 //
 
-//============================================================================
+//==============================================================================
 //
 // P_ExecuteLineSpecial
 //
-//============================================================================
-
+//==============================================================================
 function P_ExecuteLineSpecial(special: integer; args: PByteArray; line: Pline_t;
   side: integer; mo: Pmobj_t): boolean;
 begin
@@ -798,17 +957,17 @@ begin
 
     2: // Poly Rotate Left
       begin
-        result := EV_RotatePoly(line, args, 1, false);
+        result := EVH_RotatePoly(line, args, 1, false);
       end;
 
     3: // Poly Rotate Right
       begin
-        result := EV_RotatePoly(line, args, -1, false);
+        result := EVH_RotatePoly(line, args, -1, false);
       end;
 
     4: // Poly Move
       begin
-        result := EV_MovePoly(line, args, false, false);
+        result := EVH_MovePoly(line, args, false, false);
       end;
 
     5: // Poly Explicit Line:  Only used in initialization
@@ -817,38 +976,38 @@ begin
 
     6: // Poly Move Times 8
       begin
-        result := EV_MovePoly(line, args, true, false);
+        result := EVH_MovePoly(line, args, true, false);
       end;
 
     7: // Poly Door Swing
       begin
-        result := EV_OpenPolyDoor(line, args, PODOOR_SWING);
+        result := EVH_OpenPolyDoor(line, args, PODOOR_SWING);
       end;
 
     8: // Poly Door Slide
       begin
-        result := EV_OpenPolyDoor(line, args, PODOOR_SLIDE);
+        result := EVH_OpenPolyDoor(line, args, PODOOR_SLIDE);
       end;
 
     10: // Door Close
       begin
-        result := EV_DoDoor(line, args, DREV_CLOSE);
+        result := EVH_DoDoor(line, args, DREV_CLOSE);
       end;
 
     11: // Door Open
       begin
         if args[0] = 0 then
-          result := EV_VerticalDoor(line, mo)
+          result := EVH_VerticalDoor(line, mo)
         else
-          result := EV_DoDoor(line, args, DREV_OPEN);
+          result := EVH_DoDoor(line, args, DREV_OPEN);
       end;
 
     12: // Door Raise
       begin
         if args[0] = 0 then
-          result := EV_VerticalDoor(line, mo)
+          result := EVH_VerticalDoor(line, mo)
         else
-          result := EV_DoDoor(line, args, DREV_NORMAL);
+          result := EVH_DoDoor(line, args, DREV_NORMAL);
       end;
 
     13: // Door Locked_Raise
@@ -856,177 +1015,177 @@ begin
         if CheckedLockedDoor(mo, args[3]) then
         begin
           if args[0] = 0 then
-            result := EV_VerticalDoor(line, mo)
+            result := EVH_VerticalDoor(line, mo)
           else
-            result := EV_DoDoor(line, args, DREV_NORMAL);
+            result := EVH_DoDoor(line, args, DREV_NORMAL);
         end;
       end;
 
     20: // Floor Lower by Value
       begin
-        result := EV_DoFloor(line, args, FLEV_LOWERFLOORBYVALUE);
+        result := EVH_DoFloor(line, args, FLEV_LOWERFLOORBYVALUE);
       end;
 
     21: // Floor Lower to Lowest
       begin
-        result := EV_DoFloor(line, args, FLEV_LOWERFLOORTOLOWEST);
+        result := EVH_DoFloor(line, args, FLEV_LOWERFLOORTOLOWEST);
       end;
 
     22: // Floor Lower to Nearest
       begin
-        result := EV_DoFloor(line, args, FLEV_LOWERFLOOR);
+        result := EVH_DoFloor(line, args, FLEV_LOWERFLOOR);
       end;
 
     23: // Floor Raise by Value
       begin
-        result := EV_DoFloor(line, args, FLEV_RAISEFLOORBYVALUE);
+        result := EVH_DoFloor(line, args, FLEV_RAISEFLOORBYVALUE);
       end;
 
     24: // Floor Raise to Highest
       begin
-        result := EV_DoFloor(line, args, FLEV_RAISEFLOOR);
+        result := EVH_DoFloor(line, args, FLEV_RAISEFLOOR);
       end;
 
     25: // Floor Raise to Nearest
       begin
-        result := EV_DoFloor(line, args, FLEV_RAISEFLOORTONEAREST);
+        result := EVH_DoFloor(line, args, FLEV_RAISEFLOORTONEAREST);
       end;
 
     26: // Stairs Build Down Normal
       begin
-        result := EV_BuildStairs(line, args, -1, STAIRS_NORMAL);
+        result := EVH_BuildStairs(line, args, -1, STAIRS_NORMAL);
       end;
 
     27: // Build Stairs Up Normal
       begin
-        result := EV_BuildStairs(line, args, 1, STAIRS_NORMAL);
+        result := EVH_BuildStairs(line, args, 1, STAIRS_NORMAL);
       end;
 
     28: // Floor Raise and Crush
       begin
-        result := EV_DoFloor(line, args, FLEV_RAISEFLOORCRUSH);
+        result := EVH_DoFloor(line, args, FLEV_RAISEFLOORCRUSH);
       end;
 
     29: // Build Pillar (no crushing)
       begin
-        result := EV_BuildPillar(line, args, false);
+        result := EVH_BuildPillar(line, args, false);
       end;
 
     30: // Open Pillar
       begin
-        result := EV_OpenPillar(line, args);
+        result := EVH_OpenPillar(line, args);
       end;
 
     31: // Stairs Build Down Sync
       begin
-        result := EV_BuildStairs(line, args, -1, STAIRS_SYNC);
+        result := EVH_BuildStairs(line, args, -1, STAIRS_SYNC);
       end;
 
     32: // Build Stairs Up Sync
       begin
-        result := EV_BuildStairs(line, args, 1, STAIRS_SYNC);
+        result := EVH_BuildStairs(line, args, 1, STAIRS_SYNC);
       end;
 
     35: // Raise Floor by Value Times 8
       begin
-        result := EV_DoFloor(line, args, FLEV_RAISEBYVALUETIMES8);
+        result := EVH_DoFloor(line, args, FLEV_RAISEBYVALUETIMES8);
       end;
 
     36: // Lower Floor by Value Times 8
       begin
-        result := EV_DoFloor(line, args, FLEV_LOWERBYVALUETIMES8);
+        result := EVH_DoFloor(line, args, FLEV_LOWERBYVALUETIMES8);
       end;
 
     40: // Ceiling Lower by Value
       begin
-        result := EV_DoCeiling(line, args, CLEV_LOWERBYVALUE);
+        result := EVH_DoCeiling(line, args, CLEV_LOWERBYVALUE);
       end;
 
     41: // Ceiling Raise by Value
       begin
-        result := EV_DoCeiling(line, args, CLEV_RAISEBYVALUE);
+        result := EVH_DoCeiling(line, args, CLEV_RAISEBYVALUE);
       end;
 
     42: // Ceiling Crush and Raise
       begin
-        result := EV_DoCeiling(line, args, CLEV_CRUSHANDRAISE);
+        result := EVH_DoCeiling(line, args, CLEV_CRUSHANDRAISE);
       end;
 
     43: // Ceiling Lower and Crush
       begin
-        result := EV_DoCeiling(line, args, CLEV_LOWERANDCRUSH);
+        result := EVH_DoCeiling(line, args, CLEV_LOWERANDCRUSH);
       end;
 
     44: // Ceiling Crush Stop
       begin
-        result := EV_CeilingCrushStop(line, args);
+        result := EVH_CeilingCrushStop(line, args);
       end;
 
     45: // Ceiling Crush Raise and Stay
       begin
-        result := EV_DoCeiling(line, args, CLEV_CRUSHRAISEANDSTAY);
+        result := EVH_DoCeiling(line, args, CLEV_CRUSHRAISEANDSTAY);
       end;
 
     46: // Floor Crush Stop
       begin
-        result := EV_FloorCrushStop(line, args);
+        result := EVH_FloorCrushStop(line, args);
       end;
 
     60: // Plat Perpetual Raise
       begin
-        result := EV_DoPlat(line, args, PLAT_PERPETUALRAISE, 0);
+        result := EVH_DoPlat(line, args, PLAT_PERPETUALRAISE, 0);
       end;
 
     61: // Plat Stop
       begin
-        EV_StopPlat(line, args);
+        EVH_StopPlat(line, args);
       end;
 
     62: // Plat Down-Wait-Up-Stay
       begin
-        result := EV_DoPlat(line, args, PLAT_DOWNWAITUPSTAY, 0);
+        result := EVH_DoPlat(line, args, PLAT_DOWNWAITUPSTAY, 0);
       end;
 
     63: // Plat Down-by-Value*8-Wait-Up-Stay
       begin
-        result := EV_DoPlat(line, args, PLAT_DOWNBYVALUEWAITUPSTAY, 0);
+        result := EVH_DoPlat(line, args, PLAT_DOWNBYVALUEWAITUPSTAY, 0);
       end;
 
     64: // Plat Up-Wait-Down-Stay
       begin
-        result := EV_DoPlat(line, args, PLAT_UPWAITDOWNSTAY, 0);
+        result := EVH_DoPlat(line, args, PLAT_UPWAITDOWNSTAY, 0);
       end;
 
     65: // Plat Up-by-Value*8-Wait-Down-Stay
       begin
-        result := EV_DoPlat(line, args, PLAT_UPBYVALUEWAITDOWNSTAY, 0);
+        result := EVH_DoPlat(line, args, PLAT_UPBYVALUEWAITDOWNSTAY, 0);
       end;
 
     66: // Floor Lower Instant * 8
       begin
-        result := EV_DoFloor(line, args, FLEV_LOWERTIMES8INSTANT);
+        result := EVH_DoFloor(line, args, FLEV_LOWERTIMES8INSTANT);
       end;
 
     67: // Floor Raise Instant * 8
       begin
-        result := EV_DoFloor(line, args, FLEV_RAISETIMES8INSTANT);
+        result := EVH_DoFloor(line, args, FLEV_RAISETIMES8INSTANT);
       end;
 
     68: // Floor Move to Value * 8
       begin
-        result := EV_DoFloor(line, args, FLEV_MOVETOVALUETIMES8);
+        result := EVH_DoFloor(line, args, FLEV_MOVETOVALUETIMES8);
       end;
 
     69: // Ceiling Move to Value * 8
       begin
-        result := EV_DoCeiling(line, args, CLEV_MOVETOVALUETIMES8);
+        result := EVH_DoCeiling(line, args, CLEV_MOVETOVALUETIMES8);
       end;
 
     70: // Teleport
       begin
         if side = 0 then
         begin // Only teleport when crossing the front side of a line
-          result := EV_Teleport(args[0], mo, true);
+          result := EVH_Teleport(args[0], mo, true);
         end;
       end;
 
@@ -1034,7 +1193,7 @@ begin
       begin
         if side = 0 then
         begin // Only teleport when crossing the front side of a line
-          result := EV_Teleport(args[0], mo, false);
+          result := EVH_Teleport(args[0], mo, false);
         end;
       end;
 
@@ -1117,37 +1276,37 @@ begin
 
     90: // Poly Rotate Left Override
       begin
-        result := EV_RotatePoly(line, args, 1, true);
+        result := EVH_RotatePoly(line, args, 1, true);
       end;
 
     91: // Poly Rotate Right Override
       begin
-        result := EV_RotatePoly(line, args, -1, true);
+        result := EVH_RotatePoly(line, args, -1, true);
       end;
 
     92: // Poly Move Override
       begin
-        result := EV_MovePoly(line, args, false, true);
+        result := EVH_MovePoly(line, args, false, true);
       end;
 
     93: // Poly Move Times 8 Override
       begin
-        result := EV_MovePoly(line, args, true, true);
+        result := EVH_MovePoly(line, args, true, true);
       end;
 
     94: // Build Pillar Crush
       begin
-        result := EV_BuildPillar(line, args, true);
+        result := EVH_BuildPillar(line, args, true);
       end;
 
     95: // Lower Floor and Ceiling
       begin
-        result := EV_DoFloorAndCeiling(line, args, false);
+        result := EVH_DoFloorAndCeiling(line, args, false);
       end;
 
     96: // Raise Floor and Ceiling
       begin
-        result := EV_DoFloorAndCeiling(line, args, true);
+        result := EVH_DoFloorAndCeiling(line, args, true);
       end;
 
     109: // Force Lightning
@@ -1158,37 +1317,37 @@ begin
 
     110: // Light Raise by Value
       begin
-        result := EV_SpawnLight(line, args, LITE_RAISEBYVALUE);
+        result := EVH_SpawnLight(line, args, LITE_RAISEBYVALUE);
       end;
 
     111: // Light Lower by Value
       begin
-        result := EV_SpawnLight(line, args, LITE_LOWERBYVALUE);
+        result := EVH_SpawnLight(line, args, LITE_LOWERBYVALUE);
       end;
 
     112: // Light Change to Value
       begin
-        result := EV_SpawnLight(line, args, LITE_CHANGETOVALUE);
+        result := EVH_SpawnLight(line, args, LITE_CHANGETOVALUE);
       end;
 
     113: // Light Fade
       begin
-        result := EV_SpawnLight(line, args, LITE_FADE);
+        result := EVH_SpawnLight(line, args, LITE_FADE);
       end;
 
     114: // Light Glow
       begin
-        result := EV_SpawnLight(line, args, LITE_GLOW);
+        result := EVH_SpawnLight(line, args, LITE_GLOW);
       end;
 
     115: // Light Flicker
       begin
-        result := EV_SpawnLight(line, args, LITE_FLICKER);
+        result := EVH_SpawnLight(line, args, LITE_FLICKER);
       end;
 
     116: // Light Strobe
       begin
-        result := EV_SpawnLight(line, args, LITE_STROBE);
+        result := EVH_SpawnLight(line, args, LITE_STROBE);
       end;
 
     120: // Quake Tremor
@@ -1198,57 +1357,57 @@ begin
 
     129: // UsePuzzleItem
       begin
-        result := EV_LineSearchForPuzzleItem(line, args, mo);
+        result := EVH_LineSearchForPuzzleItem(line, args, mo);
       end;
 
     130: // Thing_Activate
       begin
-        result := EV_ThingActivate(args[0]);
+        result := EVH_ThingActivate(args[0]);
       end;
 
     131: // Thing_Deactivate
       begin
-        result := EV_ThingDeactivate(args[0]);
+        result := EVH_ThingDeactivate(args[0]);
       end;
 
     132: // Thing_Remove
       begin
-        result := EV_ThingRemove(args[0]);
+        result := EVH_ThingRemove(args[0]);
       end;
 
     133: // Thing_Destroy
       begin
-        result := EV_ThingDestroy(args[0]);
+        result := EVH_ThingDestroy(args[0]);
       end;
 
     134: // Thing_Projectile
       begin
-        result := EV_ThingProjectile(args, false);
+        result := EVH_ThingProjectile(args, false);
       end;
 
     135: // Thing_Spawn
       begin
-        result := EV_ThingSpawn(args, true);
+        result := EVH_ThingSpawn(args, true);
       end;
 
     136: // Thing_ProjectileGravity
       begin
-        result := EV_ThingProjectile(args, true);
+        result := EVH_ThingProjectile(args, true);
       end;
 
     137: // Thing_SpawnNoFog
       begin
-        result := EV_ThingSpawn(args, false);
+        result := EVH_ThingSpawn(args, false);
       end;
 
     138: // Floor_Waggle
       begin
-        result := EV_StartFloorWaggle(args[0], args[1], args[2], args[3], args[4]);
+        result := EVH_StartFloorWaggle(args[0], args[1], args[2], args[3], args[4]);
       end;
 
     140: // Sector_SoundChange
       begin
-        result := EV_SectorSoundChange(args);
+        result := EVH_SectorSoundChange(args);
       end;
 
     // Line specials only processed during level initialization
@@ -1262,12 +1421,11 @@ begin
   end;
 end;
 
-//============================================================================
+//==============================================================================
 //
 // P_ActivateLine
 //
-//============================================================================
-
+//==============================================================================
 function P_ActivateLine(line: Pline_t; mo: Pmobj_t; side: integer; activationType: integer): boolean;
 var
   lineActivation: integer;
@@ -1327,6 +1485,11 @@ const
     25 * 2048
   );
 
+//==============================================================================
+//
+// P_PlayerInSpecialSector
+//
+//==============================================================================
 procedure P_PlayerInSpecialSector(player: Pplayer_t; const sector: Psector_t; const height: fixed_t);  // JVAL: 3d Floors
 begin
   // Falling, not all the way down yet?
@@ -1400,12 +1563,11 @@ begin
   end;
 end;
 
-//============================================================================
+//==============================================================================
 //
 // P_PlayerOnSpecialFlat
 //
-//============================================================================
-
+//==============================================================================
 procedure P_PlayerOnSpecialFlat(player: Pplayer_t; floorType: integer);
 begin
   if player.mo.z <> player.mo.floorz then
@@ -1429,7 +1591,8 @@ end;
 // PROC P_UpdateSpecials
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_UpdateSpecials;
 var
   i: integer;
@@ -1458,19 +1621,17 @@ begin
       end;
     end;
   end;
-  {$IFNDEF OPENGL}
+
   curripple := @r_defripple[leveltime and 31];
-  {$ENDIF}
+
 end;
 
-
-//
 //==============================================================================
+// P_FindSectorFromLineTag2
 //
 //              SPECIAL SPAWNING
 //
 //==============================================================================
-//
 function P_FindSectorFromLineTag2(line: Pline_t; var start: integer): integer;
 var
   i: integer;
@@ -1487,16 +1648,14 @@ begin
   start := -1;
 end;
 
+//==============================================================================
 //
-//================================================================================
 // P_SpawnSpecials
 //
 // After the map has been loaded, scan for specials that
 // spawn thinkers
 //
-//===============================================================================
-//
-
+//==============================================================================
 procedure P_SpawnSpecials;
 var
   sector: Psector_t;
@@ -1524,7 +1683,6 @@ begin
     end;
 
   end;
-
 
   //
   //      Init line EFFECTs
@@ -1564,10 +1722,10 @@ begin
   //      Init other misc stuff
   //
   for i := 0 to MAXCEILINGS - 1 do
-    activeceilings[i] := nil;
+    hactiveceilings[i] := nil;
 
   for i := 0 to MAXPLATS - 1 do
-    activeplats[i] := nil;
+    hactiveplats[i] := nil;
 
   for i := 0 to MAXBUTTONS - 1 do
     memset(@buttonlist[i], 0, SizeOf(button_t));
@@ -1606,12 +1764,11 @@ begin
     end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_FindLine
 //
-//==========================================================================
-
+//==============================================================================
 function P_FindLine(lineTag: integer; searchPosition: PInteger): Pline_t;
 var
   i: integer;

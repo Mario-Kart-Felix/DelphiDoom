@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -31,18 +31,45 @@ unit r_col_fz;
 
 interface
 
+//==============================================================================
+//
+// R_InitFuzzTable
+//
+//==============================================================================
 procedure R_InitFuzzTable;
 
+//==============================================================================
+// R_DrawFuzzColumn
+//
 // The Spectre/Invisibility effect.
+//
+//==============================================================================
 procedure R_DrawFuzzColumn;
+
+//==============================================================================
+//
+// R_DrawFuzzColumn32
+//
+//==============================================================================
 procedure R_DrawFuzzColumn32;
+
+//==============================================================================
+//
+// R_DrawNewFuzzColumn
+//
+//==============================================================================
 procedure R_DrawNewFuzzColumn;
+
+//==============================================================================
+//
+// R_DrawNewFuzzColumnHi
+//
+//==============================================================================
 procedure R_DrawNewFuzzColumnHi;
 
 const
   FUZZTABLE = 50;
   FUZZOFF = 1;
-
 
   fuzzoffset: array[0..FUZZTABLE - 1] of integer = (
     FUZZOFF,-FUZZOFF, FUZZOFF,-FUZZOFF, FUZZOFF, FUZZOFF,-FUZZOFF,
@@ -70,12 +97,12 @@ uses
   r_draw,
   r_main,
   r_column,
-  r_hires,
-  v_video;
+  r_hires;
 
+//==============================================================================
+// R_DrawFuzzColumn
 //
 // Spectre/Invisibility.
-//
 //
 // Framebuffer postprocessing.
 // Creates a fuzzy image by copying pixels
@@ -84,6 +111,7 @@ uses
 //  could create the SHADOW effect,
 //  i.e. spectres and invisible players.
 //
+//==============================================================================
 procedure R_DrawFuzzColumn;
 var
   count: integer;
@@ -128,6 +156,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawFuzzColumn32
+//
+//==============================================================================
 procedure R_DrawFuzzColumn32;
 var
   count: integer;
@@ -172,6 +205,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawNewFuzzColumn
+//
+//==============================================================================
 procedure R_DrawNewFuzzColumn;
 var
   count: integer;
@@ -208,6 +246,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawNewFuzzColumnHi
+//
+//==============================================================================
 procedure R_DrawNewFuzzColumnHi;
 var
   count: integer;
@@ -251,6 +294,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_InitFuzzTable
+//
+//==============================================================================
 procedure R_InitFuzzTable;
 var
   i: integer;

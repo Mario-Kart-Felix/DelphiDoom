@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  Screenshots.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -42,28 +42,109 @@ interface
 var
   screenshotformat: string = 'PNG';
 
+//==============================================================================
+//
+// M_WriteFile
+//
+//==============================================================================
 function M_WriteFile(const name: string; source: pointer; len: integer): boolean;
 
+//==============================================================================
+//
+// M_AppendFile
+//
+//==============================================================================
 function M_AppendFile(const name: string; source: pointer; len: integer): integer;
 
+//==============================================================================
+//
+// M_ReadFile
+//
+//==============================================================================
 function M_ReadFile(const name: string; var buffer: Pointer): integer;
 
+//==============================================================================
+//
+// M_FixScreenshotFormat
+//
+//==============================================================================
 procedure M_FixScreenshotFormat;
 
+//==============================================================================
+//
+// M_ScreenShot
+//
+//==============================================================================
 procedure M_ScreenShot(const filename: string = ''; const silent: boolean = false);
 
+//==============================================================================
+//
+// M_SetDefaults
+//
+//==============================================================================
 procedure M_SetDefaults;
 
+//==============================================================================
+//
+// M_SetDefault
+//
+//==============================================================================
 procedure M_SetDefault(const parm: string);
 
+//==============================================================================
+//
+// M_LoadDefaults
+//
+//==============================================================================
 procedure M_LoadDefaults;
 
+//==============================================================================
+//
+// M_SaveDefaults
+//
+//==============================================================================
 procedure M_SaveDefaults;
 
+//==============================================================================
+//
+// M_ForceDefaultBoolean
+//
+//==============================================================================
+function M_ForceDefaultBoolean(const name: string; const value: boolean): boolean;
+
+//==============================================================================
+//
+// M_ForceDefaultInteger
+//
+//==============================================================================
+function M_ForceDefaultInteger(const name: string; const value: integer): boolean;
+
+//==============================================================================
+//
+// M_ForceDefaultString
+//
+//==============================================================================
+function M_ForceDefaultString(const name: string; const value: string): boolean;
+
+//==============================================================================
+//
+// Cmd_Set
+//
+//==============================================================================
 procedure Cmd_Set(const name: string; const value: string);
 
+//==============================================================================
+//
+// Cmd_Get
+//
+//==============================================================================
 procedure Cmd_Get(const name: string);
 
+//==============================================================================
+//
+// Cmd_TypeOf
+//
+//==============================================================================
 procedure Cmd_TypeOf(const name: string);
 
 var
@@ -97,6 +178,11 @@ uses
 {$ENDIF}
   z_zone;
 
+//==============================================================================
+//
+// M_WriteFile
+//
+//==============================================================================
 function M_WriteFile(const name: string; source: pointer; len: integer): boolean;
 var
   handle: file;
@@ -114,6 +200,11 @@ begin
   Result := count > 0;
 end;
 
+//==============================================================================
+//
+// M_AppendFile
+//
+//==============================================================================
 function M_AppendFile(const name: string; source: pointer; len: integer): integer;
 var
   handle: TFile;
@@ -138,6 +229,11 @@ begin
     Result := 0;
 end;
 
+//==============================================================================
+//
+// M_ReadFile
+//
+//==============================================================================
 function M_ReadFile(const name: string; var buffer: Pointer): integer;
 var
   handle: file;
@@ -169,13 +265,16 @@ type
 const
   MSG_ERR_SCREENSHOT = 'Couldn''t create a screenshot';
 
+//==============================================================================
+// M_FixScreenshotFormat
 //
 // M_ScreenShot
 //
+//==============================================================================
 procedure M_FixScreenshotFormat;
 begin
-  screenshotformat := strupper(strtrim(screenshotformat));
-  if Pos('.', screenshotformat) = 1 then
+  trimprocU(screenshotformat);
+  if CharPos('.', screenshotformat) = 1 then
     Delete(screenshotformat, 1, 1);
   if screenshotformat = '' then
   begin
@@ -188,6 +287,11 @@ begin
         screenshotformat := 'PNG';
 end;
 
+//==============================================================================
+//
+// M_DoScreenShotTGA
+//
+//==============================================================================
 function M_DoScreenShotTGA(const filename: string): boolean;
 var
   buffer: PByteArray;
@@ -219,6 +323,11 @@ begin
   memfree(pointer(buffer), bufsize);
 end;
 
+//==============================================================================
+//
+// M_DoScreenShotPNG
+//
+//==============================================================================
 function M_DoScreenShotPNG(const filename: string): boolean;
 var
   png: TPngObject;
@@ -251,6 +360,11 @@ begin
   memfree(pointer(buf), bufsize);
 end;
 
+//==============================================================================
+//
+// M_ScreenShot
+//
+//==============================================================================
 procedure M_ScreenShot(const filename: string = ''; const silent: boolean = false);
 var
   tganame: string;
@@ -348,14 +462,14 @@ begin
       pngname := filename + '.png';
     end;
 
-    if Pos('/', tganame) = 0 then
-      if Pos('\', tganame) = 0 then
+    if CharPos('/', tganame) = 0 then
+      if CharPos('\', tganame) = 0 then
         tganame := M_SaveFileName('DATA\SCREENSHOTS\TGA\' + tganame);
-    if Pos('/', jpgname) = 0 then
-      if Pos('\', jpgname) = 0 then
+    if CharPos('/', jpgname) = 0 then
+      if CharPos('\', jpgname) = 0 then
         jpgname := M_SaveFileName('DATA\SCREENSHOTS\JPG\' + jpgname);
-    if Pos('/', pngname) = 0 then
-      if Pos('\', pngname) = 0 then
+    if CharPos('/', pngname) = 0 then
+      if CharPos('\', pngname) = 0 then
         jpgname := M_SaveFileName('DATA\SCREENSHOTS\PNG\' + pngname);
   end;
 
@@ -397,6 +511,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// Cmd_Set
+//
+//==============================================================================
 procedure Cmd_Set(const name: string; const value: string);
 var
   i: integer;
@@ -427,7 +546,7 @@ begin
     exit;
   end;
 
-  if pos('*', name) > 0 then // Is a mask
+  if CharPos('*', name) > 0 then // Is a mask
   begin
     clist := TDStringList.Create;
     try
@@ -497,6 +616,11 @@ begin
   C_UnknowCommandMsg;
 end;
 
+//==============================================================================
+//
+// Cmd_Get
+//
+//==============================================================================
 procedure Cmd_Get(const name: string);
 var
   i: integer;
@@ -520,7 +644,7 @@ begin
     exit;
   end;
 
-  if pos('*', name) > 0 then // Is a mask
+  if CharPos('*', name) > 0 then // Is a mask
   begin
     clist := TDStringList.Create;
     try
@@ -578,6 +702,11 @@ begin
   C_UnknowCommandMsg;
 end;
 
+//==============================================================================
+//
+// Cmd_TypeOf
+//
+//==============================================================================
 procedure Cmd_TypeOf(const name: string);
 var
   i: integer;
@@ -592,7 +721,7 @@ begin
     printf(' Display the type of variable.'#13#10);
   end;
 
-  if pos('*', name) > 0 then // Is a mask
+  if CharPos('*', name) > 0 then // Is a mask
   begin
     clist := TDStringList.Create;
     try
@@ -647,7 +776,11 @@ const
 var
   defaultfile: string;
 
-
+//==============================================================================
+//
+// M_SaveDefaults
+//
+//==============================================================================
 procedure M_SaveDefaults;
 var
   i: integer;
@@ -683,11 +816,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// M_SetDefaults
+//
+//==============================================================================
 procedure M_SetDefaults;
 begin
   M_SetDefault('*');
 end;
 
+//==============================================================================
+//
+// M_SetDefault
+//
+//==============================================================================
 procedure M_SetDefault(const parm: string);
 var
   i: integer;
@@ -710,7 +853,7 @@ begin
   else
     setflags := DFS_SINGLEPLAYER;
 
-  if pos('*', parm) > 0 then // Is a mask
+  if CharPos('*', parm) > 0 then // Is a mask
   begin
     clist := TDStringList.Create;
     try
@@ -768,6 +911,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// M_LoadDefaults
+//
+//==============================================================================
 procedure M_LoadDefaults;
 var
   i: integer;
@@ -879,6 +1027,99 @@ begin
   gl_drawsky := true;
   {$ENDIF}
   {$ENDIF}
+  defaultskill := GetIntegerInRange(defaultskill, Ord(sk_baby), Ord(sk_nightmare));
+  startskill := skill_t(defaultskill);
+  gameskill := startskill;
+end;
+
+//==============================================================================
+//
+// M_ForceDefaultBoolean
+//
+//==============================================================================
+function M_ForceDefaultBoolean(const name: string; const value: boolean): boolean;
+var
+  i: integer;
+  lname: string;
+begin
+  result := false;
+  lname := strlower(name);
+  for i := 0 to NUMDEFAULTS - 1 do
+    if defaults[i]._type = tBoolean then
+      if defaults[i].name = lname then
+      begin
+        if defaults[i].oldlocation = nil then
+        begin
+          defaults[i].oldlocation := defaults[i].location;
+          defaults[i].defaultbvalue := PBoolean(defaults[i].location)^;
+          PBoolean(defaults[i].location)^ := value;
+          PBoolean(defaults[i].location) := @defaults[i].defaultbvalue;
+          defaults[i].setable := DFS_NEVER;
+        end
+        else
+          PBoolean(defaults[i].oldlocation)^ := value;
+        result := true;
+      end;
+end;
+
+//==============================================================================
+//
+// M_ForceDefaultInteger
+//
+//==============================================================================
+function M_ForceDefaultInteger(const name: string; const value: integer): boolean;
+var
+  i: integer;
+  lname: string;
+begin
+  result := false;
+  lname := strlower(name);
+  for i := 0 to NUMDEFAULTS - 1 do
+    if defaults[i]._type = tInteger then
+      if defaults[i].name = lname then
+      begin
+        if defaults[i].oldlocation = nil then
+        begin
+          defaults[i].oldlocation := defaults[i].location;
+          defaults[i].defaultivalue := PInteger(defaults[i].location)^;
+          PInteger(defaults[i].location)^ := value;
+          PInteger(defaults[i].location) := @defaults[i].defaultivalue;
+          defaults[i].setable := DFS_NEVER;
+        end
+        else
+          PInteger(defaults[i].oldlocation)^ := value;
+        result := true;
+      end;
+end;
+
+//==============================================================================
+//
+// M_ForceDefaultString
+//
+//==============================================================================
+function M_ForceDefaultString(const name: string; const value: string): boolean;
+var
+  i: integer;
+  lname: string;
+begin
+  result := false;
+  lname := strlower(name);
+  for i := 0 to NUMDEFAULTS - 1 do
+    if defaults[i]._type = tString then
+      if defaults[i].name = lname then
+      begin
+        if defaults[i].oldlocation = nil then
+        begin
+          defaults[i].oldlocation := defaults[i].location;
+          defaults[i].defaultsvalue := PString(defaults[i].location)^;
+          PString(defaults[i].location)^ := value;
+          PString(defaults[i].location) := @defaults[i].defaultsvalue;
+          defaults[i].setable := DFS_NEVER;
+        end
+        else
+          PString(defaults[i].oldlocation)^ := value;
+        result := true;
+      end;
 end;
 
 end.

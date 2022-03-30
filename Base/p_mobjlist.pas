@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Holds a list with current mobjs
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -60,12 +60,27 @@ var
 const
   MAXKEY = 2147483647;
 
+//==============================================================================
+//
+// P_GenGlobalMobjKey
+//
+//==============================================================================
 function P_GenGlobalMobjKey: LongWord;
 
+//==============================================================================
+//
+// P_NotifyMobjKey
+//
+//==============================================================================
 procedure P_NotifyMobjKey(const m: Pmobj_t);
 
 implementation
 
+//==============================================================================
+//
+// TMobjList.Create
+//
+//==============================================================================
 constructor TMobjList.Create;
 var
   i: integer;
@@ -75,6 +90,11 @@ begin
     containers[i] := TSmartPointerList.Create;
 end;
 
+//==============================================================================
+//
+// TMobjList.Destroy
+//
+//==============================================================================
 destructor TMobjList.Destroy;
 var
   i: integer;
@@ -84,6 +104,11 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// TMobjList.Clear
+//
+//==============================================================================
 procedure TMobjList.Clear;
 var
   i: integer;
@@ -92,7 +117,12 @@ begin
     containers[i].Clear;
 end;
 
+//==============================================================================
+// TMobjList.Add
+//
 // Must be called from P_AddThinker
+//
+//==============================================================================
 procedure TMobjList.Add(const m: Pmobj_t);
 var
   hash: LongWord;
@@ -101,7 +131,12 @@ begin
   containers[hash].AddItem(m);
 end;
 
+//==============================================================================
+// TMobjList.Remove
+//
 // Must be called from P_RemoveThinker
+//
+//==============================================================================
 procedure TMobjList.Remove(const m: Pmobj_t);
 var
   hash: LongWord;
@@ -110,6 +145,11 @@ begin
   containers[hash].DeleteItem(m);
 end;
 
+//==============================================================================
+//
+// TMobjList.FindMobj
+//
+//==============================================================================
 function TMobjList.FindMobj(const m: Pmobj_t): Boolean;
 var
   hash: LongWord;
@@ -118,6 +158,11 @@ begin
   Result := containers[hash].ItemExists(m);
 end;
 
+//==============================================================================
+//
+// TMobjList.FindMobjFromKey
+//
+//==============================================================================
 function TMobjList.FindMobjFromKey(const key: LongWord): Pmobj_t;
 var
   hash: LongWord;
@@ -139,6 +184,11 @@ end;
 var
   mobjkeycnt: LongWord = 1;
 
+//==============================================================================
+//
+// P_GenGlobalMobjKey
+//
+//==============================================================================
 function P_GenGlobalMobjKey: LongWord;
 begin
   Result := mobjkeycnt;
@@ -152,6 +202,11 @@ begin
     mobjkeycnt := 1;
 end;
 
+//==============================================================================
+//
+// P_NotifyMobjKey
+//
+//==============================================================================
 procedure P_NotifyMobjKey(const m: Pmobj_t);
 begin
   if m <> nil then

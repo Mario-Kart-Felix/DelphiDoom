@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Range struct definition and funcs.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -46,6 +46,11 @@ type
   end;
   Pmidsiderange_t = ^midsiderange_t;
 
+//==============================================================================
+//
+// R_SubtractRange
+//
+//==============================================================================
 procedure R_SubtractRange(const floorheight1, ceilingheight1, lightlevel1: integer;
                           const floorheight2, ceilingheight2, lightlevel2: integer;
                           const r: Pmidsiderange_t; var totalclip: boolean);
@@ -56,8 +61,13 @@ uses
   d_delphi,
   r_column; // JVAL: Mars fog sectors
 
+//==============================================================================
+// R_SubtractRange
+//
 // Subtract range ceil2 - floor2 from range ceil1 - floor1
 // Note floor is greater from ceiling :)
+//
+//==============================================================================
 procedure R_SubtractRange(const floorheight1, ceilingheight1, lightlevel1: integer;
                           const floorheight2, ceilingheight2, lightlevel2: integer;
                           const r: Pmidsiderange_t; var totalclip: boolean);

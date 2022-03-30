@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Mission begin melt/wipe screen special effect.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,10 +37,25 @@ interface
 uses
   d_delphi;
 
+//==============================================================================
+//
+// wipe_StartScreen
+//
+//==============================================================================
 procedure wipe_StartScreen;
 
+//==============================================================================
+//
+// wipe_EndScreen
+//
+//==============================================================================
 procedure wipe_EndScreen;
 
+//==============================================================================
+//
+// wipe_Ticker
+//
+//==============================================================================
 function wipe_Ticker(ticks: integer): boolean;
 
 type
@@ -60,6 +75,11 @@ var
 var
   w_screen32: PLongWordArray = nil;
 
+//==============================================================================
+//
+// wipe_ClearMemory
+//
+//==============================================================================
 procedure wipe_ClearMemory;
 {$ENDIF}
 
@@ -91,8 +111,13 @@ var
   yy: Pfixed_tArray;
   vy: fixed_t;
 
-
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// wipe_glsize
+//
+//==============================================================================
 function wipe_glsize(const value: integer): integer;
 begin
   result := 1;
@@ -101,6 +126,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// wipe_initMelt
+//
+//==============================================================================
 procedure wipe_initMelt;
 var
   i, r: integer;
@@ -161,6 +191,11 @@ begin
       yy[i] := yy[i - 1];
 end;
 
+//==============================================================================
+//
+// wipe_doMelt
+//
+//==============================================================================
 function wipe_doMelt(ticks: integer): integer;
 var
   i: integer;
@@ -233,6 +268,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// wipe_exitMelt
+//
+//==============================================================================
 procedure wipe_exitMelt;
 begin
   Z_Free(yy);
@@ -241,6 +281,12 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// wipe_ClearMemory
+//
+//==============================================================================
 procedure wipe_ClearMemory;
 begin
   if w_screen32 <> nil then
@@ -248,6 +294,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// wipe_StartScreen
+//
+//==============================================================================
 procedure wipe_StartScreen;
 begin
   wipe_scr_start := malloc(SCREENWIDTH * SCREENHEIGHT * SizeOf(LongWord));
@@ -257,6 +308,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// wipe_EndScreen
+//
+//==============================================================================
 procedure wipe_EndScreen;
 begin
   wipe_scr_end := malloc(SCREENWIDTH * SCREENHEIGHT * SizeOf(LongWord));
@@ -269,7 +325,12 @@ end;
 var
   wiping: boolean = false;
 
+//==============================================================================
+// wipe_Ticker
+//
 // when zero, stop the wipe
+//
+//==============================================================================
 function wipe_Ticker(ticks: integer): boolean;
 begin
   // initial stuff

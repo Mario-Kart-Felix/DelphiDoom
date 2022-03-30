@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Clipper utilities for 3d floors & slopes
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,8 +45,18 @@ const
 const
   MAXZ = FRACUNIT * 16384;
 
+//==============================================================================
+//
+// R_MakeClipperPoint
+//
+//==============================================================================
 function R_MakeClipperPoint(v: Pvertex_t): TIntPoint; overload;
 
+//==============================================================================
+//
+// R_MakeClipperPoint
+//
+//==============================================================================
 function R_MakeClipperPoint(const x1, y1: fixed_t): TIntPoint; overload;
 
 const
@@ -57,17 +67,26 @@ implementation
 uses
   r_main;
 
+//==============================================================================
+//
+// R_MakeClipperPoint
+//
+//==============================================================================
 function R_MakeClipperPoint(v: Pvertex_t): TIntPoint; overload;
 begin
   result.X := (v.x - viewx) div POINTUNIT;
   result.Y := (v.y - viewy) div POINTUNIT;
 end;
 
+//==============================================================================
+//
+// R_MakeClipperPoint
+//
+//==============================================================================
 function R_MakeClipperPoint(const x1, y1: fixed_t): TIntPoint; overload;
 begin
   result.X := (x1  - viewx) div POINTUNIT;
   result.Y := (y1  - viewy) div POINTUNIT;
 end;
-
 
 end.

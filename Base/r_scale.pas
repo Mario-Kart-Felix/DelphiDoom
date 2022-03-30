@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -34,8 +34,25 @@ uses
   m_fixed,
   tables;
 
+//==============================================================================
+//
+// R_ScaleFromGlobalAngle
+//
+//==============================================================================
 function R_ScaleFromGlobalAngle(const visangle: angle_t; out overflow: boolean): fixed_t;
+
+//==============================================================================
+//
+// R_ScaleFromGlobalAngle_Fixed
+//
+//==============================================================================
 function R_ScaleFromGlobalAngle_Fixed(const visangle: angle_t): fixed_t;
+
+//==============================================================================
+//
+// R_ScaleFromGlobalAngle_DBL
+//
+//==============================================================================
 function R_ScaleFromGlobalAngle_DBL(const visangle: angle_t): double;
 
 var
@@ -51,6 +68,7 @@ uses
   r_segs,
   r_main;
 
+//==============================================================================
 //
 // R_ScaleFromGlobalAngle
 // Returns the texture mapping scale
@@ -59,6 +77,8 @@ uses
 // rw_distance must be calculated first.
 //
 // JVAL: SOS -> Here lays a problem with rendering accuracy
+//
+//==============================================================================
 function R_ScaleFromGlobalAngle(const visangle: angle_t; out overflow: boolean): fixed_t;
 var
   anglea: angle_t;
@@ -100,6 +120,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_ScaleFromGlobalAngle_Fixed
+//
+//==============================================================================
 function R_ScaleFromGlobalAngle_Fixed(const visangle: angle_t): fixed_t;
 var
   anglea: angle_t;
@@ -135,10 +160,14 @@ begin
   end;
 end;
 
+//==============================================================================
+// R_ScaleFromGlobalAngle_DBL
+//
 //const
 //  MINSCALE = 16;
 //  MAXSCALE = 2048 * FRACUNIT;
-
+//
+//==============================================================================
 function R_ScaleFromGlobalAngle_DBL(const visangle: angle_t): double;
 var
   anglea: angle_t;

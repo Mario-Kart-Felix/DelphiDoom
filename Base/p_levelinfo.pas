@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Support MUSINFO lump (dynamic music changing)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,8 +45,18 @@ type
     next: Plevelinfo_t;
   end;
 
+//==============================================================================
+//
+// P_GetLevelInfo
+//
+//==============================================================================
 function P_GetLevelInfo(const levelname: string): Plevelinfo_t;
 
+//==============================================================================
+//
+// P_LevelInfoChangeMusic
+//
+//==============================================================================
 procedure P_LevelInfoChangeMusic;
 
 implementation
@@ -55,13 +65,18 @@ uses
   d_delphi,
   g_game,
   p_setup,
-  sounds,
+  sounddata,
   s_sound,
   z_zone;
 
 var
   levelinfo: Plevelinfo_t;
 
+//==============================================================================
+//
+// P_GetLevelInfo
+//
+//==============================================================================
 function P_GetLevelInfo(const levelname: string): Plevelinfo_t;
 var
   check: string;
@@ -84,6 +99,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_LevelInfoChangeMusic
+//
+//==============================================================================
 procedure P_LevelInfoChangeMusic;
 var
   linfo: Plevelinfo_t;

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 //  Pending weapon.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -48,20 +48,60 @@ uses
   p_mobj_h,
   d_player;
 
+//==============================================================================
+//
+// P_PlayerThink
+//
+//==============================================================================
 procedure P_PlayerThink(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_CalcHeight
+//
+//==============================================================================
 procedure P_CalcHeight(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_PlayerFaceMobj
+//
+//==============================================================================
 procedure P_PlayerFaceMobj(const player: Pplayer_t; const face: Pmobj_t; const ticks: integer);
 
+//==============================================================================
+//
+// P_Thrust
+//
+//==============================================================================
 procedure P_Thrust(player: Pplayer_t; angle: angle_t; const move: fixed_t);
 
+//==============================================================================
+//
+// P_UseInventoryItem
+//
+//==============================================================================
 function P_UseInventoryItem(player: Pplayer_t; item: integer): boolean;
 
+//==============================================================================
+//
+// P_DropInventoryItem
+//
+//==============================================================================
 procedure P_DropInventoryItem(player: Pplayer_t; sprite: integer);
 
+//==============================================================================
+//
+// P_RemoveInventoryItem
+//
+//==============================================================================
 function P_RemoveInventoryItem(player: Pplayer_t; slot: integer; amount: integer): string;
 
+//==============================================================================
+//
+// P_ItemBehavior
+//
+//==============================================================================
 function P_ItemBehavior(player: Pplayer_t; item: integer): boolean;
 
 var
@@ -83,7 +123,10 @@ uses
   i_io,
 {$ENDIF}
   g_game,
+  p_common,
   p_genlin,
+  p_playertrace,
+  p_friends,
   p_mobj,
   p_tick,
   p_pspr,
@@ -99,10 +142,10 @@ uses
   p_dialog,
   r_main,
   r_defs,
+  sounddata,
   sounds,
   s_sound,
-  doomdef,
-  doomstat;
+  doomdef;
 
 //
 // Movement.
@@ -114,10 +157,12 @@ const
 var
   onground: boolean;
 
+//==============================================================================
 //
 // P_Thrust
 // Moves the given origin along a given angle.
 //
+//==============================================================================
 procedure P_Thrust(player: Pplayer_t; angle: angle_t; const move: fixed_t);
 begin
   {$IFDEF FPC}
@@ -130,10 +175,12 @@ begin
   player.mo.momy := player.mo.momy + FixedMul(move, finesine[angle]);
 end;
 
+//==============================================================================
 //
 // P_CalcHeight
 // Calculate the walking / running height adjustment
 //
+//==============================================================================
 procedure P_CalcHeight(player: Pplayer_t);
 var
   angle: integer;
@@ -230,6 +277,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// P_CalcHeight205
+//
+//==============================================================================
 procedure P_CalcHeight205(player: Pplayer_t);
 var
   angle: integer;
@@ -303,7 +355,12 @@ begin
 
 end;
 
+//==============================================================================
+// P_SlopesCalcHeight
+//
 // JVAL: Slopes
+//
+//==============================================================================
 procedure P_SlopesCalcHeight(player: Pplayer_t);
 var
   angle: integer;
@@ -424,6 +481,11 @@ begin
   player.oldviewz := oldviewz;
 end;
 
+//==============================================================================
+//
+// P_GetMoveFactor
+//
+//==============================================================================
 function P_GetMoveFactor(const mo: Pmobj_t): fixed_t;
 var
   momentum, friction: integer;
@@ -465,9 +527,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_MovePlayer
 //
+//==============================================================================
 procedure P_MovePlayer(player: Pplayer_t);
 var
   cmd: Pticcmd_t;
@@ -487,8 +551,22 @@ begin
 
   if onground then
     player.lastongroundtime := leveltime; // JVAL: 20211101 - Crouch
-  cmd_jump := (cmd.jump_crouch and CMD_JUMP_MASK) shr CMD_JUMP_SHIFT;
-  cmd_crouch := (cmd.jump_crouch and CMD_CROUCH_MASK) shr CMD_CROUCH_SHIFT;
+
+  // JVAL: 20220225 - NOJUMP sector flag (UDMF)
+  if Psubsector_t(player.mo.subsector).sector.flags and SF_NOJUMP <> 0 then
+    cmd_jump := 0
+  else if (gamemapinfo <> nil) and gamemapinfo.nojump then
+    cmd_jump := 0
+  else
+    cmd_jump := (cmd.jump_crouch and CMD_JUMP_MASK) shr CMD_JUMP_SHIFT;
+
+  // JVAL: 20220226 - NOCROUCH sector flag (UDMF)
+  if Psubsector_t(player.mo.subsector).sector.flags and SF_NOCROUCH <> 0 then
+    cmd_crouch := 0
+  else if (gamemapinfo <> nil) and gamemapinfo.nocrouch then
+    cmd_crouch := 0
+  else
+    cmd_crouch := (cmd.jump_crouch and CMD_CROUCH_MASK) shr CMD_CROUCH_SHIFT;
 
   // villsa [STRIFE] allows player to climb over things by jumping
   // haleyjd 20110205: air control thrust should be 256, not cmd.forwardmove
@@ -716,6 +794,11 @@ const
   ANG5 = ANG90 div 18;
   ANG355 = ANG270 +  ANG5 * 17; // add by JVAL
 
+//==============================================================================
+//
+// P_DeathThink
+//
+//==============================================================================
 procedure P_DeathThink(player: Pplayer_t);
 var
   angle: angle_t;
@@ -776,6 +859,11 @@ var
   brsnd2: integer = -1;
   rnd_breath: Integer = 0;
 
+//==============================================================================
+//
+// A_PlayerBreath
+//
+//==============================================================================
 procedure A_PlayerBreath(p: Pplayer_t);
 var
   sndidx: integer;
@@ -810,6 +898,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_AngleTarget
+//
+//==============================================================================
 procedure P_AngleTarget(player: Pplayer_t);
 var
   ticks: LongWord;
@@ -835,6 +928,11 @@ begin
   dec(player.angletargetticks);
 end;
 
+//==============================================================================
+//
+// P_PlayerFaceMobj
+//
+//==============================================================================
 procedure P_PlayerFaceMobj(const player: Pplayer_t; const face: Pmobj_t; const ticks: integer);
 begin
   player.angletargetx := face.x;
@@ -842,9 +940,11 @@ begin
   player.angletargetticks := ticks;
 end;
 
+//==============================================================================
 //
 // P_PlayerThink
 //
+//==============================================================================
 procedure P_PlayerThink(player: Pplayer_t);
 var
   cmd: Pticcmd_t;
@@ -881,11 +981,20 @@ begin
       player.teleporttics := 0;
   end;
 
+  // JVAL: MARS - Retrieve Linetarget
+  P_AimLineAttack(player.mo, player.mo.angle, 16 * 64 * FRACUNIT);
+  if (player.plinetarget = nil) and (linetarget <> nil) then
+    player.pcrosstic := leveltime;
+  player.plinetarget := linetarget;
+
   if player.playerstate = PST_DEAD then
   begin
     P_DeathThink(player);
     exit;
   end;
+
+  P_PlayerHistoryNotify(player);
+  P_HandleFriendsNearMe(player);  // JVAL: 20220107 - Handle nearby friends
 
   P_AngleTarget(player);
 
@@ -1088,11 +1197,12 @@ begin
     player.fixedcolormap := INVERSECOLORMAP;
 end;
 
-
+//==============================================================================
 //
 // P_RemoveInventoryItem
 // villsa [STRIFE] new function
 //
+//==============================================================================
 function P_RemoveInventoryItem(player: Pplayer_t; slot: integer; amount: integer): string;
 var
   _type: integer;
@@ -1124,7 +1234,6 @@ begin
     end;
     dec(player.numinventory);
 
-
     // update cursor position
     if player.inventorycursor >= player.numinventory then
       if player.inventorycursor > 0 then
@@ -1134,10 +1243,12 @@ begin
   result := mobjinfo[_type].name2;
 end;
 
+//==============================================================================
 //
 // P_DropInventoryItem
 // villsa [STRIFE] new function
 //
+//==============================================================================
 procedure P_DropInventoryItem(player: Pplayer_t; sprite: integer);
 var
   invslot: integer;
@@ -1219,10 +1330,12 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_TossDegninOre
 // villsa [STRIFE] new function
 //
+//==============================================================================
 function P_TossDegninOre(player: Pplayer_t): boolean;
 var
   angle: angle_t;
@@ -1264,12 +1377,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_SpawnTeleportBeacon
 //
 // villsa [STRIFE] new function
 // haleyjd 20140918: bug fixed to propagate allegiance properly.
 //
+//==============================================================================
 function P_SpawnTeleportBeacon(player: Pplayer_t): boolean;
 var
   angle: angle_t;
@@ -1316,10 +1431,12 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_UseInventoryItem
 // villsa [STRIFE] new function
 //
+//==============================================================================
 function P_UseInventoryItem(player: Pplayer_t; item: integer): boolean;
 var
   i: integer;
@@ -1359,10 +1476,12 @@ begin
   result := false;
 end;
 
+//==============================================================================
 //
 // P_ItemBehavior
 // villsa [STRIFE] new function
 //
+//==============================================================================
 function P_ItemBehavior(player: Pplayer_t; item: integer): boolean;
 begin
   case item of

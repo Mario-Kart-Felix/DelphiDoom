@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@
 //  generation of lookups, caching, retrieval by name.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -51,39 +51,125 @@ uses
 
 // Retrieve column data for span blitting.
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_GetColumn
+//
+//==============================================================================
 function R_GetColumn(const tex: integer; col: integer): PByteArray;
 {$ENDIF}
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+// R_GetDSs
+//
 // Retrieve ds_sources
+//
+//==============================================================================
 procedure R_GetDSs(const flat: integer);
 {$ENDIF}
 
+//==============================================================================
+//
+// R_GetLumpForFlat
+//
+//==============================================================================
 function R_GetLumpForFlat(const flat: integer): integer;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+// R_GetDCs
+//
 // Retrieve dc_sources
+//
+//==============================================================================
 procedure R_GetDCs(const tex: integer; const col: integer);
 {$ENDIF}
 
+//==============================================================================
+// R_InitData
+//
 // I/O, setting up the stuff.
+//
+//==============================================================================
 procedure R_InitData;
+
+//==============================================================================
+//
+// R_FreeMemory
+//
+//==============================================================================
 procedure R_FreeMemory;
+
+//==============================================================================
+//
+// R_PrecacheLevel
+//
+//==============================================================================
 procedure R_PrecacheLevel;
 
+//==============================================================================
+// R_FlatNumForName
+//
 // Retrieval.
 // Floor/ceiling opaque texture tiles,
 // lookup by name. For animation?
+//
+//==============================================================================
 function R_FlatNumForName(const name: string): integer;
+
+//==============================================================================
+//
+// R_SafeFlatNumForName
+//
+//==============================================================================
 function R_SafeFlatNumForName(const name: string): integer;
+
+//==============================================================================
+//
+// R_NewFlatNumForLump
+//
+//==============================================================================
 function R_NewFlatNumForLump(const lump: integer): integer;
+
+//==============================================================================
+//
+// R_CacheFlat
+//
+//==============================================================================
 function R_CacheFlat(const lump: integer; const tag: integer): pointer;
 
+//==============================================================================
+// R_CheckTextureNumForName
+//
 // Called by P_Ticker for switches and animations,
 // returns the texture number for the texture name.
+//
+//==============================================================================
 function R_CheckTextureNumForName(const name: string): integer;
+
+//==============================================================================
+//
+// R_SafeTextureNumForName
+//
+//==============================================================================
 function R_SafeTextureNumForName(const name: string): integer;
+
+//==============================================================================
+//
+// R_NameForSideTexture
+//
+//==============================================================================
 function R_NameForSideTexture(const sn: SmallInt): char8_t;
+
+//==============================================================================
+//
+// R_TextureNumForName
+//
+//==============================================================================
 function R_TextureNumForName(const name: string): integer;
 
 var
@@ -118,6 +204,11 @@ var
   numflats: integer;
   maxvisplane: integer = -1;
 
+//==============================================================================
+//
+// R_SetupLevel
+//
+//==============================================================================
 procedure R_SetupLevel;
 
 var
@@ -136,7 +227,6 @@ uses
   d_think,
   d_check,
   m_hash,
-  g_game,
   i_system,
   p_setup,
   p_tick,
@@ -154,8 +244,6 @@ uses
   r_span,
   r_cache_walls,
   r_cache_flats,
-  r_col_fz,
-  r_voxels,
   r_3dfloors, // JVAL: 3d Floors
   r_slopes, // JVAL: Slopes
   r_patch,
@@ -167,6 +255,7 @@ uses
   w_sprite,
   z_zone;
 
+//==============================================================================
 //
 // Graphics.
 // DOOM graphics for walls and sprites
@@ -174,14 +263,11 @@ uses
 // A column is composed of zero or more posts,
 // a patch or sprite is composed of zero or more columns.
 //
-
-
-
-//
 // R_DrawColumnInCache
 // Clip and draw a column
 //  from a patch into a cached post.
 //
+//==============================================================================
 procedure R_DrawColumnInCache(patch: Pcolumn_t; cache: PByteArray;
   originy: integer; cacheheight: integer);
 var
@@ -223,7 +309,11 @@ begin
   end;
 end;
 
-
+//==============================================================================
+//
+// R_DrawColumnInCacheMultipatch
+//
+//==============================================================================
 procedure R_DrawColumnInCacheMultipatch(patch: Pcolumn_t; cache: PByteArray;
   originy: integer; cacheheight: integer; marks: PByteArray);
 var
@@ -269,12 +359,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // R_GenerateComposite
 // Using the texture definition,
 //  the composite texture is created from the patches,
 //  and each column is cached.
 //
+//==============================================================================
 procedure R_GenerateComposite(const texnum: integer);
 var
   block: PByteArray;
@@ -293,6 +385,7 @@ var
   theight4: integer;
   source, mark1, marks: PByteArray;
   marksize: integer;
+  talllength, talltopdelta, resttopdelta, lasttopdelta, sourceposition: integer;
 begin
   texture := textures[texnum];
   twidth := texture.width;
@@ -370,55 +463,136 @@ begin
     end;
 
     source := malloc(theight);  // temporary column
-    for i := 0 to twidth - 1 do
-      if collump[i] < 0 then // process only multipatched columns
-      begin
-        col := Pcolumn_t(@block[colofs[i] - 3]);  // cached column
-        mark1 := @marks[i * theight];
-        j := 0;
-
-        // save column in temporary so we can shuffle it around
-        memcpy(source, PByteArray(integer(col) + 3), theight);
-
-        while true do  // reconstruct the column by scanning transparency marks
+    if theight < 255 then
+    begin
+      for i := 0 to twidth - 1 do
+        if collump[i] < 0 then // process only multipatched columns
         begin
-          // skip transparent cells
-          // JVAL: Fast skip, check 4 bytes at first
-          theight4 := theight - 4;
-          while (j < theight4) and (PInteger(@mark1[j])^ = 0) do
-            j := j + 4;
-          // JVAL: Finally check each of the remaining bytes
-          while (j < theight) and (mark1[j] = 0) do
-            inc(j);
-          if j >= theight then    // if at end of column
+          col := Pcolumn_t(@block[colofs[i] - 3]);  // cached column
+          mark1 := @marks[i * theight];
+          j := 0;
+
+          // save column in temporary so we can shuffle it around
+          memcpy(source, PByteArray(integer(col) + 3), theight);
+
+          while true do  // reconstruct the column by scanning transparency marks
           begin
-            col.topdelta := $FF;  // end-of-column marker
-            break;
+            // skip transparent cells
+            // JVAL: Fast skip, check 4 bytes at first
+            theight4 := theight - 4;
+            while (j < theight4) and (PInteger(@mark1[j])^ = 0) do
+              j := j + 4;
+            // JVAL: Finally check each of the remaining bytes
+            while (j < theight) and (mark1[j] = 0) do
+              inc(j);
+            if j >= theight then    // if at end of column
+            begin
+              col.topdelta := $FF;  // end-of-column marker
+              break;
+            end;
+            col.topdelta := j;      // starting offset of post
+            // JVAL: 20200118 - Added check for walls with height >= 256
+            while (j < theight) and (mark1[j] <> 0) and (j - col.topdelta < 255) do
+              inc(j);
+            col.length := j - col.topdelta;
+            // copy opaque cells from the temporary back into the column
+            memcpy(PByteArray(integer(col) + 3), @source[col.topdelta], col.length);
+            col := Pcolumn_t(integer(col) + col.length + 4); // next post
           end;
-          col.topdelta := j;      // starting offset of post
-          // JVAL: 20200118 - Added check for walls with height >= 256
-          while (j < theight) and (mark1[j] <> 0) and (j - col.topdelta < 255) do
-            inc(j);
-          col.length := j - col.topdelta;
-          // copy opaque cells from the temporary back into the column
-          memcpy(PByteArray(integer(col) + 3), @source[col.topdelta], col.length);
-          col := Pcolumn_t(integer(col) + col.length + 4); // next post
         end;
-      end;
+    end
+    else  // Tall patch with multipatched columns nightmare
+    begin
+      for i := 0 to twidth - 1 do
+        if collump[i] < 0 then // process only multipatched columns
+        begin
+          col := Pcolumn_t(@block[colofs[i] - 3]);  // cached column
+          mark1 := @marks[i * theight];
+          j := 0;
+          lasttopdelta := 0;
+
+          // save column in temporary so we can shuffle it around
+          memcpy(source, PByteArray(integer(col) + 3), theight);
+          while true do  // reconstruct the column by scanning transparency marks
+          begin
+            // skip transparent cells
+            // JVAL: Fast skip, check 4 bytes at first
+            theight4 := theight - 4;
+            while (j < theight4) and (PInteger(@mark1[j])^ = 0) do
+              j := j + 4;
+            // JVAL: Finally check each of the remaining bytes
+            while (j < theight) and (mark1[j] = 0) do
+              inc(j);
+            if j >= theight then    // if at end of column
+            begin
+              col.topdelta := $FF;  // end-of-column marker
+              break;
+            end;
+
+            talltopdelta := j;
+            while (j < theight) and (mark1[j] <> 0) do
+              inc(j);
+            talllength := j - talltopdelta;
+
+            sourceposition := talltopdelta;
+            repeat
+              if talltopdelta < 255 then
+              begin
+                col.topdelta := talltopdelta;
+                lasttopdelta := talltopdelta;
+              end
+              else
+              begin
+                resttopdelta := talltopdelta - lasttopdelta;
+                repeat
+                  if resttopdelta > 254 then
+                  begin
+                    col.topdelta := lasttopdelta;
+                    lasttopdelta := lasttopdelta + lasttopdelta;
+                    col.length := 0;
+                    col := Pcolumn_t(integer(col) + col.length + 4); // next post
+                  end
+                  else
+                  begin
+                    col.topdelta := resttopdelta;
+                    lasttopdelta := talltopdelta;
+                  end;
+                until lasttopdelta = talltopdelta;
+              end;
+
+              if talllength > 254 then
+              begin
+                col.length := 254;
+                talllength := talllength - 254;
+              end
+              else
+              begin
+                col.length := talllength;
+                talllength := 0;
+              end;
+              // copy opaque cells from the temporary back into the column
+              memcpy(PByteArray(integer(col) + 3), @source[sourceposition], col.length);
+              sourceposition := sourceposition + col.length;
+              col := Pcolumn_t(integer(col) + col.length + 4); // next post
+            until talllength = 0;
+          end;
+        end;
+    end;
 
     memfree(pointer(source), theight);  // free temporary column
     memfree(pointer(marks), marksize);  // free transparency marks
   end;
-
 
   // Now that the texture has been built in column cache,
   //  it is purgable from zone memory.
   Z_ChangeTag(block, PU_CACHE);
 end;
 
+//==============================================================================
 //
 // R_GenerateLookup
 //
+//==============================================================================
 procedure R_GenerateLookup(const texnum: integer);
 var
   texture: Ptexture_t;
@@ -535,7 +709,6 @@ begin
 
   end;
 
-
   if texturecompositesize[texnum] > $10000 - texture.height then
     I_DevWarning('R_GenerateLookup(): texture %d is > 64k'#13#10, [texnum]);
 
@@ -563,6 +736,11 @@ const
     data: 0
   );
 
+//==============================================================================
+//
+// R_GetColumn
+//
+//==============================================================================
 function R_GetColumn(const tex: integer; col: integer): PByteArray;
 var
   lump: integer;
@@ -598,6 +776,12 @@ end;
 {$ENDIF}
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_GetDSs
+//
+//==============================================================================
 procedure R_GetDSs(const flat: integer);
 var
   lump: integer;
@@ -614,12 +798,23 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_GetLumpForFlat
+//
+//==============================================================================
 function R_GetLumpForFlat(const flat: integer): integer;
 begin
   result := flats[flats[flat].translation].lump;
 end;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_GetDCs
+//
+//==============================================================================
 procedure R_GetDCs(const tex: integer; const col: integer);
 begin
   if videomode = vm8bit then
@@ -629,11 +824,14 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+// R_InitTexturesOld
 //
 // R_InitTextures
 // Initializes the texture list
 //  with the textures from the world map.
 //
+//==============================================================================
 procedure R_InitTexturesOld;
 var
   mtexture: Pmaptexture2_t;
@@ -851,6 +1049,11 @@ begin
     texturetranslation[i] := i;
 end;
 
+//==============================================================================
+//
+// R_InitTextures
+//
+//==============================================================================
 procedure R_InitTextures;
 var
   mtexture: Pmaptexture_t;
@@ -1039,9 +1242,11 @@ begin
     texturetranslation[i] := i;
 end;
 
+//==============================================================================
 //
 // R_InitFlats
 //
+//==============================================================================
 procedure R_InitFlats;
 var
   i: integer;
@@ -1079,12 +1284,14 @@ begin
   R_ParseFlatInfoLumps;
 end;
 
+//==============================================================================
 //
 // R_InitSpriteLumps
 // Finds the width and hoffset of all sprites in the wad,
 //  so the sprite does not need to be cached completely
 //  just for having the header info ready during rendering.
 //
+//==============================================================================
 procedure R_InitSpriteLumps;
 var
   i: integer;
@@ -1142,7 +1349,7 @@ begin
       in_loop := false
     else if in_loop then
     begin
-      patch := W_CacheSpriteNum(firstspritelump + i, PU_STATIC); // JVAL: Images as sprites
+      patch := W_CacheSpriteNum(firstspritelump + i, nil, PU_STATIC); // JVAL: Images as sprites
       spritewidth[i] := patch.width * FRACUNIT;
       spriteoffset[i] := patch.leftoffset * FRACUNIT;
       spritetopoffset[i] := patch.topoffset * FRACUNIT;
@@ -1152,10 +1359,13 @@ begin
   end;
 end;
 
+//==============================================================================
+// R_SafeFreeMemory
 //
 // R_FreeMemory
 // JVAL: Free memory allocated without using zone
 //
+//==============================================================================
 procedure R_SafeFreeMemory;
 var
   i: integer;
@@ -1195,6 +1405,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_FreeMemory
+//
+//==============================================================================
 procedure R_FreeMemory;
 var
   i: integer;
@@ -1238,9 +1453,11 @@ begin
   W_ShutDownSprites; // JVAL: Images as sprites
 end;
 
+//==============================================================================
 //
 // R_InitColormaps
 //
+//==============================================================================
 procedure R_InitColormaps;
 var
   lump: integer;
@@ -1297,12 +1514,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // R_InitData
 // Locates all the lumps
 //  that will be used by all views
 // Must be called after W_Init.
 //
+//==============================================================================
 procedure R_InitData;
 begin
   R_InitHiRes;
@@ -1315,10 +1534,12 @@ begin
   R_InitColormaps;
 end;
 
+//==============================================================================
 //
 // R_FlatNumForName
 // Retrieval, get a flat number for a flat name.
 //
+//==============================================================================
 function R_FlatNumForName(const name: string): integer;
 var
   i: integer;
@@ -1373,6 +1594,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_SafeFlatNumForName
+//
+//==============================================================================
 function R_SafeFlatNumForName(const name: string): integer;
 var
   i: integer;
@@ -1426,6 +1652,11 @@ begin
   end
 end;
 
+//==============================================================================
+//
+// R_NewFlatNumForLump
+//
+//==============================================================================
 function R_NewFlatNumForLump(const lump: integer): integer;
 begin
   if (lump >= firstflat) and (lump <= lastflat) then
@@ -1453,12 +1684,13 @@ begin
   end
 end;
 
-
+//==============================================================================
 //
 // R_CheckTextureNumForName
 // Check whether texture is available.
 // Filter out NoTexture indicator.
 //
+//==============================================================================
 function R_CheckTextureNumForName(const name: string): integer;
 var
   i: integer;
@@ -1500,6 +1732,11 @@ begin
   result := -1;
 end;
 
+//==============================================================================
+//
+// R_SafeTextureNumForName
+//
+//==============================================================================
 function R_SafeTextureNumForName(const name: string): integer;
 var
   i: integer;
@@ -1543,11 +1780,13 @@ begin
   result := 0;
 end;
 
+//==============================================================================
 //
 // R_TextureNumForName
 // Calls R_CheckTextureNumForName,
 //  aborts with error message.
 //
+//==============================================================================
 function R_TextureNumForName(const name: string): integer;
 begin
   result := R_CheckTextureNumForName(name);
@@ -1556,6 +1795,11 @@ begin
     I_Error('R_TextureNumForName(): %s not found!', [name]);
 end;
 
+//==============================================================================
+//
+// R_NameForSideTexture
+//
+//==============================================================================
 function R_NameForSideTexture(const sn: SmallInt): char8_t;
 begin
   ZeroMemory(@result, SizeOf(Result));
@@ -1578,16 +1822,22 @@ begin
   Result := stringtochar8(customcolormaps[- sn - 1].name);
 end;
 
-
+//==============================================================================
+//
+// R_CacheFlat
+//
+//==============================================================================
 function R_CacheFlat(const lump: integer; const tag: integer): pointer;
 begin
   result := W_CacheLumpNum(lump, tag);
 end;
 
+//==============================================================================
 //
 // R_PrecacheLevel
 // Preloads all relevant graphics for the level.
 //
+//==============================================================================
 procedure R_PrecacheLevel;
 var
   flatpresent: PByteArray;
@@ -1730,6 +1980,11 @@ begin
   memfree(pointer(sprpresent), numspritespresent);
 end;
 
+//==============================================================================
+//
+// R_SetupLevel
+//
+//==============================================================================
 procedure R_SetupLevel;
 begin
   maxvisplane := -1;

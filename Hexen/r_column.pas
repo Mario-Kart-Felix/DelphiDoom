@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,13 +36,47 @@ uses
   m_fixed,
   r_main;
 
+//==============================================================================
+// R_DrawColumnLowest
+//
 // Column drawers
+//
+//==============================================================================
 procedure R_DrawColumnLowest;
+
+//==============================================================================
+//
+// R_DrawColumnLow
+//
+//==============================================================================
 procedure R_DrawColumnLow;
+
+//==============================================================================
+//
+// R_DrawColumnMedium
+//
+//==============================================================================
 procedure R_DrawColumnMedium;
+
+//==============================================================================
+//
+// R_DrawColumnHi
+//
+//==============================================================================
 procedure R_DrawColumnHi;
+
+//==============================================================================
+//
+// R_DrawColumnUltra
+//
+//==============================================================================
 procedure R_DrawColumnUltra;
 
+//==============================================================================
+//
+// R_DrawColumnBase32
+//
+//==============================================================================
 procedure R_DrawColumnBase32;
 
 var
@@ -83,11 +117,10 @@ uses
   doomdef,
   doomtype,
   r_precalc,
-  r_data,
-  r_draw,
-  r_hires,
-  v_video;
+  r_draw;
 
+//==============================================================================
+// R_DrawColumnLowest
 //
 // A column is a vertical slice/span from a wall texture that,
 //  given the DOOM style restrictions on the view orientation,
@@ -95,6 +128,7 @@ uses
 // Thus a special case loop for very fast rendering can
 //  be used. It has also been used with Wolfenstein 3D.
 //
+//==============================================================================
 procedure R_DrawColumnLowest;
 var
   count: integer;
@@ -148,6 +182,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnLow
+//
+//==============================================================================
 procedure R_DrawColumnLow;
 var
   count: integer;
@@ -195,6 +234,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnMedium
+//
+//==============================================================================
 procedure R_DrawColumnMedium;
 var
   count: integer;
@@ -309,6 +353,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnBase32
+//
+//==============================================================================
 procedure R_DrawColumnBase32;
 var
   count: integer;
@@ -337,6 +386,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnHi
+//
+//==============================================================================
 procedure R_DrawColumnHi;
 var
   count: integer;
@@ -348,7 +402,7 @@ var
   swidth: integer;
 
   r1, g1, b1: byte;
-  c, c1, r, g, b: LongWord;
+  c: LongWord;
   lfactor: integer;
   lspot: integer;
   ldest: LongWord;
@@ -422,6 +476,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnUltra
+//
+//==============================================================================
 procedure R_DrawColumnUltra;
 var
   count: integer;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Custom gravity
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,8 +39,18 @@ uses
   p_mobj_h,
   r_defs;
 
+//==============================================================================
+//
+// P_GetMobjGravity
+//
+//==============================================================================
 function P_GetMobjGravity(const mo: Pmobj_t): fixed_t;
 
+//==============================================================================
+//
+// P_GetSectorGravity
+//
+//==============================================================================
 function P_GetSectorGravity(const sec: Psector_t): fixed_t;
 
 implementation
@@ -49,6 +59,11 @@ uses
   doomdef,
   g_game;
 
+//==============================================================================
+//
+// P_GetMobjGravity
+//
+//==============================================================================
 function P_GetMobjGravity(const mo: Pmobj_t): fixed_t;
 begin
   if G_PlayingEngineVersion > VERSION204 then
@@ -59,6 +74,11 @@ begin
     result := GRAVITY;
 end;
 
+//==============================================================================
+//
+// P_GetSectorGravity
+//
+//==============================================================================
 function P_GetSectorGravity(const sec: Psector_t): fixed_t;
 begin
   if G_PlayingEngineVersion < VERSION204 then

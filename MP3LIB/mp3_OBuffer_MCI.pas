@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
-//  Copyright (C) 2004-2016 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------
 //  E-Mail: jimmyvalavanis@yahoo.gr
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -86,6 +86,11 @@ type
     procedure SetStopFlag; override;
   end;
 
+//==============================================================================
+//
+// CreateMCIOBffer
+//
+//==============================================================================
 function CreateMCIOBffer(Player: TPlayer): TOBuffer;
 
 implementation
@@ -94,6 +99,11 @@ uses
   i_system,
   mp3_Header;
 
+//==============================================================================
+//
+// CreateMCIOBffer
+//
+//==============================================================================
 function CreateMCIOBffer(Player: TPlayer): TOBuffer;
 var Mode: TMode;
     WhichChannels: TChannels;
@@ -112,9 +122,14 @@ end;
 
 { TOBuffer_MCI }
 
+//==============================================================================
+// TOBuffer_MCI.Append
+//
 // Need to break up the 32-bit integer into 2 8-bit bytes.
 // (ignore the first two bytes - either 0x0000 or 0xffff)
 // Note that Intel byte order is backwards!!!
+//
+//==============================================================================
 procedure TOBuffer_MCI.Append(Channel: Cardinal; Value: SmallInt);
 var Temp: PChar;
 begin
@@ -125,7 +140,12 @@ begin
   FBuffer[channel] := FBuffer[channel] + (FChannels shl 1);
 end;
 
+//==============================================================================
+// TOBuffer_MCI.ClearBuffer
+//
 // Clear all the data in the buffers
+//
+//==============================================================================
 procedure TOBuffer_MCI.ClearBuffer;
 var i, j: Cardinal;
     temp: PWaveHdr;
@@ -141,12 +161,12 @@ begin
 
     temp.dwUser := 0;
 
-    for j := 0 to FDataSize-1 do
+    for j := 0 to FDataSize - 1 do
       temp.lpData[j] := #0;
   end;
 
   // Reset buffer pointers
-  for i := 0 to FChannels-1 do
+  for i := 0 to FChannels - 1 do
     FBuffer[i] := i * FChannels;
 
   // Force the buffers to fillup before playing.
@@ -154,6 +174,11 @@ begin
   FBufferCount := 0;
 end;
 
+//==============================================================================
+//
+// TOBuffer_MCI.Create
+//
+//==============================================================================
 constructor TOBuffer_MCI.Create(NumberOfChannels: Cardinal;
   Player: TPlayer);
 var i: Cardinal;
@@ -210,12 +235,17 @@ begin
     temp.dwFlags         := 0;
   end;
 
-  for i := 0 to FChannels-1 do
+  for i := 0 to FChannels - 1 do
     FBuffer[i] := i * FChannels;
 
   FUserStop := 0;
 end;
 
+//==============================================================================
+//
+// TOBuffer_MCI.Destroy
+//
+//==============================================================================
 destructor TOBuffer_MCI.Destroy;
 var
   i, j: integer;
@@ -241,7 +271,7 @@ begin
          // Write the last wave header (probably not be written due to buffer
          // size increase.)
 
-         for i := FBuffer[FChannels-1] to FDataSize-1 do
+         for i := FBuffer[FChannels - 1] to FDataSize - 1 do
            PWaveHdr(PPointerArray(FWaveHdrArr)[2]).lpData[i] := #0;
 
          waveOutPrepareHeader(FHWO, PPointerArray(FWaveHdrArr)[2], FHdrSize);
@@ -276,12 +306,22 @@ begin
    I_Sleep(SLEEPTIME);
 end;
 
+//==============================================================================
+// TOBuffer_MCI.SetStopFlag
+//
 // Set the flag to avoid unpreparing non-existent headers
+//
+//==============================================================================
 procedure TOBuffer_MCI.SetStopFlag;
 begin
   FUserStop := 1;
 end;
 
+//==============================================================================
+//
+// TOBuffer_MCI.WaveSwap
+//
+//==============================================================================
 procedure TOBuffer_MCI.WaveSwap;
 var temp: Pointer;
 begin
@@ -291,7 +331,12 @@ begin
   PPointerArray(FWaveHdrArr)[0] := temp;
 end;
 
+//==============================================================================
+// TOBuffer_MCI.WriteBuffer
+//
 // Actually write only when buffer is actually full.
+//
+//==============================================================================
 procedure TOBuffer_MCI.WriteBuffer;
 var
   i: Cardinal;
@@ -344,7 +389,7 @@ begin
         WaveSwap;
     end;
 
-    for i := 0 to FChannels-1 do
+    for i := 0 to FChannels - 1 do
       FBuffer[i] := i * FChannels;
   end;
 end;

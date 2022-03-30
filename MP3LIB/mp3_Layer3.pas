@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 2004-2019 by Jim Valavanis
 //
@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------
 //  E-Mail: jimmyvalavanis@yahoo.gr
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -131,6 +131,11 @@ uses
 
 { TLayerIII_Decoder }
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Antialias
+//
+//==============================================================================
 procedure TLayerIII_Decoder.Antialias(ch, gr: Cardinal);
 var ss, sb18, sb18lim: Cardinal;
     gr_info: PGRInfo;
@@ -166,6 +171,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Create
+//
+//==============================================================================
 constructor TLayerIII_Decoder.Create(Stream: TBitStream; Header: THeader;
   FilterA, FilterB: TSynthesisFilter; Buffer: TOBuffer;
   Which_Ch: TChannels);
@@ -235,6 +245,11 @@ begin
   GetMem(FSI, Sizeof(TIIISideInfo));
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.CreateBitReserve
+//
+//==============================================================================
 procedure TLayerIII_Decoder.CreateBitReserve;
 var
   cnt: integer;
@@ -255,6 +270,11 @@ begin
     I_Error('TLayerIII_Decoder.CreateBitReserve(): Can not create FBR');
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Decode
+//
+//==============================================================================
 procedure TLayerIII_Decoder.Decode;
 var
   nSlots: Cardinal;
@@ -373,6 +393,11 @@ begin
   FBuffer.WriteBuffer;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.DequantizeSample
+//
+//==============================================================================
 procedure TLayerIII_Decoder.DequantizeSample(var xr: TSArray; ch,
   gr: Cardinal);
 var
@@ -504,6 +529,11 @@ begin
     xr1d[j] := 0.0;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Destroy
+//
+//==============================================================================
 destructor TLayerIII_Decoder.Destroy;
 begin
   FreeAndNil(FBR);
@@ -512,11 +542,16 @@ begin
   inherited Destroy;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.DoDownmix
+//
+//==============================================================================
 procedure TLayerIII_Decoder.DoDownmix;
 var
   ss, sb: Cardinal;
 begin
-  for sb := 0 to SBLIMIT-1 do
+  for sb := 0 to SBLIMIT - 1 do
   begin
     ss := 0;
     while ss < SSLIMIT do
@@ -541,6 +576,11 @@ const
 var
   ScaleFacBuffer: array[0..53] of Cardinal;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.GetLSFScaleData
+//
+//==============================================================================
 procedure TLayerIII_Decoder.GetLSFScaleData(ch, gr: Cardinal);
 var
   new_slen: array[0..3] of Cardinal;
@@ -648,6 +688,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.GetLSFScaleFactors
+//
+//==============================================================================
 procedure TLayerIII_Decoder.GetLSFScaleFactors(ch, gr: Cardinal);
 var
   m: Cardinal;
@@ -704,6 +749,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.GetScaleFactors
+//
+//==============================================================================
 procedure TLayerIII_Decoder.GetScaleFactors(ch, gr: Cardinal);
 var
   sfb, window: Integer;
@@ -818,11 +868,15 @@ begin
   end;
 end;
 
+//==============================================================================
+// TLayerIII_Decoder.GetSideInfo
+//
 // Reads the side info from the stream, assuming the entire
 // frame has been read already.
-
 // Mono   : 136 bits (= 17 bytes)
 // Stereo : 256 bits (= 32 bytes)
+//
+//==============================================================================
 function TLayerIII_Decoder.GetSideInfo: Boolean;
 var
   ch, gr: Cardinal;
@@ -953,6 +1007,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.HuffmanDecode
+//
+//==============================================================================
 procedure TLayerIII_Decoder.HuffmanDecode(ch, gr: Cardinal);
 var
   i: Cardinal;
@@ -1043,6 +1102,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Hybrid
+//
+//==============================================================================
 procedure TLayerIII_Decoder.Hybrid(ch, gr: Cardinal);
 var
   rawout: array[0..35] of Single;
@@ -1109,6 +1173,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.IStereoKValues
+//
+//==============================================================================
 procedure TLayerIII_Decoder.IStereoKValues(IsPos, IOType, i: Cardinal);
 begin
   if IsPos = 0 then
@@ -1128,6 +1197,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Reorder
+//
+//==============================================================================
 procedure TLayerIII_Decoder.Reorder(xr: PSArray; ch, gr: Cardinal);
 var
   gr_info: PGRInfo;
@@ -1187,6 +1261,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.SeekNotify
+//
+//==============================================================================
 procedure TLayerIII_Decoder.SeekNotify;
 begin
   FFrameStart := 0;
@@ -1197,6 +1276,11 @@ begin
   CreateBitReserve;
 end;
 
+//==============================================================================
+//
+// TLayerIII_Decoder.Stereo
+//
+//==============================================================================
 procedure TLayerIII_Decoder.Stereo(gr: Cardinal);
 var
   sb, ss: Integer;

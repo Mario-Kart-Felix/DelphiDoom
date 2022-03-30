@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  DDMODEL Script functions import
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -57,14 +57,39 @@ type
     property Count: integer read fNumItems;
   end;
 
+//==============================================================================
+//
+// MDL_InitProcList
+//
+//==============================================================================
 procedure MDL_InitProcList;
 
+//==============================================================================
+//
+// MDL_ShutDownProcList
+//
+//==============================================================================
 procedure MDL_ShutDownProcList;
 
+//==============================================================================
+//
+// MDL_RegisterProcsCompiler
+//
+//==============================================================================
 procedure MDL_RegisterProcsCompiler(const C: TPSPascalCompiler);
 
+//==============================================================================
+//
+// MDL_RegisterProcsExec
+//
+//==============================================================================
 procedure MDL_RegisterProcsExec(const E: TPSExec);
 
+//==============================================================================
+//
+// MDL_Procs
+//
+//==============================================================================
 function MDL_Procs: string;
 
 implementation
@@ -74,6 +99,11 @@ uses
   mdl_script_model,
   mdl_script_functions;
 
+//==============================================================================
+//
+// TMDLProcedureList.Create
+//
+//==============================================================================
 constructor TMDLProcedureList.Create;
 begin
   fList := nil;
@@ -82,7 +112,11 @@ begin
   inherited Create;
 end;
 
-
+//==============================================================================
+//
+// TMDLProcedureList.Destroy
+//
+//==============================================================================
 destructor TMDLProcedureList.Destroy;
 var
   i: integer;
@@ -101,6 +135,11 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// TMDLProcedureList.Add
+//
+//==============================================================================
 procedure TMDLProcedureList.Add(const decl: string; const proc: pointer);
 const
   REALLOCSTEP = 16;
@@ -132,6 +171,11 @@ begin
   inc(fNumItems);
 end;
 
+//==============================================================================
+//
+// TMDLProcedureList.RegisterProcsComp
+//
+//==============================================================================
 procedure TMDLProcedureList.RegisterProcsComp(Sender: TPSPascalCompiler);
 var
   i: integer;
@@ -148,6 +192,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TMDLProcedureList.RegisterProcsExec
+//
+//==============================================================================
 procedure TMDLProcedureList.RegisterProcsExec(Sender: TPSExec);
 var
   i: integer;
@@ -157,6 +206,11 @@ begin
       Sender.RegisterDelphiFunction(fList[i].proc, fList[i].name.str, cdRegister);
 end;
 
+//==============================================================================
+//
+// TMDLProcedureList.Reset
+//
+//==============================================================================
 procedure TMDLProcedureList.Reset;
 var
   i: integer;
@@ -165,6 +219,11 @@ begin
     fList[i].iscomputed := false;
 end;
 
+//==============================================================================
+//
+// TMDLProcedureList.GetDeclarations
+//
+//==============================================================================
 function TMDLProcedureList.GetDeclarations: string;
 var
   i: integer;
@@ -174,6 +233,11 @@ begin
     Result := Result + flist[i].exportdecl.str + #13#10;
 end;
 
+//==============================================================================
+//
+// TMDLProcedureList.GetFunctionNames
+//
+//==============================================================================
 function TMDLProcedureList.GetFunctionNames: string;
 var
   i: integer;
@@ -186,6 +250,11 @@ end;
 var
   proclist: TMDLProcedureList;
 
+//==============================================================================
+//
+// MDL_InitProcList
+//
+//==============================================================================
 procedure MDL_InitProcList;
 begin
   proclist := TMDLProcedureList.Create;
@@ -241,7 +310,7 @@ begin
   proclist.Add('function LogN(const Base, X: Extended): Extended;', @MDLS_LogN);
   proclist.Add('function IntPower(const Base: Extended; const Exponent: Integer): Extended;', @MDLS_IntPower);
   proclist.Add('function Power(const Base, Exponent: Extended): Extended;', @MDLS_Power);
-  proclist.Add('function Ceil(const X: Extended):Integer;', @MDLS_Ceil);
+  proclist.Add('function Ceil(const X: Extended): Integer;', @MDLS_Ceil);
   proclist.Add('function Floor(const X: Extended): Integer;', @MDLS_Floor);
   //--- model drawing functions (OpenGL wrapper)
   proclist.Add('procedure glBegin(const mode: GLenum);', @MDLS_glBegin);
@@ -262,21 +331,41 @@ begin
   proclist.Add('procedure CallFrame(const frm: integer);', @MDLS_CallFrame);
 end;
 
+//==============================================================================
+//
+// MDL_ShutDownProcList
+//
+//==============================================================================
 procedure MDL_ShutDownProcList;
 begin
   proclist.Free;
 end;
 
+//==============================================================================
+//
+// MDL_RegisterProcsCompiler
+//
+//==============================================================================
 procedure MDL_RegisterProcsCompiler(const C: TPSPascalCompiler);
 begin
   proclist.RegisterProcsComp(C);
 end;
 
+//==============================================================================
+//
+// MDL_RegisterProcsExec
+//
+//==============================================================================
 procedure MDL_RegisterProcsExec(const E: TPSExec);
 begin
   proclist.RegisterProcsExec(E);
 end;
 
+//==============================================================================
+//
+// MDL_Procs
+//
+//==============================================================================
 function MDL_Procs: string;
 begin
   MDL_InitProcList;

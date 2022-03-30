@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  PCX additional loader.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,6 +38,11 @@ uses
    Classes,
    Graphics;
 
+//==============================================================================
+//
+// PCXLoadFromFile
+//
+//==============================================================================
 procedure PCXLoadFromFile(FileName: string; const bitmap: TBitmap);
 
 implementation
@@ -105,6 +110,11 @@ const
 var
   IndexData: array[0..PCXBUFFERSIZE - 1] of Byte;
 
+//==============================================================================
+//
+// FileGetMore
+//
+//==============================================================================
 procedure FileGetMore;
 var
   NumRead: Integer;
@@ -115,6 +125,11 @@ begin
   Index2 := 0;
 end;
 
+//==============================================================================
+//
+// FastGetByte
+//
+//==============================================================================
 function FastGetByte: Byte;
 begin
   if Index1 = 0 then
@@ -124,17 +139,32 @@ begin
   Dec(Index1);
 end;
 
+//==============================================================================
+//
+// FastGetWord
+//
+//==============================================================================
 function FastGetWord: Word;
 begin
   FastGetWord := Word(FastGetByte) + Word(FastGetByte) * 256;
 end;
 
+//==============================================================================
+//
+// FileIoReset
+//
+//==============================================================================
 procedure FileIoReset;
 begin
   Index1 := 0;
   Index2 := 0;
 end;
 
+//==============================================================================
+//
+// OpenFile
+//
+//==============================================================================
 procedure OpenFile(var FileName: string; var FileOk: Boolean);
 var
   OldFileMode: Word;
@@ -149,11 +179,21 @@ begin
   FileMode := OldFileMode;
 end;
 
+//==============================================================================
+//
+// FillerUp
+//
+//==============================================================================
 procedure FillerUp(var TempArrayD; Size: Word; B1: Byte);
 begin
   FillChar(TempArrayD, Size, B1);
 end;
 
+//==============================================================================
+//
+// SetUpMaskGrayPalette
+//
+//==============================================================================
 procedure SetUpMaskGrayPalette;
 var
   I, J: Integer;
@@ -167,11 +207,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// PCXGrayValue
+//
+//==============================================================================
 function PCXGrayValue(R, G, B: Word): Word;
 begin
   Result := ((R shl 5) + (G shl 6) + (B * 12)) div 108;
 end;
 
+//==============================================================================
+//
+// MakePalBW
+//
+//==============================================================================
 procedure MakePalBW(const bitmap: TBitmap);
 begin
   SysPal.LPal.palVersion := $300;
@@ -187,6 +237,11 @@ begin
   Bitmap.Palette := CreatePalette(Syspal.LPal);
 end;
 
+//==============================================================================
+//
+// MakePalPalette
+//
+//==============================================================================
 procedure MakePalPalette(const bitmap: TBitmap);
 var
   I: Integer;
@@ -203,12 +258,17 @@ begin
   Bitmap.Palette := CreatePalette(Syspal.LPal);
 end;
 
+//==============================================================================
+//
+// MakeGenPalette
+//
+//==============================================================================
 procedure MakeGenPalette;
 var
   X: Word;
-  R,G,B: Word;
+  R, G, B: Word;
 begin
-  X:=0;
+  X := 0;
   for R := 0 to 7 do
   begin
     for G := 0 to 7 do
@@ -224,6 +284,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// ShouldIKeepTrueFormat
+//
+//==============================================================================
 function ShouldIKeepTrueFormat(var BPP: Word): Boolean;
 begin
 {
@@ -242,11 +307,21 @@ begin
     BPP := 24;
 end;
 
+//==============================================================================
+//
+// DetColorVGA 
+//
+//==============================================================================
 procedure DetColorVGA (var PValue: Byte; MapValue: Byte);
 begin
   PValue := MapValue div 4;
 end;
 
+//==============================================================================
+//
+// PaletteDefaults
+//
+//==============================================================================
 procedure PaletteDefaults;
 var
   i, j: integer;
@@ -258,6 +333,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SetUpMaskAndColorMap
+//
+//==============================================================================
 procedure SetUpMaskAndColorMap;
 var
   R, G, B, PalBlue, PalGreen, PalRed: Byte;
@@ -302,6 +382,11 @@ end;
 ============================================
 }
 
+//==============================================================================
+//
+// ReadPCXLine
+//
+//==============================================================================
 procedure ReadPCXLine;
 var
   N, MaximumN, Z: Word;
@@ -403,6 +488,11 @@ begin
   until N >= MaximumN;
 end;
 
+//==============================================================================
+//
+// ReadPcxHeader
+//
+//==============================================================================
 procedure ReadPcxHeader(var FileOk: Boolean; var ErrorString: ShortString);
 var
   B1: Byte;
@@ -444,6 +534,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// PCXLoadFromFile
+//
+//==============================================================================
 procedure PCXLoadFromFile;
 var
   B1: Byte;
@@ -671,7 +766,7 @@ begin
         FillerUp(TempArrayDBIG^[0], Width * PcxColorPlanes + 20{Slack Bytes}, 0);
       end;
       ReadPCXLine;
-      if (PCXColorPlanes = 3) and (BitsPerPixel = 8)   then
+      if (PCXColorPlanes = 3) and (BitsPerPixel = 8) then
       begin
        {
        { 24 Bit Image!

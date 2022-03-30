@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -31,24 +31,36 @@ unit d_check;
 
 interface
 
+//==============================================================================
+//
+// D_CheckCustomWad
+//
+//==============================================================================
 procedure D_CheckCustomWad(const filename: string);
 
+//==============================================================================
+//
+// D_GetSavePath
+//
+//==============================================================================
 function D_GetSavePath: string;
 
 implementation
 
 uses
   d_delphi,
-  doomdef,
-  doomstat,
   m_argv,
   m_crc32,
-  w_wad,
   w_wadreader;
 
 var
   savepath: string = 'heretic';
 
+//==============================================================================
+//
+// D_CheckUnknownWad
+//
+//==============================================================================
 function D_CheckUnknownWad(const filename: string): boolean;
 const
   sNUMS = '0123456789';
@@ -66,7 +78,7 @@ begin
   wad.OpenWadFile(filename);
   numlumps := wad.NumEntries;
 
-  splitstring(fname(filename), name, s, '.');
+  splitstring_ch(fname(filename), name, s, '.');
   nummaps := 0;
 
   for i := 0 to numlumps - 1 do
@@ -88,11 +100,21 @@ begin
     savepath := name + '_' + crc;
 end;
 
+//==============================================================================
+//
+// D_CheckCustomWad
+//
+//==============================================================================
 procedure D_CheckCustomWad(const filename: string);
 begin
   D_CheckUnknownWad(filename);
 end;
 
+//==============================================================================
+//
+// D_GetSavePath
+//
+//==============================================================================
 function D_GetSavePath: string;
 var
   s: string;

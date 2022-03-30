@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,25 +38,65 @@ uses
 // Needs access to LFB (guess what).
   v_video;
 
+//==============================================================================
+//
+// R_VideoErase
+//
+//==============================================================================
 procedure R_VideoErase(const ofs: integer; const count: integer);
 
+//==============================================================================
+//
+// R_VideoBlanc
+//
+//==============================================================================
 procedure R_VideoBlanc(const scn: integer; const ofs: integer; const count: integer; const black: byte = 0);
 
+//==============================================================================
+//
+// R_PlayerViewBlanc
+//
+//==============================================================================
 procedure R_PlayerViewBlanc(const black: byte);
 
+//==============================================================================
+//
+// R_InitBuffer
+//
+//==============================================================================
 procedure R_InitBuffer(width, height: integer);
 
+//==============================================================================
+// R_InitTranslationTables
+//
 // Initialize color translation tables,
 //  for player rendering etc.
+//
+//==============================================================================
 procedure R_InitTranslationTables;
 
+//==============================================================================
+// R_FillBackScreen
+//
 // Rendering function.
+//
+//==============================================================================
 procedure R_FillBackScreen;
 
+//==============================================================================
+// R_DrawViewBorder
+//
 // If the view size is not full screen, draws a border around it.
+//
+//==============================================================================
 procedure R_DrawViewBorder;
 
+//==============================================================================
+// R_DrawDiskBusy
+//
 // Draw disk busy patch
+//
+//==============================================================================
 procedure R_DrawDiskBusy;
 
 var
@@ -99,22 +139,35 @@ type
     CR_ORANGE,  //8
     CR_YELLOW,  //9
     CR_BLUE2,   //10
-    CR_LIMIT    //11
+    CR_BLACK,   //11
+    CR_PURPL,   //12
+    CR_WHITE,   //13
+    CR_TRANS0,  //14
+    CR_TRANS1,  //15
+    CR_TRANS2,  //16
+    CR_TRANS3,  //17
+    CR_TRANS4,  //18
+    CR_TRANS5,  //19
+    CR_TRANS6,  //20
+    CR_TRANS7,  //21
+    CR_TRANS8,  //22
+    CR_TRANS9,  //23
+    CR_LIMIT    //24
   );
 
 var
   colorregions: array[0..Ord(CR_LIMIT) - 1] of PByteArray;
 
-
 implementation
 
 uses
   am_map,
-  i_system,
   m_argv,
   r_hires,
-  w_wad, z_zone,
+  w_wad,
+  z_zone,
   sb_bar,
+  i_system,
 {$IFDEF OPENGL}
   gl_render,
 {$ENDIF}
@@ -122,6 +175,7 @@ uses
   doomstat,
   v_data;
 
+//==============================================================================
 //
 // R_InitTranslationTables
 // Creates the translation tables to map
@@ -129,22 +183,24 @@ uses
 // Assumes a given structure of the PLAYPAL.
 // Could be read from a lump instead.
 //
+//==============================================================================
 procedure R_InitTranslationTables;
 var
   i, j: integer;
   lump: integer;
+  lump2: integer;
 begin
   translationtables := Z_Malloc(256 * 3 + 255, PU_STATIC, nil);
   translationtables := PByteArray((integer(translationtables) + 255 ) and not 255);
 
   // translate just the 16 green colors
   for i := 0 to 255 do
-    if (i >= $70) and (i <= $7f) then
+    if (i >= 255) and (i <= 240) then
     begin
       // map green ramp to gray, brown, red
-      translationtables[i] := $60 + (i and $f);
-      translationtables[i + 256] := $40 + (i and $f);
-      translationtables[i + 512] := $20 + (i and $f);
+      translationtables[i] := 114 + (i - 225);  // yellow
+      translationtables[i + 256] := 145 + (i - 225);  // red
+      translationtables[i + 512] := 190 + (i - 225);  // blue
     end
     else
     begin
@@ -160,6 +216,7 @@ begin
     colorregions[i] := Z_Malloc(256, PU_STATIC, nil);
   if lump = -1 then
   begin
+    printf(#13#10); // JVAL: keep stdout happy...
     I_Warning('Colormap extensions not found, using default translations'#13#10);
     for i := 0 to Ord(CR_LIMIT) - 1 do
       for j := 0 to 255 do
@@ -170,12 +227,17 @@ begin
     for i := 0 to Ord(CR_LIMIT) - 1 do
     begin
       inc(lump);
-      W_ReadLump(lump, colorregions[i]);
+      lump2 := W_CheckNumForName(W_GetNameForNum(lump));
+      if W_LumpLength(lump2) = 256 then
+        W_ReadLump(lump2, colorregions[i])
+      else
+        W_ReadLump(lump, colorregions[i]);
     end;
   end;
 
 end;
 
+//==============================================================================
 //
 // R_InitBuffer
 // Creats lookup tables that avoid
@@ -183,6 +245,7 @@ end;
 //  for getting the framebuffer address
 //  of a pixel to draw.
 //
+//==============================================================================
 procedure R_InitBuffer(width, height: integer);
 var
   i: integer;
@@ -220,6 +283,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// R_ScreenBlanc
+//
+//==============================================================================
 procedure R_ScreenBlanc(const scn: integer; const black: byte = 0);
 var
   x, i: integer;
@@ -232,13 +300,14 @@ begin
   end;
 end;
 
-
+//==============================================================================
 //
 // R_FillBackScreen
 // Fills the back screen with a pattern
 //  for variable screen sizes
 // Also draws a beveled edge.
 //
+//==============================================================================
 procedure R_FillBackScreen;
 var
 {$IFNDEF OPENGL}
@@ -348,9 +417,12 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+// R_VideoErase
 //
 // Copy a screen buffer.
 //
+//==============================================================================
 procedure R_VideoErase(const ofs: integer; const count: integer);
 var
   i: integer;
@@ -381,6 +453,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// R_VideoBlanc
+//
+//==============================================================================
 procedure R_VideoBlanc(const scn: integer; const ofs: integer; const count: integer; const black: byte = 0);
 var
   start: PByte;
@@ -392,7 +469,7 @@ begin
   begin
     lblack := curpal[black];
     lstrart := @screen32[ofs];
-    for i := 0 to count -1 do
+    for i := 0 to count - 1 do
     begin
       lstrart^ := lblack;
       inc(lstrart);
@@ -405,16 +482,23 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_PlayerViewBlanc
+//
+//==============================================================================
 procedure R_PlayerViewBlanc(const black: byte);
 begin
   R_ScreenBlanc(SCN_FG, black);
 end;
 
+//==============================================================================
 //
 // R_DrawViewBorder
 // Draws the border around the view
 //  for different size windows?
 //
+//==============================================================================
 procedure R_DrawViewBorder;
 begin
   if scaledviewwidth < SCREENWIDTH then
@@ -426,6 +510,11 @@ var
   disklump: integer = -2;
   diskpatch: Ppatch_t = nil;
 
+//==============================================================================
+//
+// R_DrawDiskBusy
+//
+//==============================================================================
 procedure R_DrawDiskBusy;
 begin
   if not displaydiskbusyicon then
@@ -439,7 +528,12 @@ begin
     if disklump < 0 then
       disklump := W_CheckNumForName('STDISK');
     if disklump >= 0 then
-      diskpatch := W_CacheLumpNum(disklump, PU_STATIC);
+      diskpatch := W_CacheLumpNum(disklump, PU_STATIC)
+    else
+    begin
+      I_Warning('Disk busy lump not found!'#13#10);
+      exit;
+    end;
   end;
 
   if diskpatch <> nil then

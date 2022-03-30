@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,13 +33,29 @@ interface
 uses
   d_delphi,
   m_fixed,
-  tables, // JVAL: 20200221 - Texture angle
-  r_main;
+  tables; // JVAL: 20200221 - Texture angle
 
+//==============================================================================
+// R_DrawSpanLow
+//
 // Span blitting for rows, floor/ceiling.
 // No Sepctre effect needed.
+//
+//==============================================================================
 procedure R_DrawSpanLow;
+
+//==============================================================================
+//
+// R_DrawSpanMedium
+//
+//==============================================================================
 procedure R_DrawSpanMedium;
+
+//==============================================================================
+//
+// R_DrawSpanMedium_Ripple
+//
+//==============================================================================
 procedure R_DrawSpanMedium_Ripple;
 
 var
@@ -60,6 +76,8 @@ var
   ds_cosine: float;   // JVAL: 20200225 - Texture angle
   ds_viewsine: float;     // JVAL: 20200225 - Texture angle
   ds_viewcosine: float;   // JVAL: 20200225 - Texture angle
+  ds_tviewx: fixed_t; // JVAL: 20220329 - Texture angle
+  ds_tviewy: fixed_t; // JVAL: 20220329 - Texture angle
 
 // start of a 64*64 tile image
   ds_source: PByteArray;
@@ -72,6 +90,9 @@ uses
   r_draw,
   r_flatinfo,
   r_ripple;
+
+//==============================================================================
+// R_DrawSpanLow
 //
 // R_DrawSpan
 // With DOOM style restrictions on view orientation,
@@ -84,10 +105,9 @@ uses
 // In consequence, flats are not stored by column (like walls),
 //  and the inner loop has to step in texture space u and v.
 //
-
-//
 // Draws the actual span (Low resolution).
 //
+//==============================================================================
 procedure R_DrawSpanLow;
 var
   xfrac: fixed_t;
@@ -254,7 +274,6 @@ begin
       end;
     end;
 
-
     count := (ds_x2 - ds_x1) div 3;
     if count < 0 then
       exit;
@@ -331,9 +350,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// R_DrawSpanMedium
 //
 // Draws the actual span (Medium resolution).
 //
+//==============================================================================
 procedure R_DrawSpanMedium;
 var
   xfrac: fixed_t;
@@ -344,7 +366,6 @@ var
   count: integer;
   i: integer;
   spot: integer;
-  fb: fourbytes_t;
 begin
   dest := @((ylookup[ds_y]^)[columnofs[ds_x1]]);
 
@@ -357,6 +378,11 @@ begin
   {$I R_DrawSpanMedium.inc}
 end;
 
+//==============================================================================
+//
+// R_DrawSpanMedium_Ripple
+//
+//==============================================================================
 procedure R_DrawSpanMedium_Ripple;
 var
   xfrac: fixed_t;
@@ -368,7 +394,6 @@ var
   i: integer;
   spot: integer;
   rpl: PIntegerArray;
-  fb: fourbytes_t;
 begin
   dest := @((ylookup[ds_y]^)[columnofs[ds_x1]]);
 

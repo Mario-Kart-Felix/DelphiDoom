@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$IFDEF FPC}
@@ -157,6 +157,8 @@ uses
   i_io in 'Base\i_io.pas',
   i_main in 'Base\i_main.pas',
   i_midi in 'Base\i_midi.pas',
+  i_midi_legacy in 'Base\i_midi_legacy.pas',
+  i_midi_new in 'Base\i_midi_new.pas',
   i_mp3 in 'Base\i_mp3.pas',
   i_music in 'Base\i_music.pas',
   i_net in 'Base\i_net.pas',
@@ -197,7 +199,7 @@ uses
   p_scroll in 'Doom\p_scroll.pas',
   p_setup in 'Doom\p_setup.pas',
   p_sight in 'Doom\p_sight.pas',
-  p_sounds in 'Doom\p_sounds.pas',
+  p_sounds in 'Base\p_sounds.pas',
   p_spec in 'Doom\p_spec.pas',
   p_switch in 'Doom\p_switch.pas',
   p_telept in 'Doom\p_telept.pas',
@@ -208,8 +210,8 @@ uses
   r_cache_main in 'Base\r_cache_main.pas',
   r_cache_walls in 'Base\r_cache_walls.pas',
   r_cache_flats in 'Base\r_cache_flats.pas',
-  r_col_al in 'Doom\r_col_al.pas',
-  r_col_av in 'Doom\r_col_av.pas',
+  r_draw_alpha in 'Base\r_draw_alpha.pas',
+  r_draw_average in 'Base\r_draw_average.pas',
   r_col_fz in 'Doom\r_col_fz.pas',
   r_col_l in 'Base\r_col_l.pas',
   r_col_ms in 'Doom\r_col_ms.pas',
@@ -373,6 +375,7 @@ uses
   libogg in 'AUDIOLIB\libogg.pas',
   libsndfile in 'AUDIOLIB\libsndfile.pas',
   libvorbis in 'AUDIOLIB\libvorbis.pas',
+  libm2m in 'AUDIOLIB\libm2m.pas',
   c_lib in 'C_LIB\c_lib.pas',
   scanf in 'C_LIB\scanf.pas',
   scanf_c in 'C_LIB\scanf_c.pas',
@@ -392,7 +395,46 @@ uses
   s_externalmusic in 'Base\s_externalmusic.pas',
   info_export in 'Base\info_export.pas',
   p_bouncing in 'Base\p_bouncing.pas',
-  p_simpledialog in 'Base\p_simpledialog.pas';
+  p_simpledialog in 'Base\p_simpledialog.pas',
+  s_pk3sounds in 'Base\s_pk3sounds.pas',
+  p_playertrace in 'Base\p_playertrace.pas',
+  p_friends in 'Base\p_friends.pas',
+  sounddata in 'Doom\sounddata.pas',
+  r_translations in 'Base\r_translations.pas',
+  xmi_consts in 'XMILIB\xmi_consts.pas',
+  xmi_core in 'XMILIB\xmi_core.pas' {XMICore},
+  xmi_iff in 'XMILIB\xmi_iff.pas',
+  xmi_lib in 'XMILIB\xmi_lib.pas',
+  i_xmimusic in 'Base\i_xmimusic.pas',
+  sc_defines in 'Base\sc_defines.pas',
+  p_serializer in 'Base\p_serializer.pas',
+  sv_doom in 'Doom\sv_doom.pas',
+  p_umapinfo in 'Base\p_umapinfo.pas',
+  p_uactornames in 'Doom\p_uactornames.pas',
+  p_blockmap in 'Base\p_blockmap.pas',
+  acs in 'Base\acs.pas',
+  acs_common in 'Base\acs_common.pas',
+  acs_error in 'Base\acs_error.pas',
+  acs_misc in 'Base\acs_misc.pas',
+  acs_parse in 'Base\acs_parse.pas',
+  acs_pcode in 'Base\acs_pcode.pas',
+  acs_strlist in 'Base\acs_strlist.pas',
+  acs_symbol in 'Base\acs_symbol.pas',
+  acs_token in 'Base\acs_token.pas',
+  p_acs in 'Base\p_acs.pas',
+  po_man in 'Base\po_man.pas',
+  udmf_things in 'Base\udmf_things.pas',
+  udmf_mobj in 'Base\udmf_mobj.pas',
+  udmf_spec in 'Base\udmf_spec.pas',
+  udmf_doors in 'Base\udmf_doors.pas',
+  udmf_floor in 'Base\udmf_floor.pas',
+  udmf_ceilng in 'Base\udmf_ceilng.pas',
+  udmf_plats in 'Base\udmf_plats.pas',
+  udmf_telept in 'Base\udmf_telept.pas',
+  udmf_lights in 'Base\udmf_lights.pas',
+  v_palettes in 'Base\v_palettes.pas',
+  p_easywind in 'Base\p_easywind.pas',
+  psi_map in 'SCRIPT\psi_map.pas';
 
 var
   Saved8087CW: Word;

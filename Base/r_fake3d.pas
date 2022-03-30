@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Fake 3d perspective in software rendering mode
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -42,18 +42,53 @@ uses
 var
   usefake3d: boolean;
 
+//==============================================================================
+//
+// R_Set3DLookup
+//
+//==============================================================================
 procedure R_Set3DLookup(p: Pplayer_t);
 
+//==============================================================================
+//
+// R_Wait3DLookup
+//
+//==============================================================================
 procedure R_Wait3DLookup;
 
+//==============================================================================
+//
+// R_Execute3DTransform
+//
+//==============================================================================
 procedure R_Execute3DTransform;
 
+//==============================================================================
+//
+// R_ShutDownFake3D
+//
+//==============================================================================
 procedure R_ShutDownFake3D;
 
+//==============================================================================
+//
+// R_InitFake3D
+//
+//==============================================================================
 procedure R_InitFake3D;
 
+//==============================================================================
+//
+// R_Fake3DAspectCorrection
+//
+//==============================================================================
 function R_Fake3DAspectCorrection(const p: Pplayer_t): Double;
 
+//==============================================================================
+//
+// R_Fake3DAdjustPlanes
+//
+//==============================================================================
 procedure R_Fake3DAdjustPlanes(const p: Pplayer_t);
 
 var
@@ -67,13 +102,11 @@ implementation
 
 uses
   doomdef,
-  tables,
   m_fixed,
   i_system,
   i_threads,
   r_draw,
   r_hires,
-  r_main,
   r_plane,
 {$IFDEF DEBUG}
   r_debug,
@@ -109,9 +142,11 @@ var
 const
   LOOKDIR_TO_ANGLE = 0.5 / 16;
 
+//==============================================================================
 //
 // R_ComputeFake3DTables
 //
+//==============================================================================
 procedure R_ComputeFake3DTables(const l: integer);
 var
   f3d: Pf3dinfo_t;
@@ -314,6 +349,11 @@ begin
   f3d.computed := true;
 end;
 
+//==============================================================================
+//
+// R_Fake3DAdjustPlanes
+//
+//==============================================================================
 procedure R_Fake3DAdjustPlanes(const p: Pplayer_t);
 var
   i: integer;
@@ -376,6 +416,11 @@ var
 var
   setup3dworker: TDThread;
 
+//==============================================================================
+//
+// do_Set3DLookup
+//
+//==============================================================================
 function do_Set3DLookup(p: Pplayer_t): Integer; stdcall;
 begin
   R_ComputeFake3DTables(fake3dlookdir);
@@ -383,6 +428,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// R_Set3DLookup
+//
+//==============================================================================
 procedure R_Set3DLookup(p: Pplayer_t);
 var
   i: integer;
@@ -422,15 +472,23 @@ begin
     do_Set3DLookup(p);
 end;
 
+//==============================================================================
+//
+// R_Wait3DLookup
+//
+//==============================================================================
 procedure R_Wait3DLookup;
 begin
   setup3dworker.Wait;
 end;
 
+//==============================================================================
+// R_Execute3DTransform8
 //
 // JVAL
 // Execute 3D Transform in 8 bit mode
 //
+//==============================================================================
 procedure R_Execute3DTransform8(const start, stop: integer; buffer: PByteArray);
 var
   f3d: Pf3dinfo_t;
@@ -497,10 +555,13 @@ begin
   end;
 end;
 
+//==============================================================================
+// R_Execute3DTransform32
 //
 // JVAL
 // Execute 3D Transform in 32 bit mode
 //
+//==============================================================================
 procedure R_Execute3DTransform32(const start, stop: integer; buffer: PLongWordArray);
 var
   f3d: Pf3dinfo_t;
@@ -574,26 +635,31 @@ type
   end;
   Pexec3dtransparms_t = ^exec3dtransparms_t;
 
+//==============================================================================
+// R_Thr_Execute3DTransform8
 //
 // JVAL
 // Execute 3D Transform in 8 bit mode thread function
 //
+//==============================================================================
 function R_Thr_Execute3DTransform8(p: pointer): integer; stdcall;
 begin
   R_Execute3DTransform8(Pexec3dtransparms_t(p).start, Pexec3dtransparms_t(p).stop, PByteArray(Pexec3dtransparms_t(p).buffer));
   result := 0;
 end;
 
+//==============================================================================
+// R_Thr_Execute3DTransform32
 //
 // JVAL
 // Execute 3D Transform in 32 bit mode thread function
 //
+//==============================================================================
 function R_Thr_Execute3DTransform32(p: pointer): integer; stdcall;
 begin
   R_Execute3DTransform32(Pexec3dtransparms_t(p).start, Pexec3dtransparms_t(p).stop, PLongWordArray(Pexec3dtransparms_t(p).buffer));
   result := 0;
 end;
-
 
 var
   threadworker8, threadworker32: TDThread;
@@ -607,6 +673,11 @@ var
   buffer1: array[0..MAXWIDTH - 1] of LongWord;
   buffer2: array[0..MAXWIDTH - 1] of LongWord;
 
+//==============================================================================
+//
+// R_Execute3DTransform
+//
+//==============================================================================
 procedure R_Execute3DTransform;
 var
   parms1: exec3dtransparms_t;
@@ -665,6 +736,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_GetPointsInCircle
+//
+//==============================================================================
 procedure R_GetPointsInCircle(const l: integer; const x, y: extended; const r: extended; var v1, v2: extended);
 var
   a: extended;
@@ -674,6 +750,7 @@ begin
   v2 := y + a;
 end;
 
+//==============================================================================
 //
 // R_CalculateCircleFromPoints
 //
@@ -682,6 +759,7 @@ end;
 // The center of circle is (x, y). The radius is (r)
 // Returns false if the points are collinear.
 //
+//==============================================================================
 function R_CalculateCircleFromPoints(const a1, a2, b1, b2, c1, c2: extended; var x, y: extended; var r: extended): boolean;
 const
   L_EPSILON = 0.0000000001;
@@ -703,6 +781,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// R_CalculateAnglesTable
+//
+//==============================================================================
 procedure R_CalculateAnglesTable;
 const
   T_EPSILON = 0.001;
@@ -740,6 +823,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_InitFake3D
+//
+//==============================================================================
 procedure R_InitFake3D;
 var
   i: integer;
@@ -752,6 +840,11 @@ begin
   setup3dworker := TDThread.Create(@do_Set3DLookup);
 end;
 
+//==============================================================================
+//
+// R_ShutDownFake3D
+//
+//==============================================================================
 procedure R_ShutDownFake3D;
 begin
   threadworker8.Free;
@@ -759,6 +852,11 @@ begin
   setup3dworker.Free;
 end;
 
+//==============================================================================
+//
+// R_Fake3DAspectCorrection
+//
+//==============================================================================
 function R_Fake3DAspectCorrection(const p: Pplayer_t): Double;
 begin
   if p = nil then

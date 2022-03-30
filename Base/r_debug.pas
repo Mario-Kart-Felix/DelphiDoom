@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Rendering debug
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,8 +39,25 @@ uses
   r_visplanes,
   r_defs;
 
+//==============================================================================
+//
+// R_DebugCheckVisPlane
+//
+//==============================================================================
 procedure R_DebugCheckVisPlane(const pl: Pvisplane_t);
+
+//==============================================================================
+//
+// R_CheckClipTable
+//
+//==============================================================================
 procedure R_CheckClipTable(const tbl: PSmallIntArray; const a1, a2: integer);
+
+//==============================================================================
+//
+// R_CheckClipItem
+//
+//==============================================================================
 procedure R_CheckClipItem(const x: PSmallInt);
 {$ENDIF}
 
@@ -51,6 +68,11 @@ uses
   i_system,
   r_draw;
 
+//==============================================================================
+//
+// R_DebugCheckVisPlane
+//
+//==============================================================================
 procedure R_DebugCheckVisPlane(const pl: Pvisplane_t);
 var
   i: integer;
@@ -72,6 +94,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_CheckClipTable
+//
+//==============================================================================
 procedure R_CheckClipTable(const tbl: PSmallIntArray; const a1, a2: integer);
 var
   i: integer;
@@ -96,6 +123,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// R_CheckClipItem
+//
+//==============================================================================
 procedure R_CheckClipItem(const x: PSmallInt);
 begin
   if x^ > viewheight then

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Ripple effects for flats
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,6 +45,11 @@ var
   ds_ripple: PIntegerArray = nil;
   curripple: PIntegerArray = nil;
 
+//==============================================================================
+//
+// R_InitRippleEffects
+//
+//==============================================================================
 procedure R_InitRippleEffects;
 
 implementation
@@ -52,6 +57,11 @@ implementation
 uses
   m_fixed;
 
+//==============================================================================
+//
+// R_InitDefaultRipple
+//
+//==============================================================================
 procedure R_InitDefaultRipple;
 var
   i: integer;
@@ -66,6 +76,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// R_InitRippleEffects
+//
+//==============================================================================
 procedure R_InitRippleEffects;
 begin
   R_InitDefaultRipple;

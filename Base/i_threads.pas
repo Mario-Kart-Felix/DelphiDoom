@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -51,6 +51,7 @@ type
     info: threadinfo_t;
     fstatus: integer;
     fterminated: boolean;
+    frunning: boolean;
   public
     constructor Create(const func: threadfunc_t = nil);
     destructor Destroy; override;
@@ -66,12 +67,49 @@ const
   THR_ACTIVE = 1;
   THR_IDLE = 2;
 
+var
+  dotestactivethreads: boolean = true;
+
+//==============================================================================
+//
+// TestActiveThreads
+//
+//==============================================================================
+procedure TestActiveThreads;
+
+//==============================================================================
+//
+// ThreadInc
+//
+//==============================================================================
+function ThreadInc(var x: Integer): Integer;
+
+//==============================================================================
+//
+// ThreadDec
+//
+//==============================================================================
+function ThreadDec(var x: Integer): Integer;
+
+//==============================================================================
+//
+// ThreadSet
+//
+//==============================================================================
+function ThreadSet(var x: Integer; const newvalue: Integer): Integer;
+
 implementation
 
 uses
+  d_delphi,
   Windows,
   i_system;
 
+//==============================================================================
+//
+// ThreadWorker
+//
+//==============================================================================
 function ThreadWorker(p: Pointer): integer; stdcall;
 var
   th: TDThread;
@@ -86,33 +124,62 @@ begin
     end;
     if th.fterminated then
       exit;
+    th.frunning := true;
     th.ffunc(th.fparms);
+    th.frunning := false;
     if th.fterminated then
       exit;
     th.fstatus := THR_IDLE;
   end;
 end;
 
+var
+  threadpool: TDPointerList;
+
+//==============================================================================
+//
+// TDThread.Create
+//
+//==============================================================================
 constructor TDThread.Create(const func: threadfunc_t = nil);
 begin
   fterminated := false;
   ffunc := func;
   fparms := nil;
   fstatus := THR_IDLE;
+  frunning := false;
   info.thread := Self;
   fid := I_CreateProcess(@ThreadWorker, @info, true);
   suspended := true;
+  threadpool.Add(self);
 end;
 
+//==============================================================================
+//
+// TDThread.Destroy
+//
+//==============================================================================
 destructor TDThread.Destroy;
+var
+  id: Integer;
 begin
+  while frunning do
+    I_Sleep(0);
   fterminated := true;
   fstatus := THR_DEAD;
-  I_WaitForProcess(fid, 100);
+  I_WaitForProcess(fid, 1);
+  id := threadpool.IndexOf(self);
+  if id >= 0 then
+    threadpool.Delete(id);
   Inherited Destroy;
 end;
 
+//==============================================================================
+// TDThread.Activate
+//
 // JVAL: Should check for fstatus, but it is not called while active
+//
+//==============================================================================
 procedure TDThread.Activate(const parms: pointer);
 begin
   if not Assigned(ffunc) then
@@ -123,12 +190,22 @@ begin
   ResumeThread(fid);
 end;
 
+//==============================================================================
+//
+// TDThread.Activate
+//
+//==============================================================================
 procedure TDThread.Activate(const func: threadfunc_t; const parms: pointer);
 begin
   ffunc := func;
   Activate(parms);
 end;
 
+//==============================================================================
+//
+// TDThread.Wait
+//
+//==============================================================================
 procedure TDThread.Wait;
 begin
   if suspended then
@@ -136,12 +213,17 @@ begin
 
   while fstatus = THR_ACTIVE do
   begin
-    I_Sleep(0);
+    //I_Sleep(0);
   end;
   suspended := true;
   SuspendThread(fid);
 end;
 
+//==============================================================================
+//
+// TDThread.CheckJobDone
+//
+//==============================================================================
 function TDThread.CheckJobDone: Boolean;
 begin
   if fstatus = THR_IDLE then
@@ -157,10 +239,71 @@ begin
     result := false;
 end;
 
+//==============================================================================
+//
+// TDThread.IsIdle
+//
+//==============================================================================
 function TDThread.IsIdle: Boolean;
 begin
   result := fstatus = THR_IDLE;
 end;
+
+//==============================================================================
+//
+// TestActiveThreads
+//
+//==============================================================================
+procedure TestActiveThreads;
+var
+  i: integer;
+  th: TDThread;
+begin
+  if not dotestactivethreads then
+    exit;
+
+  for i := 0 to threadpool.Count - 1 do
+  begin
+    th := threadpool.Pointers[i];
+    th.CheckJobDone;
+  end;
+end;
+
+//==============================================================================
+//
+// ThreadInc
+//
+//==============================================================================
+function ThreadInc(var x: Integer): Integer;
+begin
+  Result := InterlockedIncrement(x);
+end;
+
+//==============================================================================
+//
+// ThreadDec
+//
+//==============================================================================
+function ThreadDec(var x: Integer): Integer;
+begin
+  Result := InterlockedDecrement(x);
+end;
+
+//==============================================================================
+//
+// ThreadSet
+//
+//==============================================================================
+function ThreadSet(var x: Integer; const newvalue: Integer): Integer;
+begin
+  Result := InterlockedExchange(x, newvalue);
+end;
+
+initialization
+  threadpool := TDPointerList.Create;
+
+finalization
+  threadpool.Free;
 
 end.
 

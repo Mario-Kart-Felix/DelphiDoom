@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //   set up initial state and misc. LUTs.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -41,16 +41,37 @@ uses
   doomdata,
   m_fixed,
   p_mobj_h,
+  p_udmf,
   r_defs;
 
+//==============================================================================
+//
+// P_GetMapName
+//
+//==============================================================================
 function P_GetMapName(const episode, map: integer): string;
 
+//==============================================================================
+// P_SetupLevel
+//
 // NOT called by W_Ticker. Fixme.
+//
+//==============================================================================
 procedure P_SetupLevel(episode, map, playermask: integer; skill: skill_t);
 
+//==============================================================================
+// P_Init
+//
 // Called by startup code.
+//
+//==============================================================================
 procedure P_Init;
 
+//==============================================================================
+//
+// P_ShutDown
+//
+//==============================================================================
 procedure P_ShutDown;
 
 var
@@ -151,10 +172,16 @@ const
 
 var
   deathmatchstarts: array[0..MAX_DEATHMATCH_STARTS - 1] of mapthing_t;
+  udeathmatchstarts: array[0..MAX_DEATHMATCH_STARTS - 1] of extrathing_t;
   deathmatch_p: integer;
 
   playerstarts: array[0..MAXPLAYERS - 1] of mapthing_t;
 
+//==============================================================================
+//
+// P_GameValidThing
+//
+//==============================================================================
 function P_GameValidThing(const doomdnum: integer): boolean;
 
 var
@@ -175,7 +202,7 @@ uses
   d_main,
   d_think,
   z_zone,
-  m_argv,
+  m_rnd,
   m_bbox,
   m_sha1,
   g_game,
@@ -183,6 +210,7 @@ uses
   w_wad,
   info,
   info_h,
+  p_blockmap,
   p_local,
   p_mobj,
   p_tick,
@@ -192,19 +220,19 @@ uses
   p_maputl,
   p_adjust,
   p_bridge,
-  p_udmf,
+  p_acs,
+  p_animdefs,
   p_3dfloors, // JVAL: 3d Floors
   p_slopes,   // JVAL: Slopes
   p_easyslope,
   p_easyangle, // JVAL: 20201229 - Easy floor and ceiling texture angle
+  p_easywind, // JVAL: 20220222 - Easy wind
   p_affectees,
   p_musinfo,
-  p_animdefs,
+  po_man,
   ps_main,    // JVAL: Script Events
   r_data,
   r_things,
-  info_rnd,
-  m_rnd,
   mt_utils,
   r_colormaps,
 {$IFNDEF OPENGL}
@@ -213,22 +241,20 @@ uses
 {$ENDIF}
   r_intrpl,
 {$IFDEF OPENGL}
+  gl_setup,
   gl_render,  // JVAL OPENGL
-  r_main,
 {$ENDIF}
   r_subsectors,
   nd_main,
+  udmf_spec,
   s_sound,
   doomstat;
 
-{$IFDEF OPENGL}
-var
-  glmapnum: integer;
-{$ENDIF}
-
+//==============================================================================
 //
 // P_LoadVertexes
 //
+//==============================================================================
 procedure P_LoadVertexes(lump: integer);
 var
   data: pointer;
@@ -275,6 +301,8 @@ begin
     li.x := ml.x * FRACUNIT;
     li.y := ml.y * FRACUNIT;
     li.amvalidcount := 0;
+    li.interpvalidcount := 0;
+
     inc(ml);
     inc(li);
   end;
@@ -288,93 +316,11 @@ begin
   Z_Free(data);
 end;
 
-{$IFDEF OPENGL}
-var
-  firstglvert: integer;
-
-procedure P_GLLoadVertexes(lump, gllump: integer);
-var
-  data: pointer;
-  i: integer;
-  ml: Pmapvertex_t;
-  li: Pvertex_t;
-  numglverts: integer;
-  minx: integer;
-  maxx: integer;
-  miny: integer;
-  maxy: integer;
-  dx, dy: integer;
-begin
-  // Determine number of lumps:
-  //  total lump length / vertex record length.
-  if glnodesver = 1 then
-    numglverts := W_LumpLength(gllump) div SizeOf(GLVertex1_t)
-  else if glnodesver >= 2 then
-    numglverts := (W_LumpLength(gllump) - 4) div SizeOf(GLVertex2_t)
-  else
-    numglverts := 0;
-
-  firstglvert := W_LumpLength(lump) div SizeOf(mapvertex_t);
-  numvertexes := firstglvert + numglverts;
-
-  // Allocate zone memory for buffer.
-  vertexes := Z_Malloc(numvertexes * SizeOf(vertex_t), PU_LEVEL, nil);
-
-  // Load data into cache.
-  data := W_CacheLumpNum(lump, PU_STATIC);
-
-  ml := Pmapvertex_t(data);
-
-  // JVAL: 20201228 -> Find map boundaries
-  minx := 100000;
-  maxx := -100000;
-  miny := 100000;
-  maxy := -100000;
-
-  // Copy and convert vertex coordinates,
-  // internal representation as fixed.
-  li := @vertexes[0];
-  for i := 0 to firstglvert - 1 do
-  begin
-    if ml.x > maxx then
-      maxx := ml.x;
-    if ml.x < minx then
-      minx := ml.x;
-    if ml.y > maxy then
-      maxy := ml.y;
-    if ml.y < miny then
-      miny := ml.y;
-    li.x := ml.x * FRACUNIT;
-    li.y := ml.y * FRACUNIT;
-    li.amvalidcount := 0;
-    inc(ml);
-    inc(li);
-  end;
-
-  dx := maxx - minx;
-  dy := maxy - miny;
-
-  largemap := (dx < -32767) or (dx > 32767) or (dy < -32767) or (dy > 32767);
-
-  // Free buffer memory.
-  Z_Free(data);
-
-  gld_GetGLVertexes(li, gllump, numglverts, glnodesver);
-end;
-
-function GetDistance(dx, dy: integer): float;
-var
-  fx, fy: float;
-begin
-  fx := dx / FRACUNIT;
-  fy := dy / FRACUNIT;
-  result := sqrt(fx * fx + fy * fy);
-end;
-{$ENDIF}
-
+//==============================================================================
 //
 // P_LoadSegs
 //
+//==============================================================================
 procedure P_LoadSegs(lump: integer);
 var
   data: pointer;
@@ -432,192 +378,11 @@ begin
   Z_Free(data);
 end;
 
-{$IFDEF OPENGL}
-function CheckGLVertex(num: integer): integer;
-begin
-  if glnodesver <= 3 then
-  begin
-    if num and (1 shl 15) <> 0 then
-    begin
-      result := num and (1 shl 15 - 1) + firstglvert;
-      exit;
-    end
-  end
-  else if glnodesver = 4 then
-  begin
-    if num and (1 shl 30) <> 0 then
-    begin
-      result := num and (1 shl 30 - 1) + firstglvert;
-      exit;
-    end
-  end
-  else if glnodesver = 5 then
-  begin
-    if num and (1 shl 31) <> 0 then
-    begin
-      result := LongWord(num) and LongWord(_SHLW(1, 31) - 1) + firstglvert;
-      exit;
-    end
-  end;
-  result := num;
-end;
-
-function GetOffset(v1, v2: Pvertex_t): fixed_t;
-var
-  a, b: single;
-begin
-  a := (v1.x - v2.x) / FRACUNIT;
-  b := (v1.y - v2.y) / FRACUNIT;
-  result := round(sqrt(a * a + b * b) * FRACUNIT);
-end;
-
-//
-// P_LoadGLSegs
-//
-procedure P_LoadGLSegs(lump: integer);
-var
-  data: pointer;
-  i: integer;
-  ml: PGLSeg1_t;
-  ml3: PGLSeg3_t;
-  li: Pseg_t;
-  ldef: Pline_t;
-  linedef: integer;
-  side: integer;
-  sidenum: integer;
-begin
-  // JVAL glbsp V5
-  if glnodesver = 3 then
-    numsegs := (W_LumpLength(lump) - 4) div SizeOf(GLSeg3_t)
-  else if glnodesver > 3 then
-    numsegs := W_LumpLength(lump) div SizeOf(GLSeg3_t)
-  else
-    numsegs := W_LumpLength(lump) div SizeOf(GLSeg1_t);
-  segs := Z_Malloc(numsegs * SizeOf(seg_t), PU_LEVEL, nil);
-  ZeroMemory(segs, numsegs * SizeOf(seg_t));
-  data := W_CacheLumpNum(lump, PU_STATIC);
-
-  if glnodesver < 3 then
-  begin
-    ml := PGLSeg1_t(data);
-    li := @segs[0];
-    for i := 0 to numsegs - 1 do
-    begin
-      li.v1 := @vertexes[CheckGLVertex(ml.start_vertex)];
-      li.v2 := @vertexes[CheckGLVertex(ml.end_vertex)];
-      li.iSegID := i;
-
-      if PWord(@ml.linedef)^ = word(1 shl 16 - 1) then
-      begin
-        li.miniseg := true;
-        li.angle := 0;
-        li.offset := 0;
-        li.length := 0;
-        li.linedef := nil;
-        li.sidedef := nil;
-        li.frontsector := nil;
-        li.backsector := nil;
-      end
-      else
-      begin
-        li.miniseg := false;
-        li.angle := R_PointToAngle2(li.v1.x, li.v1.y, li.v2.x, li.v2.y);
-        linedef := ml.linedef;
-        ldef := @lines[linedef];
-        if ml.side <> 0 then
-          li.offset := GetOffset(li.v1, ldef.v2)
-        else
-          li.offset := GetOffset(li.v1, ldef.v1);
-        li.linedef := ldef;
-        side := ml.side;
-        li.sidedef := @sides[ldef.sidenum[side]];
-        li.frontsector := li.sidedef.sector;
-        if ldef.flags and ML_TWOSIDED <> 0 then
-        begin
-          sidenum := ldef.sidenum[side xor 1];
-          if sidenum = -1 then
-          begin
-            I_Warning('P_LoadGLSegs(): Line %d is marked with ML_TWOSIDED flag without backsector'#13#10, [linedef]);
-            ldef.flags := ldef.flags and not ML_TWOSIDED;
-            li.backsector := nil;
-          end
-          else
-            li.backsector := sides[sidenum].sector;
-        end
-        else
-          li.backsector := nil;
-        li.length := GetDistance(li.v2.x - li.v1.x, li.v2.y - li.v1.y);
-      end;
-      inc(ml);
-      inc(li);
-    end;
-  end
-  else
-  begin
-    if glnodesver = 3 then
-      ml3 := PGLSeg3_t(Integer(data) + 4)
-    else
-      ml3 := PGLSeg3_t(data);
-    li := @segs[0];
-    for i := 0 to numsegs - 1 do
-    begin
-      li.v1 := @vertexes[CheckGLVertex(ml3.start_vertex)];
-      li.v2 := @vertexes[CheckGLVertex(ml3.end_vertex)];
-      li.iSegID := i;
-
-      if PWord(@ml3.linedef)^ = word(1 shl 16 - 1) then
-      begin
-        li.miniseg := true;
-        li.angle := 0;
-        li.offset := 0;
-        li.length := 0;
-        li.linedef := nil;
-        li.sidedef := nil;
-        li.frontsector := nil;
-        li.backsector := nil;
-      end
-      else
-      begin
-        li.miniseg := false;
-        li.angle := R_PointToAngle2(li.v1.x, li.v1.y, li.v2.x, li.v2.y);
-        linedef := ml3.linedef;
-        ldef := @lines[linedef];
-        if ml3.side <> 0 then
-          li.offset := GetOffset(li.v1, ldef.v2)
-        else
-          li.offset := GetOffset(li.v1, ldef.v1);
-        li.linedef := ldef;
-        side := ml3.side;
-        li.sidedef := @sides[ldef.sidenum[side]];
-        li.frontsector := li.sidedef.sector;
-        if ldef.flags and ML_TWOSIDED <> 0 then
-        begin
-          sidenum := ldef.sidenum[side xor 1];
-          if sidenum = -1 then
-          begin
-            I_Warning('P_LoadGLSegs(): Line %d is marked with ML_TWOSIDED flag without backsector'#13#10, [linedef]);
-            ldef.flags := ldef.flags and not ML_TWOSIDED;
-            li.backsector := nil;
-          end
-          else
-            li.backsector := sides[sidenum].sector;
-        end
-        else
-          li.backsector := nil;
-        li.length := GetDistance(li.v2.x - li.v1.x, li.v2.y - li.v1.y);
-      end;
-      inc(ml3);
-      inc(li);
-    end;
-  end;
-
-  Z_Free(data);
-end;
-{$ENDIF}
-
+//==============================================================================
 //
 // P_LoadSubsectors
 //
+//==============================================================================
 procedure P_LoadSubsectors(lump: integer);
 var
   data: pointer;
@@ -644,43 +409,11 @@ begin
   Z_Free(data);
 end;
 
-{$IFDEF OPENGL}
-procedure P_LoadSubsectorsV3V5(lump: integer);
-var
-  data: pointer;
-  i: integer;
-  ms: PGLSubSector3_t;
-  ss: Psubsector_t;
-begin
-  if glnodesver = 3 then
-    numsubsectors := (W_LumpLength(lump) - 4) div SizeOf(GLSubSector3_t)
-  else
-    numsubsectors := W_LumpLength(lump) div SizeOf(GLSubSector3_t);
-  subsectors := Z_Malloc(numsubsectors * SizeOf(subsector_t), PU_LEVEL, nil);
-  data := W_CacheLumpNum(lump, PU_STATIC);
-
-  if glnodesver = 3 then
-    ms := PGLSubSector3_t(integer(data) + 4)
-  else
-    ms := PGLSubSector3_t(data);
-  ZeroMemory(subsectors, numsubsectors * SizeOf(subsector_t));
-
-  ss := @subsectors[0];
-  for i := 0 to numsubsectors - 1 do
-  begin
-    ss.numlines := ms.count;
-    ss.firstline := ms.first_seg;
-    inc(ms);
-    inc(ss);
-  end;
-
-  Z_Free(data);
-end;
-{$ENDIF}
-
+//==============================================================================
 //
 // P_LoadSectors
 //
+//==============================================================================
 procedure P_LoadSectors(lump: integer);
 var
   data: pointer;
@@ -701,7 +434,13 @@ begin
     ss.ceilingheight := ms.ceilingheight * FRACUNIT;
     ss.floorpic := R_FlatNumForName(ms.floorpic);
     ss.ceilingpic := R_FlatNumForName(ms.ceilingpic);
-    ss.lightlevel := ms.lightlevel and $FF; // JVAL: Mars fog sectors
+    // https://www.doomworld.com/forum/topic/118126-doom-sector-light-levels/
+    // JVAL: 20220116 -> If sector lightlevel in WAD is 256 change it to 255,
+    //                   do not treat as fog sector
+    if ms.lightlevel = 256 then
+      ms.lightlevel := $FF;
+    ss.lightlevel := ms.lightlevel;
+    ss.lightninglightlevel := 255; // JVAL: 20220218 - Lightning
     ss.special := ms.special;
     ss.tag := ms.tag;
     ss.thinglist := nil;
@@ -721,8 +460,11 @@ begin
     ss.midmap := -1;
     ss.bottommap := -1;
     ss.renderflags := 0;
-    if ms.lightlevel > $FF then // JVAL: Mars fog sectors
+    if ss.lightlevel >= 1000 then // JVAL: Fog sectors
+    begin
       ss.renderflags := ss.renderflags or SRF_FOG;
+      ss.lightlevel := ss.lightlevel - 1000;
+    end;
     ss.flags := 0;
     ss.gravity := GRAVITY;  // JVAL: sector gravity (VERSION 204)
     ss.floorangle := 0;     // JVAL: 20200221 - Texture angle
@@ -734,7 +476,8 @@ begin
 {$IFDEF OPENGL}
     ss.floorlightlevel := ss.lightlevel;
     ss.ceilinglightlevel := ss.lightlevel;
-{$ELSE}
+{$ENDIF}
+{$IFNDEF OPENGL}
     // [kb] For R_WiggleFix
     ss.cachedheight := 0;
     ss.scaleindex := 0;
@@ -745,6 +488,9 @@ begin
     // killough 4/11/98 sector used to get ceiling lighting:
     ss.ceilinglightsec := -1;
 
+    // JVAL: 20220327 - Group sectors to interpolate groups
+    ss.interpolate_group := i mod NUM_SECTOR_INTERPOLATE_GROUPS;
+
     ss.iSectorID := i; // JVAL: 3d Floors
     inc(ms);
     inc(ss);
@@ -753,9 +499,11 @@ begin
   Z_Free(data);
 end;
 
+//==============================================================================
 //
 // P_LoadNodes
 //
+//==============================================================================
 procedure P_LoadNodes(lump: integer);
 var
   data: pointer;
@@ -799,43 +547,11 @@ begin
   Z_Free(data);
 end;
 
-{$IFDEF OPENGL}
-procedure P_LoadNodesV4V5(lump: integer);
-var
-  data: pointer;
-  i: integer;
-  k: integer;
-  mn: PGLNode4_t;
-  no: Pnode_t;
-begin
-  numnodes := W_LumpLength(lump) div SizeOf(GLNode4_t);
-  nodes := Z_Malloc(numnodes * SizeOf(node_t), PU_LEVEL, nil);
-  data := W_CacheLumpNum(lump, PU_STATIC);
-
-  mn := PGLNode4_t(data);
-  no := @nodes[0];
-  for i := 0 to numnodes - 1 do
-  begin
-    no.x := mn.x * FRACUNIT;
-    no.y := mn.y * FRACUNIT;
-    no.dx := mn.dx * FRACUNIT;
-    no.dy := mn.dy * FRACUNIT;
-
-    no.children[0] := mn.right_child;
-    no.children[1] := mn.left_child;
-    for k := 0 to 3 do
-      no.bbox[0, k] := mn.right_bbox[k] * FRACUNIT;
-    for k := 0 to 3 do
-      no.bbox[1, k] := mn.left_bbox[k] * FRACUNIT;
-
-    inc(mn);
-    inc(no);
-  end;
-
-  Z_Free (data);
-end;
-{$ENDIF}
-
+//==============================================================================
+//
+// P_GameValidThing
+//
+//==============================================================================
 function P_GameValidThing(const doomdnum: integer): boolean;
 begin
   // Don't spawn DoomBuilder 3D Editing mode camera
@@ -873,6 +589,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// P_DontDrawDuplicateThings
+//
+//==============================================================================
 procedure P_DontDrawDuplicateThings(const _type: integer);
 var
   i, j, count: integer;
@@ -916,16 +637,22 @@ begin
   end;
 end;
 
-
+//==============================================================================
+//
+// P_CheckThings
+//
+//==============================================================================
 procedure P_CheckThings;
 begin
   if hidedoublicatedbarrels then
     P_DontDrawDuplicateThings(Ord(MT_BARREL));
 end;
 
+//==============================================================================
 //
 // P_LoadThings
 //
+//==============================================================================
 procedure P_LoadThings(lump: integer);
 var
   data: pointer;
@@ -950,12 +677,26 @@ begin
   P_EasySlopeExecute;
 
   mt := Pmapthing_t(data);
-  for i := 0 to numthings - 1 do
-  begin
-    if P_GameValidThing(mt._type) then // Do spawn all other stuff.
-      P_SpawnMapThing(mt);
 
-    inc(mt);
+  if hasudmfdata then
+  begin
+    for i := 0 to numthings - 1 do
+    begin
+      if P_GameValidThing(mt._type) then // Do spawn all other stuff.
+        P_SpawnMapThing(mt, @udmfthings[i]);
+
+      inc(mt);
+    end;
+  end
+  else
+  begin
+    for i := 0 to numthings - 1 do
+    begin
+      if P_GameValidThing(mt._type) then // Do spawn all other stuff.
+        P_SpawnMapThing(mt, nil);
+
+      inc(mt);
+    end;
   end;
 
   Z_Free(data);
@@ -963,16 +704,12 @@ begin
   P_CheckThings;
 end;
 
-var
-  delphidoom_ver8_map: boolean;
-
-//
-// JVAL: Changed for compatibility with DelphiDoom ver 0.8
-
+//==============================================================================
 //
 // P_LoadLineDefs
 // Also counts secret lines for intermissions.
 //
+//==============================================================================
 procedure P_LoadLineDefs(lump: integer);
 var
   data: pointer;
@@ -1080,41 +817,14 @@ begin
     inc(ld);
   end;
 
-  // JVAL: Translate old specials
-  if delphidoom_ver8_map then
-  begin
-    mld := Pmaplinedef_t(data);
-    ld := @lines[0];
-
-    for i := 0 to numlines - 1 do
-    begin
-      if mld.special = 142 then  // SCROLLING TEXTURES
-        ld.special := 85
-      else if mld.special = 143 then
-        ld.special := 273
-      else if mld.special = 144 then
-        ld.special := 274
-      else if mld.special = 145 then
-        ld.special := 275
-      else if mld.special = 146 then
-        ld.special := 276
-      else if mld.special = 147 then
-        ld.special := 277
-      else if mld.special = 148 then
-        ld.special := 278;
-
-      inc(mld);
-      inc(ld);
-    end;
-
-  end;
-
   Z_Free (data);
 end;
 
+//==============================================================================
 //
 // P_LoadSideDefs
 //
+//==============================================================================
 procedure P_LoadSideDefs(lump: integer);
 var
   data: pointer;
@@ -1153,432 +863,27 @@ begin
   Z_Free(data);
 end;
 
+//==============================================================================
 //
-// jff 10/6/98
-// New code added to speed up calculation of internal blockmap
-// Algorithm is order of nlines*(ncols+nrows) not nlines*ncols*nrows
+// P_InitVanillaBlockLinks
 //
-const
-  blkshift = 7;                   // places to shift rel position for cell num
-  blkmask = (1 shl blkshift) - 1; // mask for rel position within cell
-  blkmargin = 0;                  // size guardband around map used */
-                                  // jff 10/8/98 use guardband>0
-                                  // jff 10/12/98 0 ok with + 1 in rows,cols
-
-type
-  Plinelist_t = ^linelist_t;
-  linelist_t = record // type used to list lines in each block
-    num: integer;
-    next: Plinelist_t;
-  end;
-  linelist_tPArray = array[0..$FFFF] of Plinelist_t;
-  Plinelist_tPArray = ^linelist_tPArray;
-
-//
-// Subroutine to add a line number to a block list
-// It simply returns if the line is already in the block
-//
-
-procedure AddBlockLine(lists: Plinelist_tPArray; count: PIntegerArray; done: PIntegerArray;
-  blockno: integer; lineno: integer);
+//==============================================================================
+procedure P_InitVanillaBlockLinks;
 var
-  l: Plinelist_t;
+  count: integer;
 begin
-  if done[blockno] <> 0 then
-    exit;
-
-  l := malloc(SizeOf(linelist_t));
-  l.num := lineno;
-  l.next := lists[blockno];
-  lists[blockno] := l;
-  inc(count[blockno]);
-  done[blockno] := 1;
-end;
-
-//
-// Actually construct the blockmap lump from the level data
-//
-// This finds the intersection of each linedef with the column and
-// row lines at the left and bottom of each blockmap cell. It then
-// adds the line to all block lists touching the intersection.
-//
-
-procedure P_CreateBlockMap;
-var
-  xorg, yorg: integer;            // blockmap origin (lower left)
-  nrows, ncols: integer;          // blockmap dimensions
-  blocklists: Plinelist_tPArray;  // array of pointers to lists of lines
-  blockcount: PIntegerArray;      // array of counters of line lists
-  blockdone: PIntegerArray;       // array keeping track of blocks/line
-  NBlocks: integer;               // number of cells := nrows*ncols
-  linetotal: integer;             // total length of all blocklists
-  i, j: integer;
-  map_minx: integer;              // init for map limits search
-  map_miny: integer;
-  map_maxx: integer;
-  map_maxy: integer;
-  t: fixed_t;
-  x1, y1, x2, y2: integer;
-  dx, dy: integer;
-  vert: boolean;
-  horiz: boolean;
-  spos: boolean;
-  sneg: boolean;
-  bx, by: integer;
-  minx, maxx, miny, maxy: integer;
-  x, y: integer;
-  xb, xp: integer;
-  yb, yp: integer;
-  bl, tmp: Plinelist_t;
-  offs: integer;
-begin
-  blocklists := nil;
-  blockcount := nil;
-  blockdone := nil;
-  linetotal := 0;
-  map_minx := MAXINT;
-  map_miny := MAXINT;
-  map_maxx := MININT;
-  map_maxy := MININT;
-
-  // scan for map limits, which the blockmap must enclose
-
-  for i := 0 to numvertexes - 1 do
-  begin
-    t := vertexes[i].x;
-    if t < map_minx then
-      map_minx := t;
-    if t > map_maxx then
-      map_maxx := t;
-    t := vertexes[i].y;
-    if t < map_miny then
-      map_miny := t;
-    if t > map_maxy then
-      map_maxy := t;
-  end;
-  map_minx := FixedInt(map_minx);    // work in map coords, not fixed_t
-  map_maxx := FixedInt(map_maxx);
-  map_miny := FixedInt(map_miny);
-  map_maxy := FixedInt(map_maxy);
-
-  // set up blockmap area to enclose level plus margin
-
-  xorg := map_minx - blkmargin;
-  yorg := map_miny - blkmargin;
-  ncols := _SHR(map_maxx + blkmargin - xorg + 1 + blkmask, blkshift);  //jff 10/12/98
-  nrows := _SHR(map_maxy + blkmargin - yorg + 1 + blkmask, blkshift);  //+1 needed for
-  NBlocks := ncols * nrows;                                  //map exactly 1 cell
-
-  // create the array of pointers on NBlocks to blocklists
-  // also create an array of linelist counts on NBlocks
-  // finally make an array in which we can mark blocks done per line
-
-  // CPhipps - calloc's
-  blocklists := mallocz(NBlocks * SizeOf(Plinelist_t));
-  blockcount := mallocz(NBlocks * SizeOf(integer));
-  blockdone := mallocz(NBlocks * SizeOf(integer));
-
-  // initialize each blocklist, and enter the trailing -1 in all blocklists
-  // note the linked list of lines grows backwards
-
-  for i := 0 to NBlocks - 1 do
-  begin
-    blocklists[i] := malloc(SizeOf(linelist_t));
-    blocklists[i].num := -1;
-    blocklists[i].next := nil;
-    inc(blockcount[i]);
-  end;
-
-  // For each linedef in the wad, determine all blockmap blocks it touches,
-  // and add the linedef number to the blocklists for those blocks
-
-  for i := 0 to numlines - 1 do
-  begin
-    x1 := FixedInt(lines[i].v1.x);         // lines[i] map coords
-    y1 := FixedInt(lines[i].v1.y);
-    x2 := FixedInt(lines[i].v2.x);
-    y2 := FixedInt(lines[i].v2.y);
-    dx := x2 - x1;
-    dy := y2 - y1;
-    vert := dx = 0;                            // lines[i] slopetype
-    horiz := dy = 0;
-    spos := (dx xor dy) > 0;
-    sneg := (dx xor dy) < 0;
-    if x1 > x2 then
-    begin
-      minx := x2;
-      maxx := x1;
-    end
-    else
-    begin
-      minx := x1;
-      maxx := x2;
-    end;
-    if y1 > y2 then
-    begin
-      miny := y2;
-      maxy := y1;
-    end
-    else
-    begin
-      miny := y1;
-      maxy := y2;
-    end;
-
-    // no blocks done for this linedef yet
-
-    ZeroMemory(blockdone, NBlocks * SizeOf(integer));
-
-    // The line always belongs to the blocks containing its endpoints
-
-    bx := _SHR(x1 - xorg, blkshift);
-    by := _SHR(y1 - yorg, blkshift);
-    AddBlockLine(blocklists, blockcount, blockdone, by * ncols + bx, i);
-    bx := _SHR(x2 - xorg, blkshift);
-    by := _SHR(y2 - yorg, blkshift);
-    AddBlockLine(blocklists, blockcount, blockdone, by * ncols + bx, i);
-
-
-    // For each column, see where the line along its left edge, which
-    // it contains, intersects the Linedef i. Add i to each corresponding
-    // blocklist.
-
-    if not vert then    // don't interesect vertical lines with columns
-    begin
-      for j := 0 to ncols - 1 do
-      begin
-        // intersection of Linedef with x=xorg+(j shl blkshift)
-        // (y-y1)*dx := dy*(x-x1)
-        // y := dy*(x-x1)+y1*dx;
-
-        x := xorg + _SHL(j, blkshift);         // (x,y) is intersection
-        y := (dy * (x - x1)) div dx + y1;
-        yb := _SHR(y - yorg, blkshift);        // block row number
-        yp := (y - yorg) and blkmask;         // y position within block
-
-        if (yb < 0) or (yb > nrows - 1) then  // outside blockmap, continue
-          continue;
-
-        if (x < minx) or (x > maxx) then      // line doesn't touch column
-          continue;
-
-        // The cell that contains the intersection point is always added
-
-        AddBlockLine(blocklists, blockcount, blockdone, ncols * yb + j, i);
-
-        // if the intersection is at a corner it depends on the slope
-        // (and whether the line extends past the intersection) which
-        // blocks are hit
-
-        if yp = 0 then        // intersection at a corner
-        begin
-          if sneg then        //   \ - blocks x,y-, x-,y
-          begin
-            if (yb > 0) and (miny < y) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * (yb - 1) + j, i);
-            if (j > 0) and (minx < x) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * yb + j - 1, i);
-          end
-          else if spos then  //   / - block x-,y-
-          begin
-            if (yb > 0) and (j > 0) and (minx < x) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * (yb - 1) + j - 1, i);
-          end
-          else if horiz then //   - - block x-,y
-          begin
-            if (j > 0) and (minx < x) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * yb + j - 1, i);
-          end;
-        end
-        else if (j > 0) and (minx < x) then // else not at corner: x-,y
-          AddBlockLine(blocklists, blockcount, blockdone, ncols * yb + j - 1, i);
-      end;
-    end;
-
-    // For each row, see where the line along its bottom edge, which
-    // it contains, intersects the Linedef i. Add i to all the corresponding
-    // blocklists.
-
-    if not horiz then
-    begin
-      for j := 0 to nrows - 1 do
-      begin
-        // intersection of Linedef with y=yorg+(j shl blkshift)
-        // (x,y) on Linedef i satisfies: (y-y1)*dx := dy*(x-x1)
-        // x := dx*(y-y1)/dy+x1;
-
-        y := yorg + _SHL(j, blkshift);         // (x,y) is intersection
-        x := (dx * (y - y1)) div dy + x1;
-        xb := _SHR(x - xorg, blkshift);        // block column number
-        xp := (x - xorg) and blkmask;         // x position within block
-
-        if (xb < 0) or (xb > ncols - 1) then  // outside blockmap, continue
-          continue;
-
-        if (y < miny) or (y > maxy) then      // line doesn't touch row
-          continue;
-
-        // The cell that contains the intersection point is always added
-
-        AddBlockLine(blocklists, blockcount, blockdone, ncols * j + xb, i);
-
-        // if the intersection is at a corner it depends on the slope
-        // (and whether the line extends past the intersection) which
-        // blocks are hit
-
-        if xp = 0 then        // intersection at a corner
-        begin
-          if sneg then       //   \ - blocks x,y-, x-,y
-          begin
-            if (j > 0) and (miny < y) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * (j - 1) + xb, i);
-            if (xb > 0) and (minx < x) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * j + xb - 1, i);
-          end
-          else if vert then  //   | - block x,y-
-          begin
-            if (j > 0) and (miny < y) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * (j - 1) + xb, i);
-          end
-          else if spos then  //   / - block x-,y-
-          begin
-            if (xb > 0) and (j > 0) and (miny < y) then
-              AddBlockLine(blocklists, blockcount, blockdone, ncols * (j - 1) + xb - 1, i);
-          end;
-        end
-        else if (j > 0) and (miny < y) then // else not on a corner: x,y-
-          AddBlockLine(blocklists, blockcount, blockdone, ncols * (j - 1) + xb, i);
-      end;
-    end;
-  end;
-
-  // Add initial 0 to all blocklists
-  // count the total number of lines (and 0's and -1's)
-
-  ZeroMemory(blockdone, NBlocks * SizeOf(integer));
-  linetotal := 0;
-  for i := 0 to NBlocks - 1 do
-  begin
-    AddBlockLine(blocklists, blockcount, blockdone, i, 0);
-    linetotal := linetotal + blockcount[i];
-  end;
-
-  // Create the blockmap lump
-
-  blockmaplump := Z_Malloc(SizeOf(integer) * (4 + NBlocks + linetotal), PU_LEVEL, nil);
-  // blockmap header
-
-  blockmaplump[0] := xorg;
-  blockmaplump[1] := yorg;
-  blockmaplump[2] := ncols;
-  blockmaplump[3] := nrows;
-
-  // offsets to lists and block lists
-
-  for i := 0 to NBlocks - 1 do
-  begin
-    bl := blocklists[i];
-    if i <> 0 then
-      offs := blockmaplump[4 + i - 1] + blockcount[i - 1]
-    else
-      offs := 4 + NBlocks;
-    blockmaplump[4 + i] := offs; // set offset to block's list
-
-    // add the lines in each block's list to the blockmaplump
-    // delete each list node as we go
-
-    while bl <> nil do
-    begin
-      tmp := bl.next;
-      blockmaplump[offs] := bl.num;
-      inc(offs);
-      memfree(pointer(bl), SizeOf(linelist_t));
-      bl := tmp;
-    end;
-  end;
-
-  // MAES: set blockmapxneg and blockmapyneg
-  // E.g. for a full 512x512 map, they should be both
-  // -1. For a 257*257, they should be both -255 etc.
-  if bmapwidth > 255 then
-    blockmapxneg := bmapwidth - 512
-  else
-    blockmapxneg := -257;
-  if bmapheight > 255 then
-    blockmapyneg := bmapheight - 512
-  else
-    blockmapyneg := -257;
-
-  internalblockmapformat := true;
-
-  // free all temporary storage
-
-  memfree(pointer(blocklists), NBlocks * SizeOf(Plinelist_t));
-  memfree(pointer(blockcount), NBlocks * SizeOf(integer));
-  memfree(pointer(blockdone), NBlocks * SizeOf(integer));
-end;
-
-//
-// P_LoadBlockMap
-//
-procedure P_LoadBlockMap(lump: integer);
-var
-  i, count: integer;
-  t: smallint;
-  wadblockmaplump: PSmallIntArray;
-begin
-  blockmapxneg := -257;
-  blockmapyneg := -257;
-  internalblockmapformat := false;
-  count := W_LumpLength(lump) div 2; // Number of smallint values
-  if (M_CheckParm('-blockmap') > 0) or (count < 4) or (count >= $10000) or largemap then
-  begin
-    P_CreateBlockMap
-  end
-  else
-  begin
-    wadblockmaplump := W_CacheLumpNum(lump, PU_STATIC);
-    blockmaplump := Z_Malloc(count * SizeOf(integer), PU_LEVEL, nil);
-
-    blockmaplump[0] := wadblockmaplump[0];
-    blockmaplump[1] := wadblockmaplump[1];
-    blockmaplump[2] := wadblockmaplump[2];
-    blockmaplump[3] := wadblockmaplump[3];
-
-    for i := 4 to count - 1 do
-    begin
-      t := wadblockmaplump[i];
-      if t = -1 then
-        blockmaplump[i] := -1
-      else if t < 0 then
-        blockmaplump[i] := $10000 + t
-      else
-        blockmaplump[i] := t
-    end;
-    Z_Free(wadblockmaplump);
-  end;
-
-  blockmap := @blockmaplump[4];
-
-  bmaporgx := blockmaplump[0] * FRACUNIT;
-  bmaporgy := blockmaplump[1] * FRACUNIT;
-  bmapwidth := blockmaplump[2];
-  bmapheight := blockmaplump[3];
-  bmapsize := bmapwidth * bmapheight;
-  // clear out mobj chains
-  count := SizeOf(blocklinkitem_t) * bmapwidth * bmapheight;
-  blocklinks := Z_Malloc(count, PU_LEVEL, nil);
-  ZeroMemory(blocklinks, count);
   count := SizeOf(Pmobj_t) * bmapwidth * bmapheight;
   vanillablocklinks := Z_Malloc(count, PU_LEVEL, nil);
   ZeroMemory(vanillablocklinks, count);
 end;
 
+//==============================================================================
 //
 // P_GroupLines
 // Builds sector line lists and subsector sector numbers.
 // Finds block bounding boxes for sectors.
 //
+//==============================================================================
 procedure P_GroupLines;
 var
   linebuffer: Pline_tPArray; // pointer to an array of pointers Pline_t
@@ -1701,7 +1006,7 @@ begin
     else
       block := MapBlockInt(bbox[BOXTOP] - bmaporgy + MAXRADIUS);
     if block >= bmapheight then
-      block  := bmapheight - 1;
+      block := bmapheight - 1;
     sector.blockbox[BOXTOP] := block;
 
     if internalblockmapformat then
@@ -1709,7 +1014,7 @@ begin
     else
       block := MapBlockInt(bbox[BOXBOTTOM] - bmaporgy - MAXRADIUS);
     if block < 0 then
-      block  := 0;
+      block := 0;
     sector.blockbox[BOXBOTTOM] := block;
 
     if internalblockmapformat then
@@ -1730,7 +1035,6 @@ begin
 
     inc(sector);
   end;
-
 
   li := @lines[0];
   for i := 0 to numlines - 1 do
@@ -1758,6 +1062,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_GetMapName
+//
+//==============================================================================
 function P_GetMapName(const episode, map: integer): string;
 begin
   // find map name
@@ -1772,102 +1081,9 @@ begin
     sprintf(result, 'E%dM%d', [episode, map]);
 end;
 
-//
-// killough 10/98
-//
-// Remove slime trails.
-//
-// Slime trails are inherent to Doom's coordinate system -- i.e. there is
-// nothing that a node builder can do to prevent slime trails ALL of the time,
-// because it's a product of the integer coodinate system, and just because
-// two lines pass through exact integer coordinates, doesn't necessarily mean
-// that they will intersect at integer coordinates. Thus we must allow for
-// fractional coordinates if we are to be able to split segs with node lines,
-// as a node builder must do when creating a BSP tree.
-//
-// A wad file does not allow fractional coordinates, so node builders are out
-// of luck except that they can try to limit the number of splits (they might
-// also be able to detect the degree of roundoff error and try to avoid splits
-// with a high degree of roundoff error). But we can use fractional coordinates
-// here, inside the engine. It's like the difference between square inches and
-// square miles, in terms of granularity.
-//
-// For each vertex of every seg, check to see whether it's also a vertex of
-// the linedef associated with the seg (i.e, it's an endpoint). If it's not
-// an endpoint, and it wasn't already moved, move the vertex towards the
-// linedef by projecting it using the law of cosines. Formula:
-//
-//      2        2                         2        2
-//    dx  x0 + dy  x1 + dx dy (y0 - y1)  dy  y0 + dx  y1 + dx dy (x0 - x1)
-//   {---------------------------------, ---------------------------------}
-//                  2     2                            2     2
-//                dx  + dy                           dx  + dy
-//
-// (x0,y0) is the vertex being moved, and (x1,y1)-(x1+dx,y1+dy) is the
-// reference linedef.
-//
-// Segs corresponding to orthogonal linedefs (exactly vertical or horizontal
-// linedefs), which comprise at least half of all linedefs in most wads, don't
-// need to be considered, because they almost never contribute to slime trails
-// (because then any roundoff error is parallel to the linedef, which doesn't
-// cause slime). Skipping simple orthogonal lines lets the code finish quicker.
-//
-// Please note: This section of code is not interchangable with TeamTNT's
-// code which attempts to fix the same problem.
-//
-// Firelines (TM) is a Rezistered Trademark of MBF Productions
-//
-
-procedure P_RemoveSlimeTrails;  // killough 10/98
-var
-  hit: PByteArray;
-  i: integer;
-  l: Pline_t;
-  v: Pvertex_t;
-  v_id: integer;
-  dx2, dy2, dxy, s: int64;
-  x0, y0, x1, y1: integer;
-begin
-  hit := mallocz(numvertexes);  // Hitlist for vertices
-  for i := 0 to numsegs - 1 do  // Go through each seg
-  begin
-    if segs[i].miniseg then // skip minisegs
-      continue;
-
-    l := segs[i].linedef;               // The parent linedef
-    if (l.dx <> 0) and (l.dy <> 0) then // We can ignore orthogonal lines
-    begin
-      v := segs[i].v1;
-      while true do
-      begin
-        v_id := pDiff(v, vertexes, SizeOf(vertex_t));
-        if hit[v_id] = 0 then // If we haven't processed vertex
-        begin
-          hit[v_id] := 1;        // Mark this vertex as processed
-          if (v <> l.v1) and (v <> l.v2) then // Exclude endpoints of linedefs
-          begin // Project the vertex back onto the parent linedef
-            dx2 := (l.dx div FRACUNIT) * (l.dx div FRACUNIT);
-            dy2 := (l.dy div FRACUNIT) * (l.dy div FRACUNIT);
-            dxy := (l.dx div FRACUNIT) * (l.dy div FRACUNIT);
-            s := dx2 + dy2;
-            x0 := v.x;
-            y0 := v.y;
-            x1 := l.v1.x;
-            y1 := l.v1.y;
-            v.x := Round((dx2 * x0 + dy2 * x1 + dxy * (y0 - y1)) / s);
-            v.y := Round((dy2 * y0 + dx2 * y1 + dxy * (x0 - x1)) / s);
-          end;
-        end;
-        if v = segs[i].v2 then
-          break;
-        v := segs[i].v2;
-      end;
-    end;
-  end;
-  memfree(pointer(hit), numvertexes);
-end;
-
 // P_LoadVanillaSegs
+//
+//==============================================================================
 procedure P_LoadVanillaSegs(lump: integer);
 var
   Data: pointer;
@@ -1915,6 +1131,8 @@ begin
 end;
 
 // P_LoadVanillaSubsectors
+//
+//==============================================================================
 procedure P_LoadVanillaSubsectors(lump: integer);
 var
   data: pointer;
@@ -1946,7 +1164,12 @@ begin
   Z_Free(data);
 end;
 
+//==============================================================================
+// P_LoadVanillaNodes
+//
 // P_LoadNodes
+//
+//==============================================================================
 procedure P_LoadVanillaNodes(lump: integer);
 var
   data: pointer;
@@ -1987,9 +1210,11 @@ begin
   Z_Free(data);
 end;
 
+//==============================================================================
 //
 // P_SetupLevel
 //
+//==============================================================================
 procedure P_SetupLevel(episode, map, playermask: integer; skill: skill_t);
 var
   i: integer;
@@ -1998,7 +1223,6 @@ var
 {$IFDEF OPENGL}
   glmapname: string;
 {$ENDIF}
-  clumpname: string;
   gwa: TGWAFile;
   gwaname: string;
   gwaloaded: boolean;
@@ -2040,6 +1264,9 @@ begin
 
   Z_FreeTags(PU_LEVEL, PU_PURGELEVEL - 1);
 
+  po_NumPolyobjs := 0;
+  PolyBlockMap := nil;
+
   numvanillasegs := 0;
   vanillasegs := nil;
 
@@ -2075,7 +1302,7 @@ begin
   gwaloaded := false;
 
 {$IFDEF OPENGL}
-  if useglnodesifavailable and not G_NeedsCompatibilityMode then
+  if useglnodesifavailable and not G_NeedsCompatibilityMode and not hasudmfdata then
   begin
     glmapnum := gld_GetGLMapLump(lumpnum);
     glnodesver := gld_GetGLNodesVersion(glmapnum);
@@ -2087,14 +1314,6 @@ begin
     glnodesver := 0;
   end;
 {$ENDIF}
-
-  delphidoom_ver8_map := false;
-  if lumpnum + Ord(ML_CODE) < W_NumLumps then
-  begin
-    clumpname := strupper(char8tostring(W_GetNameForNum(lumpnum + Ord(ML_CODE))));
-    if (clumpname = 'CODE') or (clumpname = 'PCODE') then
-      delphidoom_ver8_map := true;
-  end;
 
   leveltime := 0;
 
@@ -2120,8 +1339,10 @@ begin
   {$ENDIF}
   P_LoadSectors(lumpnum + Ord(ML_SECTORS));
   P_LoadSideDefs(lumpnum + Ord(ML_SIDEDEFS));
+  UDMF_MakeSides;
   P_LoadLineDefs(lumpnum + Ord(ML_LINEDEFS));
   P_LoadBlockMap(lumpnum + Ord(ML_BLOCKMAP));
+  P_InitVanillaBlockLinks;
   {$IFDEF OPENGL}
   if (glnodesver > 0) and (glmapnum <> - 1) then
   begin
@@ -2160,7 +1381,7 @@ begin
   if gwa <> nil then
     gwa.Free;
 
-  if preparingdemoplayback and (G_PlayingEngineVersion < VERSION110) and (numlines < 32768) and (numsides < 32768) then
+  if preparingdemoplayback and (G_PlayingEngineVersion < VERSION110) and (numlines < 32768) and (numsides < 32768) and not hasudmfdata then
   begin
     // JVAL: 20210131 - Load vanilla nodes
     if char8tostring(lumpinfo[lumpnum + Ord(ML_SSECTORS)].name) = 'SSECTORS' then
@@ -2174,7 +1395,11 @@ begin
 
   rejectmatrix := W_CacheLumpNum(lumpnum + Ord(ML_REJECT), PU_LEVEL);
   rejectmatrixsize := W_LumpLength(lumpnum + Ord(ML_REJECT));
+
+  UDMF_MakeLines;
   P_GroupLines;
+
+  UDMF_MakeSegs;
 
   P_3dFloorSetupSegs; // JVAL: 3d Floors
 
@@ -2187,6 +1412,8 @@ begin
 
   P_SlopesSetup;// JVAL: Slopes
 
+  UDMF_MakeSectors;
+
   P_SetupSectorAffectees;
 
   if autoadjustmissingtextures then
@@ -2197,6 +1424,7 @@ begin
   R_PrecalcPointInSubSector;
 
   bodyqueslot := 0;
+  po_NumPolyobjs := 0;
   deathmatch_p := 0;
 
   if devparm then
@@ -2205,6 +1433,12 @@ begin
 
   // JVAL: 20201229 - Easy floor and ceiling texture angle
   P_AdjustEasyAngle;
+
+  // JVAL: 20220222 - Easy wind
+  P_AdjustEasyWind;
+
+  PO_Init(lumpnum + Ord(ML_THINGS));            // Initialize the polyobjs
+  P_LoadACScripts(lumpnum + Ord(ML_BEHAVIOR));  // ACS object code
 
   // if deathmatch, randomly spawn the active players
   if deathmatch <> 0 then
@@ -2252,11 +1486,16 @@ begin
 {$ENDIF}
 
   R_SetInterpolateSkipTicks(2);
+
+  // Check if the level is a lightning level
+  P_InitLightning;
 end;
 
+//==============================================================================
 //
 // P_Init
 //
+//==============================================================================
 procedure P_Init;
 begin
   P_InitSwitchList;
@@ -2274,7 +1513,8 @@ end;
 // P_ShutDown
 //
 //==========================================================================
-
+//
+//==============================================================================
 procedure P_ShutDown;
 begin
   P_ShutDownAnimations;

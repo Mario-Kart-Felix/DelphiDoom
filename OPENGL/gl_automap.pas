@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   OpenGL AutoMap
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,14 +36,39 @@ interface
 uses
   r_defs;
 
+//==============================================================================
+//
+// gld_InitAutomap
+//
+//==============================================================================
 procedure gld_InitAutomap;
 
+//==============================================================================
+//
+// gld_ShutDownAutomap
+//
+//==============================================================================
 procedure gld_ShutDownAutomap;
 
+//==============================================================================
+//
+// gld_ClearAMBuffer
+//
+//==============================================================================
 procedure gld_ClearAMBuffer(const fw, fh: integer; const cc: LongWord);
 
+//==============================================================================
+//
+// gld_AddAutomapLine
+//
+//==============================================================================
 procedure gld_AddAutomapLine(const x1, y1, x2, y2: integer; const cc: LongWord);
 
+//==============================================================================
+//
+// gld_AddAutomapPatch
+//
+//==============================================================================
 procedure gld_AddAutomapPatch(const x, y: integer; const lump: integer);
 
 procedure gld_AddAutomapTriangle(
@@ -52,6 +77,11 @@ procedure gld_AddAutomapTriangle(
   const x3, y3, u3, v3: integer;
   const cc: LongWord; const lump: integer; const sec: Psector_t);
 
+//==============================================================================
+//
+// gld_DrawAutomap
+//
+//==============================================================================
 procedure gld_DrawAutomap;
 
 implementation
@@ -60,13 +90,12 @@ uses
   dglOpenGL,
   doomdef,
   d_delphi,
+  p_tick,
   m_fixed,
   tables,
   gl_defs,
   gl_tex,
-  gl_render,
-  v_data,
-  v_video;
+  gl_render;
 
 const
   GL_AM_QUAD = 0;
@@ -96,6 +125,11 @@ var
   numamitems: integer = 0;
   realnumamitems: integer = 0;
 
+//==============================================================================
+//
+// gld_InitAutomap
+//
+//==============================================================================
 procedure gld_InitAutomap;
 begin
   amrenderitems := nil;
@@ -103,6 +137,11 @@ begin
   realnumamitems := 0;
 end;
 
+//==============================================================================
+//
+// gld_ShutDownAutomap
+//
+//==============================================================================
 procedure gld_ShutDownAutomap;
 begin
   memfree(pointer(amrenderitems), realnumamitems * SizeOf(glamrenderitem_t));
@@ -110,6 +149,11 @@ begin
   realnumamitems := 0;
 end;
 
+//==============================================================================
+//
+// gld_GrowAutomapLines
+//
+//==============================================================================
 procedure gld_GrowAutomapLines;
 const
   GROWSTEP = 64;
@@ -121,6 +165,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// gld_ClearAMBuffer
+//
+//==============================================================================
 procedure gld_ClearAMBuffer(const fw, fh: integer; const cc: LongWord);
 var
   l: Pglamrenderitem_t;
@@ -140,6 +189,11 @@ begin
   inc(numamitems);
 end;
 
+//==============================================================================
+//
+// gld_AddAutomapLine
+//
+//==============================================================================
 procedure gld_AddAutomapLine(const x1, y1, x2, y2: integer; const cc: LongWord);
 var
   l: Pglamrenderitem_t;
@@ -159,6 +213,11 @@ begin
   inc(numamitems);
 end;
 
+//==============================================================================
+//
+// gld_AddAutomapPatch
+//
+//==============================================================================
 procedure gld_AddAutomapPatch(const x, y: integer; const lump: integer);
 var
   l: Pglamrenderitem_t;
@@ -221,6 +280,11 @@ begin
   inc(numamitems);
 end;
 
+//==============================================================================
+//
+// gld_DrawAMQuad
+//
+//==============================================================================
 procedure gld_DrawAMQuad(const l: Pglamrenderitem_t);
 begin
   glColor4f(l.r, l.g, l.b, 1.0);
@@ -233,6 +297,11 @@ begin
   glEnd;
 end;
 
+//==============================================================================
+//
+// gld_DrawAMLine
+//
+//==============================================================================
 procedure gld_DrawAMLine(const l: Pglamrenderitem_t);
 begin
   glColor4f(l.r, l.g, l.b, 1.0);
@@ -243,6 +312,11 @@ begin
   glEnd;
 end;
 
+//==============================================================================
+//
+// gld_DrawAMPatch
+//
+//==============================================================================
 procedure gld_DrawAMPatch(const l: Pglamrenderitem_t);
 begin
   glEnable(GL_TEXTURE_2D);
@@ -254,6 +328,11 @@ begin
   glDisable(GL_TEXTURE_2D);
 end;
 
+//==============================================================================
+//
+// gld_DrawAMTriangle
+//
+//==============================================================================
 procedure gld_DrawAMTriangle(const l: Pglamrenderitem_t);
 var
   tex: PGLTexture;
@@ -265,8 +344,16 @@ begin
 
   glColor4f(l.r, l.g, l.b, 1.0);
 
-  tex := gld_RegisterFlat(l.lump, true, l.flat);
-  gld_BindFlat(tex);
+  if l.sec.renderflags and SRF_RIPPLE_FLOOR <> 0 then
+  begin
+    tex := gld_RegisterFlat(l.lump, true, l.flat);
+    gld_BindFlat(tex, leveltime and 31);
+  end
+  else
+  begin
+    tex := gld_RegisterFlat(l.lump, true, l.flat);
+    gld_BindFlat(tex, -1);
+  end;
 
 {$IFDEF DOOM_OR_STRIFE}
   xoffs := l.sec.floor_xoffs * tex.texturescale / FLATUVSCALE;
@@ -322,6 +409,11 @@ begin
   glDisable(GL_TEXTURE_2D);
 end;
 
+//==============================================================================
+//
+// gld_DrawAutomap
+//
+//==============================================================================
 procedure gld_DrawAutomap;
 var
   i: integer;

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -100,7 +100,6 @@ type
   Pinventory_t = ^inventory_t;
   inventory_a = array [0..NUMINVENTORY - 1] of inventory_t;
   Pinventory_a = ^inventory_a;
-
 
 type
 //
@@ -242,6 +241,10 @@ type
     lastongroundtime: integer;
     lastautocrouchtime: integer;
     crouchheight: fixed_t;
+    // JVAL: For the crosshair target
+    plinetarget: Pmobj_t;
+    pcrosstic: integer;
+    nextfire: integer;
   end;
   Pplayer_t = ^player_t;
 
@@ -513,7 +516,7 @@ type
   player_t203 = record
     mo: Pmobj_t;
     playerstate: playerstate_t;
-    cmd202: ticcmd_t;
+    cmd202: ticcmd_t202;
 
     // Determine POV,
     //  including viewpoint bobbing during movement.
@@ -563,7 +566,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -693,7 +696,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -902,7 +905,7 @@ type
     sitems: integer;
     ssecret: integer;
     stime: integer;
-    frags: array[0..3] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     score: integer; // current score on entry, modified on return
   end;
   Pwbplayerstruct_t = ^wbplayerstruct_t;

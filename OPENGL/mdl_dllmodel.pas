@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //    External DLL model support
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -35,7 +35,6 @@ interface
 
 uses
   d_delphi,
-  gl_types,
   mdl_base,
   m_smartpointerlist,
   ps_dll;
@@ -72,11 +71,14 @@ implementation
 uses
   Windows,
   dglOpenGL,
-  doomdef,
   gl_defs,
-  i_system,
-  w_pak;
+  i_system;
 
+//==============================================================================
+//
+// TDLLModel.Create
+//
+//==============================================================================
 constructor TDLLModel.Create(const name: string;
   const xoffset, yoffset, zoffset: float;
   const xscale, yscale, zscale: float;
@@ -85,6 +87,11 @@ begin
   CreateWithProc(name, '', xoffset, yoffset, zoffset, xscale, yscale, zscale, additionalframes);
 end;
 
+//==============================================================================
+//
+// TDLLModel.CreateWithProc
+//
+//==============================================================================
 constructor TDLLModel.CreateWithProc(const name, proc: string;
   const xoffset, yoffset, zoffset: float;
   const xscale, yscale, zscale: float;
@@ -113,6 +120,11 @@ begin
       LoadFrom(additionalframes.Strings[i]);
 end;
 
+//==============================================================================
+//
+// TDLLModel.LoadFrom
+//
+//==============================================================================
 procedure TDLLModel.LoadFrom(const libname: string);
 var
   handle: LongWord;
@@ -142,6 +154,11 @@ begin
   libs.Add(libname);
 end;
 
+//==============================================================================
+//
+// TDLLModel.Destroy
+//
+//==============================================================================
 destructor TDLLModel.Destroy;
 var
   i: integer;
@@ -154,6 +171,11 @@ begin
   Inherited;
 end;
 
+//==============================================================================
+//
+// TDLLModel.Draw
+//
+//==============================================================================
 procedure TDLLModel.Draw(const frm1, frm2: integer; const offset: float);
 var
   i: integer;
@@ -170,6 +192,11 @@ begin
   glPopMatrix;
 end;
 
+//==============================================================================
+//
+// TDLLModel.DrawSimple
+//
+//==============================================================================
 procedure TDLLModel.DrawSimple(const frm: integer);
 begin
   Draw(frm, frm, 0.0);

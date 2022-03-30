@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //   The status bar widget code.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -125,20 +125,32 @@ type
   end;
   Pst_binicon_t = ^st_binicon_t;
 
+//==============================================================================
+// STlib_init
 //
 // Widget creation, access, and update routines
 //
-
 // Initializes widget library.
 // More precisely, initialize STMINUS,
 //  everything else is done somewhere else.
 //
+//==============================================================================
 procedure STlib_init;
 
+//==============================================================================
+// STlib_initNum
+//
 // Number widget routines
+//
+//==============================================================================
 procedure STlib_initNum(n: Pst_number_t; x, y: integer; pl: Ppatch_tPArray;
   num: PInteger; width: integer);
 
+//==============================================================================
+//
+// STlib_drawNumPositive
+//
+//==============================================================================
 procedure STlib_drawNumPositive(n: Pst_number_t; screen: integer; transparent: boolean);
 
 var
@@ -147,13 +159,10 @@ var
 implementation
 
 uses
-  doomdef,
   z_zone,
   v_data,
   v_video,
-  i_system,
-  w_wad,
-  st_stuff;
+  w_wad;
 
 //
 // Hack display negative frags.
@@ -162,12 +171,22 @@ uses
 var
   sttminus: Ppatch_t;
 
+//==============================================================================
+//
+// STlib_init
+//
+//==============================================================================
 procedure STlib_init;
 begin
   sttminus := W_CacheLumpName('STCFN045', PU_STATIC);
 end;
 
+//==============================================================================
+// STlib_initNum
+//
 // ?
+//
+//==============================================================================
 procedure STlib_initNum(n: Pst_number_t; x, y: integer; pl: Ppatch_tPArray;
   num: PInteger; width: integer);
 begin
@@ -179,11 +198,14 @@ begin
   n.p := pl;
 end;
 
+//==============================================================================
+// STlib_drawNum
 //
 // A fairly efficient way to draw a number
 //  based on differences from the old number.
 // Note: worth the trouble?
 //
+//==============================================================================
 procedure STlib_drawNum(n: Pst_number_t; screen: integer; transparent: boolean);
 var
   numdigits: integer;
@@ -235,6 +257,11 @@ begin
     V_DrawPatch(x - 8, n.y, screen, sttminus, screen = SCN_FG);
 end;
 
+//==============================================================================
+//
+// STlib_drawNumPositive
+//
+//==============================================================================
 procedure STlib_drawNumPositive(n: Pst_number_t; screen: integer; transparent: boolean);
 var
   zero: st_number_t;

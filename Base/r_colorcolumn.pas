@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,22 +24,59 @@
 //  Draw Color Func
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
+
+{$I Doom32.inc}
 
 unit r_colorcolumn;
 
 interface
 
+//==============================================================================
+//
+// R_DrawColorColumnMedium
+//
+//==============================================================================
 procedure R_DrawColorColumnMedium;
+
+//==============================================================================
+//
+// R_DrawColorColumnHi
+//
+//==============================================================================
 procedure R_DrawColorColumnHi;
 {$IFDEF DOOM}
+
+//==============================================================================
+//
+// R_DrawColorColumnAverageMedium_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAverageMedium_Batch;
 {$ENDIF}
+
+//==============================================================================
+//
+// R_DrawColorColumnAverageHi_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAverageHi_Batch;
 {$IFDEF DOOM}
+
+//==============================================================================
+//
+// R_DrawColorColumnAlphaMedium_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAlphaMedium_Batch;
 {$ENDIF}
+
+//==============================================================================
+//
+// R_DrawColorColumnAlphaHi_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAlphaHi_Batch;
 
 var
@@ -52,7 +89,18 @@ type
 var
   putpixelfunc: putpixelfunc_t;
 
+//==============================================================================
+//
+// R_PutPixel8
+//
+//==============================================================================
 procedure R_PutPixel8(const x, y: integer);
+
+//==============================================================================
+//
+// R_PutPixel32
+//
+//==============================================================================
 procedure R_PutPixel32(const x, y: integer);
 
 implementation
@@ -63,18 +111,27 @@ uses
   r_precalc,
   r_column,
   r_batchcolumn,
-  {$IFDEF DOOM}
+  {$IFDEF DOOM_OR_STRIFE}
   r_colormaps,
   {$ENDIF}
   v_video,
-  v_data,
   r_draw;
 
+//==============================================================================
+//
+// R_PutPixel8
+//
+//==============================================================================
 procedure R_PutPixel8(const x, y: integer);
 begin
   PByte(@((ylookup[y]^)[columnofs[x]]))^ := dc_colormap[dc_color];
 end;
 
+//==============================================================================
+//
+// R_PutPixel32
+//
+//==============================================================================
 procedure R_PutPixel32(const x, y: integer);
 var
   c: LongWord;
@@ -107,6 +164,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnMedium_cnt0
+//
+//==============================================================================
 procedure R_DrawColorColumnMedium_cnt0;
 var
   dest: PByte;
@@ -228,6 +290,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnMedium_cnt1
+//
+//==============================================================================
 procedure R_DrawColorColumnMedium_cnt1;
 var
   dest: PByte;
@@ -369,6 +436,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnMedium
+//
+//==============================================================================
 procedure R_DrawColorColumnMedium;
 var
   count: integer;
@@ -883,7 +955,11 @@ begin
   end;
 end;
 
-
+//==============================================================================
+//
+// R_DrawColorColumnHi_cnt0
+//
+//==============================================================================
 procedure R_DrawColorColumnHi_cnt0;
 var
   destl: PLongWord;
@@ -939,6 +1015,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnHi_cnt1
+//
+//==============================================================================
 procedure R_DrawColorColumnHi_cnt1;
 var
   destl: PLongWord;
@@ -1012,6 +1093,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnHi_bc1
+//
+//==============================================================================
 procedure R_DrawColorColumnHi_bc1(const count: integer);
 var
   destl: PLongWord;
@@ -1069,6 +1155,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnHi_bc2
+//
+//==============================================================================
 procedure R_DrawColorColumnHi_bc2(const count: integer);
 var
   destl: PLongWord;
@@ -1130,6 +1221,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnHi_bc3
+//
+//==============================================================================
 procedure R_DrawColorColumnHi_bc3(const count: integer);
 var
   destl: PLongWord;
@@ -1195,6 +1291,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColorColumnHi_bc4
+//
+//==============================================================================
 procedure R_DrawColorColumnHi_bc4(const count: integer);
 var
   destl: PLongWord;
@@ -1264,9 +1365,21 @@ begin
   end;
 end;
 
-procedure R_DrawColorColumnHi;
+{$IFNDEF OPTIMIZE_FOR_SIZE}
+
+{$I R_DrawColorColumnHi_bc.inc}
+
+type
+  DrawColorColumnHi_bc_proc = procedure (const count: integer);
+
+const
+  R_DrawColorColumnHi_bc_cnt = 64;
+
 var
-  count: integer;
+  R_DrawColorColumnHi_bcTable: array[1..R_DrawColorColumnHi_bc_cnt] of DrawColorColumnHi_bc_proc;
+
+procedure R_DrawColorColumnHi_bc_len(const count: integer; const len: integer);
+var
   destl: PLongWord;
   ldest: LongWord;
   c: LongWord;
@@ -1279,32 +1392,85 @@ var
   bf_b: PIntegerArray;
   pal: PLongWordArray;
 begin
+  {$IFDEF DOOM_OR_STRIFE}
+  if customcolormap <> nil then
+    pal := @cvideopal
+  else
+  {$ENDIF}
+    pal := @curpal;
+
+  destl := @((ylookupl[dc_yl]^)[columnofs[dc_x]]);
+  swidth := SCREENWIDTH32PITCH;
+
+  lfactor := dc_lightlevel;
+  if lfactor >= 0 then
+  begin
+    R_GetPrecalc32Tables(lfactor, bf_r, bf_g, bf_b, dc_fog);  // JVAL: Mars fog sectors
+    c := pal[dc_color];
+    ldest := bf_r[c and $FF] + bf_g[(c shr 8) and $FF] + bf_b[(c shr 16) and $FF];
+
+    cnt := count;
+    while cnt > 0 do
+    begin
+      FillDWord(destl, len, ldest);
+      destl := PLongWord(integer(destl) + swidth);
+      dec(cnt);
+    end;
+  end
+  else
+  begin
+    c := pal[dc_color];
+    r1 := c;
+    g1 := c shr 8;
+    b1 := c shr 16;
+    ldest := precal32_ic[r1 + g1 + b1];
+
+    cnt := count;
+    while cnt > 0 do
+    begin
+      FillDWord(destl, len, ldest);
+      destl := PLongWord(integer(destl) + swidth);
+      dec(cnt);
+    end;
+  end;
+end;
+
+{$ENDIF}
+
+//==============================================================================
+//
+// R_DrawColorColumnHi
+//
+//==============================================================================
+procedure R_DrawColorColumnHi;
+var
+  count: integer;
+  destl: PLongWord;
+  ldest: LongWord;
+  c: LongWord;
+  swidth: integer;
+  lfactor: integer;
+  batch_pitch: integer;
+  deststop: PLongWord;
+  r1, g1, b1: byte;
+  bf_r: PIntegerArray;
+  bf_g: PIntegerArray;
+  bf_b: PIntegerArray;
+  pal: PLongWordArray;
+begin
   count := dc_yh - dc_yl;
 
   if count < 0 then
     exit;
 
-  case num_batch_columns of
-    1:
-      begin
-        R_DrawColorColumnHi_bc1(count);
-        exit;
-      end;
-    2:
-      begin
-        R_DrawColorColumnHi_bc2(count);
-        exit;
-      end;
-    3:
-      begin
-        R_DrawColorColumnHi_bc3(count);
-        exit;
-      end;
-    4:
-      begin
-        R_DrawColorColumnHi_bc4(count);
-        exit;
-      end
+{$IFNDEF OPTIMIZE_FOR_SIZE}
+  if num_batch_columns > 0 then
+  begin
+    if num_batch_columns <= R_DrawColorColumnHi_bc_cnt then
+      R_DrawColorColumnHi_bcTable[num_batch_columns](count + 1)
+    else
+      R_DrawColorColumnHi_bc_len(count + 1, num_batch_columns);
+    exit;
   end;
 
   if count = 0 then
@@ -1317,6 +1483,7 @@ begin
     R_DrawColorColumnHi_cnt1;
     exit;
   end;
+{$ENDIF}
 
   {$IFDEF DOOM_OR_STRIFE}
   if customcolormap <> nil then
@@ -1329,6 +1496,7 @@ begin
 
   swidth := SCREENWIDTH32PITCH - num_batch_columns * SizeOf(LongWord);
   lfactor := dc_lightlevel;
+  batch_pitch := (num_batch_columns - 1) * SizeOf(LongWord);
   if lfactor >= 0 then
   begin
     R_GetPrecalc32Tables(lfactor, bf_r, bf_g, bf_b, dc_fog);  // JVAL: Mars fog sectors
@@ -1337,75 +1505,67 @@ begin
 
     while count >= 8 do
     begin
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
@@ -1414,12 +1574,11 @@ begin
 
     while count >= 0 do
     begin
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
 
       destl := PLongWord(integer(destl) + swidth);
@@ -1436,75 +1595,67 @@ begin
 
     while count >= 8 do
     begin
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
@@ -1513,12 +1664,11 @@ begin
 
     while count >= 0 do
     begin
-      cnt := num_batch_columns;
-      while cnt > 0 do
+      deststop := PLongWord(integer(destl) + batch_pitch);
+      while integer(destl) <= integer(deststop) do
       begin
         destl^ := ldest;
         inc(destl);
-        dec(cnt);
       end;
       destl := PLongWord(integer(destl) + swidth);
 
@@ -1528,29 +1678,119 @@ begin
 end;
 
 {$IFDEF DOOM}
+
+//==============================================================================
+//
+// R_DrawColorColumnAverageMedium_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAverageMedium_Batch;
 begin
 
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_DrawColorColumnAverageHi_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAverageHi_Batch;
 begin
 
 end;
 
 {$IFDEF DOOM}
+
+//==============================================================================
+//
+// R_DrawColorColumnAlphaMedium_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAlphaMedium_Batch;
 begin
 
 end;
 
 {$ENDIF}
+
+//==============================================================================
+//
+// R_DrawColorColumnAlphaHi_Batch
+//
+//==============================================================================
 procedure R_DrawColorColumnAlphaHi_Batch;
 begin
 
 end;
 
-end.
+{$IFNDEF OPTIMIZE_FOR_SIZE}
+initialization
+  R_DrawColorColumnHi_bcTable[1] := @R_DrawColorColumnHi_bc1;
+  R_DrawColorColumnHi_bcTable[2] := @R_DrawColorColumnHi_bc2;
+  R_DrawColorColumnHi_bcTable[3] := @R_DrawColorColumnHi_bc3;
+  R_DrawColorColumnHi_bcTable[4] := @R_DrawColorColumnHi_bc4;
+  R_DrawColorColumnHi_bcTable[5] := @R_DrawColorColumnHi_bc5;
+  R_DrawColorColumnHi_bcTable[6] := @R_DrawColorColumnHi_bc6;
+  R_DrawColorColumnHi_bcTable[7] := @R_DrawColorColumnHi_bc7;
+  R_DrawColorColumnHi_bcTable[8] := @R_DrawColorColumnHi_bc8;
+  R_DrawColorColumnHi_bcTable[9] := @R_DrawColorColumnHi_bc9;
+  R_DrawColorColumnHi_bcTable[10] := @R_DrawColorColumnHi_bc10;
+  R_DrawColorColumnHi_bcTable[11] := @R_DrawColorColumnHi_bc11;
+  R_DrawColorColumnHi_bcTable[12] := @R_DrawColorColumnHi_bc12;
+  R_DrawColorColumnHi_bcTable[13] := @R_DrawColorColumnHi_bc13;
+  R_DrawColorColumnHi_bcTable[14] := @R_DrawColorColumnHi_bc14;
+  R_DrawColorColumnHi_bcTable[15] := @R_DrawColorColumnHi_bc15;
+  R_DrawColorColumnHi_bcTable[16] := @R_DrawColorColumnHi_bc16;
+  R_DrawColorColumnHi_bcTable[17] := @R_DrawColorColumnHi_bc17;
+  R_DrawColorColumnHi_bcTable[18] := @R_DrawColorColumnHi_bc18;
+  R_DrawColorColumnHi_bcTable[19] := @R_DrawColorColumnHi_bc19;
+  R_DrawColorColumnHi_bcTable[20] := @R_DrawColorColumnHi_bc20;
+  R_DrawColorColumnHi_bcTable[21] := @R_DrawColorColumnHi_bc21;
+  R_DrawColorColumnHi_bcTable[22] := @R_DrawColorColumnHi_bc22;
+  R_DrawColorColumnHi_bcTable[23] := @R_DrawColorColumnHi_bc23;
+  R_DrawColorColumnHi_bcTable[24] := @R_DrawColorColumnHi_bc24;
+  R_DrawColorColumnHi_bcTable[25] := @R_DrawColorColumnHi_bc25;
+  R_DrawColorColumnHi_bcTable[26] := @R_DrawColorColumnHi_bc26;
+  R_DrawColorColumnHi_bcTable[27] := @R_DrawColorColumnHi_bc27;
+  R_DrawColorColumnHi_bcTable[28] := @R_DrawColorColumnHi_bc28;
+  R_DrawColorColumnHi_bcTable[29] := @R_DrawColorColumnHi_bc29;
+  R_DrawColorColumnHi_bcTable[30] := @R_DrawColorColumnHi_bc30;
+  R_DrawColorColumnHi_bcTable[31] := @R_DrawColorColumnHi_bc31;
+  R_DrawColorColumnHi_bcTable[32] := @R_DrawColorColumnHi_bc32;
+  R_DrawColorColumnHi_bcTable[33] := @R_DrawColorColumnHi_bc33;
+  R_DrawColorColumnHi_bcTable[34] := @R_DrawColorColumnHi_bc34;
+  R_DrawColorColumnHi_bcTable[35] := @R_DrawColorColumnHi_bc35;
+  R_DrawColorColumnHi_bcTable[36] := @R_DrawColorColumnHi_bc36;
+  R_DrawColorColumnHi_bcTable[37] := @R_DrawColorColumnHi_bc37;
+  R_DrawColorColumnHi_bcTable[38] := @R_DrawColorColumnHi_bc38;
+  R_DrawColorColumnHi_bcTable[39] := @R_DrawColorColumnHi_bc39;
+  R_DrawColorColumnHi_bcTable[40] := @R_DrawColorColumnHi_bc40;
+  R_DrawColorColumnHi_bcTable[41] := @R_DrawColorColumnHi_bc41;
+  R_DrawColorColumnHi_bcTable[42] := @R_DrawColorColumnHi_bc42;
+  R_DrawColorColumnHi_bcTable[43] := @R_DrawColorColumnHi_bc43;
+  R_DrawColorColumnHi_bcTable[44] := @R_DrawColorColumnHi_bc44;
+  R_DrawColorColumnHi_bcTable[45] := @R_DrawColorColumnHi_bc45;
+  R_DrawColorColumnHi_bcTable[46] := @R_DrawColorColumnHi_bc46;
+  R_DrawColorColumnHi_bcTable[47] := @R_DrawColorColumnHi_bc47;
+  R_DrawColorColumnHi_bcTable[48] := @R_DrawColorColumnHi_bc48;
+  R_DrawColorColumnHi_bcTable[49] := @R_DrawColorColumnHi_bc49;
+  R_DrawColorColumnHi_bcTable[50] := @R_DrawColorColumnHi_bc50;
+  R_DrawColorColumnHi_bcTable[51] := @R_DrawColorColumnHi_bc51;
+  R_DrawColorColumnHi_bcTable[52] := @R_DrawColorColumnHi_bc52;
+  R_DrawColorColumnHi_bcTable[53] := @R_DrawColorColumnHi_bc53;
+  R_DrawColorColumnHi_bcTable[54] := @R_DrawColorColumnHi_bc54;
+  R_DrawColorColumnHi_bcTable[55] := @R_DrawColorColumnHi_bc55;
+  R_DrawColorColumnHi_bcTable[56] := @R_DrawColorColumnHi_bc56;
+  R_DrawColorColumnHi_bcTable[57] := @R_DrawColorColumnHi_bc57;
+  R_DrawColorColumnHi_bcTable[58] := @R_DrawColorColumnHi_bc58;
+  R_DrawColorColumnHi_bcTable[59] := @R_DrawColorColumnHi_bc59;
+  R_DrawColorColumnHi_bcTable[60] := @R_DrawColorColumnHi_bc60;
+  R_DrawColorColumnHi_bcTable[61] := @R_DrawColorColumnHi_bc61;
+  R_DrawColorColumnHi_bcTable[62] := @R_DrawColorColumnHi_bc62;
+  R_DrawColorColumnHi_bcTable[63] := @R_DrawColorColumnHi_bc63;
+  R_DrawColorColumnHi_bcTable[64] := @R_DrawColorColumnHi_bc64;
+{$ENDIF}
 
+end.
 

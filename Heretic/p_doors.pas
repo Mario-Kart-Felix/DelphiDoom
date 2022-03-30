@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 // DESCRIPTION: Door animation code (opening/closing)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,43 +37,66 @@ uses
   doomdef,
   z_zone,
   m_fixed,
-  p_local,
   p_mobj_h,
   p_spec,
   r_defs,
   s_sound,
 // State.
-  doomstat,
+  
 // Data.
-  sounds;
+  sounddata;
 
+//==============================================================================
+//
+// T_VerticalDoor
+//
+//==============================================================================
 procedure T_VerticalDoor(door: Pvldoor_t);
 
+//==============================================================================
+//
+// EV_DoDoor
+//
+//==============================================================================
 function EV_DoDoor(line: Pline_t; _type: vldoor_e; speed: fixed_t = VDOORSPEED): integer;
 
+//==============================================================================
+//
+// EV_VerticalDoor
+//
+//==============================================================================
 procedure EV_VerticalDoor(line: Pline_t; thing: Pmobj_t);
 
+//==============================================================================
+//
+// P_SpawnDoorCloseIn30
+//
+//==============================================================================
 procedure P_SpawnDoorCloseIn30(sec: Psector_t);
 
+//==============================================================================
+//
+// P_SpawnDoorRaiseIn5Mins
+//
+//==============================================================================
 procedure P_SpawnDoorRaiseIn5Mins(sec: Psector_t; secnum: integer);
 
 implementation
 
 uses
-  d_delphi,
   d_player,
   h_strings,
   p_tick,
   p_setup,
   p_floor;
 
+//==============================================================================
 //
 // VERTICAL DOORS
 //
-
-//
 // T_VerticalDoor
 //
+//==============================================================================
 procedure T_VerticalDoor(door: Pvldoor_t);
 var
   res: result_e;
@@ -89,12 +112,12 @@ begin
             normal:
               begin
                 door.direction := -1; // time to go back down
-                S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+                S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
               end;
             close30ThenOpen:
               begin
                 door.direction := 1;
-                S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+                S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
               end;
           end;
         end;
@@ -110,7 +133,7 @@ begin
               begin
                 door.direction := 1;
                 door._type := normal;
-                S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+                S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
               end;
           end;
         end;
@@ -129,7 +152,7 @@ begin
               begin
                 door.sector.specialdata := nil;
                 P_RemoveThinker(@door.thinker);  // unlink and free
-                S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_dorcls));
+                S_StartSound(@door.sector.soundorg, Ord(sfx_dorcls));
               end;
             close30ThenOpen:
               begin
@@ -147,7 +170,7 @@ begin
           else
             begin
               door.direction := 1;
-              S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+              S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
             end;
           end;
         end;
@@ -178,6 +201,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// EV_DoDoor
+//
+//==============================================================================
 function EV_DoDoor(line: Pline_t; _type: vldoor_e; speed: fixed_t = VDOORSPEED): integer;
 var
   initial: boolean;
@@ -218,14 +246,14 @@ begin
           door.topheight := P_FindLowestCeilingSurrounding(sec);
           door.topheight := door.topheight - 4 * FRACUNIT;
           door.direction := -1;
-          S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+          S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
         end;
 
       close30ThenOpen:
         begin
           door.topheight := sec.ceilingheight;
           door.direction := -1;
-          S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+          S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
         end;
 
       normal,
@@ -235,15 +263,17 @@ begin
           door.topheight := P_FindLowestCeilingSurrounding(sec);
           door.topheight := door.topheight - 4 * FRACUNIT;
           if door.topheight <> sec.ceilingheight then
-            S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+            S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
         end;
     end;
   end;
 end;
 
+//==============================================================================
 //
 // EV_VerticalDoor : open a door manually, no tag value
 //
+//==============================================================================
 procedure EV_VerticalDoor(line: Pline_t; thing: Pmobj_t);
 var
   player: Pplayer_t;
@@ -324,7 +354,7 @@ begin
     end;
   end;
 
-  S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_doropn));
+  S_StartSound(@sec.soundorg, Ord(sfx_doropn));
 
   // new door thinker
   door := Z_Malloc(SizeOf(vldoor_t), PU_LEVSPEC, nil);
@@ -357,9 +387,12 @@ begin
   door.topheight := door.topheight - 4 * FRACUNIT;
 end;
 
+//==============================================================================
+// P_SpawnDoorCloseIn30
 //
 // Spawn a door that closes after 30 seconds
 //
+//==============================================================================
 procedure P_SpawnDoorCloseIn30(sec: Psector_t);
 var
   door: Pvldoor_t;
@@ -379,9 +412,12 @@ begin
   door.topcountdown := 30 * TICRATE;
 end;
 
+//==============================================================================
+// P_SpawnDoorRaiseIn5Mins
 //
 // Spawn a door that opens after 5 minutes
 //
+//==============================================================================
 procedure P_SpawnDoorRaiseIn5Mins(sec: Psector_t; secnum: integer);
 var
   door: Pvldoor_t;
@@ -403,6 +439,5 @@ begin
   door.topwait := VDOORWAIT;
   door.topcountdown := 5 * 60 * TICRATE;
 end;
-
 
 end.

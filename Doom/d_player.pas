@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -44,6 +44,7 @@ uses
 // as commands per game tick.
   d_ticcmd,
   m_fixed,
+  p_umapinfo,
   doomdef;
 
 //
@@ -117,7 +118,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -197,6 +198,10 @@ type
     lastongroundtime: integer;
     lastautocrouchtime: integer;
     crouchheight: fixed_t;
+    // JVAL: For the crosshair target
+    plinetarget: Pmobj_t;
+    pcrosstic: integer;
+    nextfire: integer;
   end;
   Pplayer_t = ^player_t;
 
@@ -240,7 +245,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -358,7 +363,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -477,7 +482,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -591,7 +596,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -698,7 +703,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -796,7 +801,7 @@ type
     backpack: boolean;
 
     // Frags, kills of other players.
-    frags: array[0..(MAXPLAYERS)-1] of integer;
+    frags: array[0..MAXPLAYERS - 1] of integer;
     readyweapon: weapontype_t;
 
     // Is wp_nochange if not changing.
@@ -873,6 +878,7 @@ type
 
   wbstartstruct_t = record
     epsd: integer; // episode # (0-2)
+    nextep: integer;
 
     // if true, splash the secret level
     didsecret: boolean;
@@ -893,6 +899,9 @@ type
     pnum: integer;
 
     plyr: array[0..MAXPLAYERS - 1] of wbplayerstruct_t;
+
+    lastmapinfo: Pmapentry_t;
+    nextmapinfo: Pmapentry_t;
   end;
   Pwbstartstruct_t = ^wbstartstruct_t;
 
@@ -908,4 +917,3 @@ const
 implementation
 
 end.
-

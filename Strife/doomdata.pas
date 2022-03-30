@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 //  some internal structures shared by many modules are here
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -70,7 +70,8 @@ type
     ML_NODES,     // BSP nodes
     ML_SECTORS,   // Sectors, from editing
     ML_REJECT,    // LUT, sector-sector visibility
-    ML_BLOCKMAP   // LUT, motion clipping, walls/grid element
+    ML_BLOCKMAP,  // LUT, motion clipping, walls/grid element
+    ML_BEHAVIOR   // ACS Object Code
   );
 
   mapvertex_t = record
@@ -90,7 +91,7 @@ type
     bottomtexture: char8_t;
     midtexture: char8_t;
   // Front sector, towards viewer.
-    sector : smallint;
+    sector: smallint;
   end;
   Pmapsidedef_t = ^mapsidedef_t;
   mapsidedef_tArray = array[0..$FFFF] of mapsidedef_t;

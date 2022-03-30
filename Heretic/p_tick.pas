@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //    Thinker, Ticker.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -50,14 +50,39 @@ var
 // Both the head and tail of the thinker list.
   thinkercap: thinker_t;
 
+//==============================================================================
+//
+// P_InitThinkers
+//
+//==============================================================================
 procedure P_InitThinkers;
 
+//==============================================================================
+//
+// P_AddThinker
+//
+//==============================================================================
 procedure P_AddThinker(thinker: Pthinker_t);
 
+//==============================================================================
+//
+// P_RemoveThinker
+//
+//==============================================================================
 procedure P_RemoveThinker(thinker: Pthinker_t);
 
+//==============================================================================
+//
+// P_Ticker
+//
+//==============================================================================
 procedure P_Ticker;
 
+//==============================================================================
+//
+// P_ThinkerIsRemoved
+//
+//==============================================================================
 function P_ThinkerIsRemoved(thinker: Pthinker_t): boolean;
 
 var
@@ -83,6 +108,11 @@ uses
   ps_main,  // JVAL: Script Events
   z_zone;
 
+//==============================================================================
+//
+// P_InitThinkers
+//
+//==============================================================================
 procedure P_InitThinkers;
 begin
   mobjlist.Clear;
@@ -90,10 +120,12 @@ begin
   thinkercap.next := @thinkercap;
 end;
 
+//==============================================================================
 //
 // P_AddThinker
 // Adds a new thinker at the end of the list.
 //
+//==============================================================================
 procedure P_AddThinker(thinker: Pthinker_t);
 begin
   if @thinker._function.acp1 = @P_MobjThinker then
@@ -105,17 +137,24 @@ begin
   thinkercap.prev := thinker;
 end;
 
+//==============================================================================
 //
 // P_RemoveThinker
 // Deallocation is lazy -- it will not actually be freed
 // until its thinking turn comes up.
 //
+//==============================================================================
 procedure _removethinker;
 begin
 // JVAL 20191203 - Fixed non working plats & ceilings thanks to slayermbm
 //                 https://www.doomworld.com/forum/topic/98789-fpcdoom-1124117-updated-dec-2-2019/?do=findComment&comment=2050845
 end;
 
+//==============================================================================
+//
+// P_RemoveThinker
+//
+//==============================================================================
 procedure P_RemoveThinker(thinker: Pthinker_t);
 begin
   if @thinker._function.acp1 = @P_MobjThinker then
@@ -124,14 +163,21 @@ begin
   @thinker._function.acv := @_removethinker;
 end;
 
+//==============================================================================
+//
+// P_ThinkerIsRemoved
+//
+//==============================================================================
 function P_ThinkerIsRemoved(thinker: Pthinker_t): boolean;
 begin
   Result := (@thinker._function.acv = @_removethinker) or not Assigned(thinker._function.acv);
 end;
 
+//==============================================================================
 //
 // P_RunThinkers
 //
+//==============================================================================
 procedure P_RunThinkers;
 var
   currentthinker: Pthinker_t;
@@ -184,9 +230,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_Ticker
 //
+//==============================================================================
 procedure P_Ticker;
 var
   i: integer;

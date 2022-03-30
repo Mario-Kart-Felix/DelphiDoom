@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,36 +39,116 @@ uses
   m_fixed,
   p_mobj_h;
 
+//==============================================================================
+//
+// A_LowGravity
+//
+//==============================================================================
 procedure A_LowGravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NoGravity
+//
+//==============================================================================
 procedure A_NoGravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Gravity
+//
+//==============================================================================
 procedure A_Gravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MeleeAttack
+//
+//==============================================================================
 procedure A_MeleeAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Die
+//
+//==============================================================================
 procedure A_Die(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CustomBulletAttack
+//
+//==============================================================================
 procedure A_CustomBulletAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Countdown
+//
+//==============================================================================
 procedure A_Countdown(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FastChase
+//
+//==============================================================================
 procedure A_FastChase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SetInvulnerable
+//
+//==============================================================================
 procedure A_SetInvulnerable(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_UnSetInvulnerable
+//
+//==============================================================================
 procedure A_UnSetInvulnerable(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FloatBob
+//
+//==============================================================================
 procedure A_FloatBob(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NoFloatBob
+//
+//==============================================================================
 procedure A_NoFloatBob(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ComboAttack
+//
+//==============================================================================
 procedure A_ComboAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BulletAttack
+//
+//==============================================================================
 procedure A_BulletAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MediumGravity
+//
+//==============================================================================
 procedure A_MediumGravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PlayerMessage
+//
+//==============================================================================
 procedure A_PlayerMessage(actor: Pmobj_t);
 
 implementation
@@ -78,28 +158,25 @@ uses
   doomdef,
   d_player,
   g_game,
-  i_system,
   info_h,
   info,
   m_rnd,
-  m_vectors,
   p_enemy,
   p_mobj,
   p_inter,
   p_map,
-  p_maputl,
   p_local,
-  p_pspr,
   p_common,
-  r_main,
-  sounds,
   s_sound,
   tables;
 
+//==============================================================================
+// A_LowGravity
 //
 // JVAL
 // Low gravity
 //
+//==============================================================================
 procedure A_LowGravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -108,10 +185,13 @@ begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
+// A_NoGravity
 //
 // JVAL
 // Remove gravity
 //
+//==============================================================================
 procedure A_NoGravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_NOGRAVITY;
@@ -120,10 +200,13 @@ begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
+// A_Gravity
 //
 // JVAL
 // Normal gravity
 //
+//==============================================================================
 procedure A_Gravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -132,11 +215,13 @@ begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
 //
 // JVAL
 // Close distance attack
 // A_MeleeAttack(mindamage=0; maxdamage=0);
 //
+//==============================================================================
 procedure A_MeleeAttack(actor: Pmobj_t);
 var
   dmin, dmax: integer;  // Minimum and maximum damage
@@ -181,6 +266,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_Die
+//
+//==============================================================================
 procedure A_Die(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex and not MF_EX_INVULNERABLE;  // Clear invulnerability flag
@@ -191,9 +281,12 @@ begin
     P_DamageMobj(actor, nil, nil, actor.health);
 end;
 
+//==============================================================================
+// A_CustomBulletAttack
 //
 // CustomBulletAttack(spread_xy, numbullets, damageperbullet, range)
 //
+//==============================================================================
 procedure A_CustomBulletAttack(actor: Pmobj_t);
 var
   spread_xy: angle_t;
@@ -224,7 +317,7 @@ begin
 
   slope := P_AimLineAttack(actor, bangle, range);
 
-  if actor.info.flags_ex and MF_EX_RANDOMATTACKSOUND <> 0 then
+  if actor.flags_ex and MF_EX_RANDOMATTACKSOUND <> 0 then
     P_RandomSound(actor, actor.info.attacksound)
   else
     S_StartSound(actor, actor.info.attacksound);
@@ -238,9 +331,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_Countdown(void)
 //
+//==============================================================================
 procedure A_Countdown(actor: Pmobj_t);
 begin
   dec(actor.reactiontime);
@@ -251,46 +346,83 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_FastChase
+//
+//==============================================================================
 procedure A_FastChase(actor: Pmobj_t);
 begin
   P_DoChase(actor, true);
 end;
 
+//==============================================================================
+//
+// A_SetInvulnerable
+//
+//==============================================================================
 procedure A_SetInvulnerable(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex or MF_EX_INVULNERABLE;
 end;
 
+//==============================================================================
+//
+// A_UnSetInvulnerable
+//
+//==============================================================================
 procedure A_UnSetInvulnerable(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex and not MF_EX_INVULNERABLE;
 end;
 
+//==============================================================================
+//
+// A_FloatBob
+//
+//==============================================================================
 procedure A_FloatBob(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex or MF_EX_FLOATBOB;
   actor.flags2 := actor.flags2 or MF2_FLOATBOB;
 end;
 
+//==============================================================================
+//
+// A_NoFloatBob
+//
+//==============================================================================
 procedure A_NoFloatBob(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex and not MF_EX_FLOATBOB;
   actor.flags2 := actor.flags2 and not MF2_FLOATBOB;
 end;
 
+//==============================================================================
+//
+// A_Missile
+//
+//==============================================================================
 procedure A_Missile(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_MISSILE;
 end;
 
+//==============================================================================
+//
+// A_NoMissile
+//
+//==============================================================================
 procedure A_NoMissile(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_MISSILE;
 end;
 
+//==============================================================================
 //
 // A_ComboAttack(void)
 //
+//==============================================================================
 procedure A_ComboAttack(actor: Pmobj_t);
 var
   missile: Pmobj_t;
@@ -325,15 +457,17 @@ begin
 
     if missile <> nil then
     begin
-      if missile.info.flags_ex and MF_EX_SEEKERMISSILE <> 0 then
+      if missile.flags_ex and MF_EX_SEEKERMISSILE <> 0 then
         missile.tracer := actor.target;
     end;
   end;
 end;
 
+//==============================================================================
 //
 // A_BulletAttack(numbullets: integer [optional])
 //
+//==============================================================================
 procedure A_BulletAttack(actor: Pmobj_t);
 var
   i: integer;
@@ -350,7 +484,7 @@ begin
 
   slope := P_AimLineAttack(actor, bangle, MISSILERANGE);
 
-  if actor.info.flags_ex and MF_EX_RANDOMATTACKSOUND <> 0 then
+  if actor.flags_ex and MF_EX_RANDOMATTACKSOUND <> 0 then
     P_RandomSound(actor, actor.info.attacksound)
   else
     S_StartSound(actor, actor.info.attacksound);
@@ -370,10 +504,13 @@ begin
   end;
 end;
 
+//==============================================================================
+// A_MediumGravity
 //
 // JVAL
 // Medium gravity
 //
+//==============================================================================
 procedure A_MediumGravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -381,9 +518,11 @@ begin
   actor.flags2_ex := actor.flags2_ex or MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
 //
 // A_PlayerMessage
 //
+//==============================================================================
 procedure A_PlayerMessage(actor: Pmobj_t);
 var
   p: Pplayer_t;

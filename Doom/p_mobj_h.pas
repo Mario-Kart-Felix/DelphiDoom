@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Map Objects, MObj, definition and handling.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -194,8 +194,6 @@ const
   MF_TRANSLATION = $c000000;
   // Hmm ???.
   MF_TRANSSHIFT = 26;
-  // Just appeard - new spawn monsters or just teleported monsters
-  MF_JUSTAPPEARED = $10000000;
 
 const
   // Sprite is transparent
@@ -218,6 +216,8 @@ const
   MF_EX_STATE_RANDOM_SELECT = $40;
   MF_EX_STATE_RANDOM_RANGE = $80;
   MF_EX_STATE_PARAMS_ERROR = $100;
+  MF_EX_STATE_ARGS_CHECKED = $200;
+  MF_EX_STATE_ARGS_ERROR = $400;
 
   // Float BOB
   MF_EX_FLOATBOB = $40;
@@ -344,7 +344,7 @@ const
   // No max move
   MF3_EX_NOMAXMOVE = 8;
   // No Crush
-  MF3_EX_NOCRASH = 16;
+  MF3_EX_NOCRUSH = 16;
   // Blood do not check damage
   MF3_EX_BLOODIGNOREDAMAGE = 32;
   // No render interpolation
@@ -405,6 +405,74 @@ const
   MF4_EX_THRUMONSTERS = 2;
   // Drop item in actual z
   MF4_EX_ABSOLUTEDROPITEMPOS = 4;
+  // Follow trace
+  MF4_EX_TRACEDEFINED = 8;
+  // Can not step up
+  MF4_EX_CANNOTSTEP = $10;
+  // Can not drop off
+  MF4_EX_CANNOTDROPOFF = $20;
+  // Just appeard - new spawn monsters or just teleported monsters
+  MF4_EX_JUSTAPPEARED = $40;
+  // Force radius damage
+  MF4_EX_FORCERADIUSDMG = $80;
+  // short missile range (14 * 64)
+  MF4_EX_SHORTMRANGE = $100;
+  // other things ignore its attacks
+  MF4_EX_DMGIGNORED = $200;
+  // higher missile attack probability
+  MF4_EX_HIGHERMPROB = $400;
+  // use half distance for missile attack probability
+  MF4_EX_RANGEHALF = $800;
+  // no targeting threshold
+  MF4_EX_NOTHRESHOLD = $1000;
+  // long melee range
+  MF4_EX_LONGMELEERANGE = $2000;
+  // projectile rips through targets
+  MF4_EX_RIP = $4000;
+  // Tag 666 "boss" on doom 2 map 7
+  MF4_EX_MAP07BOSS1 = $8000;
+  // Tag 667 "boss" on doom 2 map 7
+  MF4_EX_MAP07BOSS2 = $10000;
+  // Tag 666 or 667 "boss" on doom 2 map 7
+  MF4_EX_MAP07BOSS = MF4_EX_MAP07BOSS1 or MF4_EX_MAP07BOSS2;
+  // E1M8 boss
+  MF4_EX_E1M8BOSS = $20000;
+  // E2M8 boss
+  MF4_EX_E2M8BOSS = $40000;
+  // E3M8 boss
+  MF4_EX_E3M8BOSS = $80000;
+  // E4M6 boss
+  MF4_EX_E4M6BOSS = $100000;
+  // E4M8 boss
+  MF4_EX_E4M8BOSS = $200000;
+  // Self applying lighmap
+  MF4_EX_SELFAPPLYINGLIGHT = $400000;
+  // Full volume rip sound
+  MF4_EX_FULLVOLRIP = $800000;
+  // Random rip sound
+  MF4_EX_RANDOMRIPSOUND = $1000000;
+  // Ignore full_sounds console variable and always finishes sounds
+  MF4_EX_ALWAYSFINISHSOUND = $2000000;
+  // Ignore full_sounds console variable and never finishes sounds
+  MF4_EX_NEVERFINISHSOUND = $4000000;
+  // Do not gib
+  MF4_EX_DONTGIB = $8000000;
+  // Recoil
+  MF4_EX_RECOIL = $10000000;
+  // Backing in melee attack
+  MF4_EX_BACKINGMELEE = $20000000;
+  // Thrusted by the wind
+  MF4_EX_WINDTHRUST = $40000000;
+
+const
+  // Monster can push walls
+  MF5_EX_PUSHWALL = $1;
+  // Monster can activate cross lines
+  MF5_EX_MCROSS = $2;
+  // Projectile can activate cross line
+  MF5_EX_PCROSS = $4;
+  // Projectile activate impact walls
+  MF5_EX_IMPACT = $8;
 
 type
 // Map Object definition.
@@ -553,6 +621,22 @@ type
     painchance: integer;
     spriteDX: integer;
     spriteDY: integer;
+    flags5_ex: integer;  // JVAL extended flags (MF5_EX_????)
+    flags6_ex: integer;  // JVAL extended flags (MF6_EX_????)
+    playerfollowtime: integer;      // JVAL 20211224 - Dogs follow player
+    tracefollowtimestamp: integer;  // JVAL 20211224 - Dogs follow player
+    tracex: integer;
+    tracey: integer;
+    tracez: integer;
+    // mbf21+
+    infighting_group: integer;
+    projectile_group: integer;
+    splash_group: integer;
+    strafecount: integer;
+    bloodcolor: integer;
+    translationname: string[8];
+    translationtable: Pointer;
+    tid: integer;
   end;
   Tmobj_tPArray = array[0..$FFFF] of Pmobj_t;
   Pmobj_tPArray = ^Tmobj_tPArray;
@@ -1363,7 +1447,6 @@ type
     dropitem: integer;
 
   end;
-
 
   Pmobj_t205 = ^mobj_t205;
   mobj_t205 = record

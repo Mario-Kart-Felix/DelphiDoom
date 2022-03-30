@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -37,34 +37,109 @@ uses
   p_mobj_h,
   r_defs;
 
+//==============================================================================
+//
+// P_3dFloorNumber
+//
+//==============================================================================
 function P_3dFloorNumber(const m: Pmobj_t): integer; overload;
 
+//==============================================================================
+//
+// P_3dFloorNumber
+//
+//==============================================================================
 function P_3dFloorNumber(const s: Psector_t; const z: fixed_t): integer; overload;
 
+//==============================================================================
+//
+// P_3dFloorFindMapthingFloorDZ
+//
+//==============================================================================
 function P_3dFloorFindMapthingFloorDZ(const m: Pmapthing_t): fixed_t;
 
+//==============================================================================
+//
+// P_3dFloorFindMapthingFloorZ
+//
+//==============================================================================
 function P_3dFloorFindMapthingFloorZ(const m: Pmapthing_t): fixed_t;
 
+//==============================================================================
+//
+// P_3dFloorFindMapthingCeilingZ
+//
+//==============================================================================
 function P_3dFloorFindMapthingCeilingZ(const m: Pmapthing_t): fixed_t;
 
+//==============================================================================
+//
+// P_3dFloorHeight
+//
+//==============================================================================
 function P_3dFloorHeight(const x, y, z: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_3dCeilingHeight
+//
+//==============================================================================
 function P_3dCeilingHeight(const x, y, z: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_3dFloorHeight
+//
+//==============================================================================
 function P_3dFloorHeight(const m: Pmobj_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_3dCeilingHeight
+//
+//==============================================================================
 function P_3dCeilingHeight(const m: Pmobj_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_3dFloorHeight
+//
+//==============================================================================
 function P_3dFloorHeight(const s: Psector_t; const x, y, z: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_3dCeilingHeight
+//
+//==============================================================================
 function P_3dCeilingHeight(const s: Psector_t; const x, y, z: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_PtInSolidFloor
+//
+//==============================================================================
 function P_PtInSolidFloor(const x, y, z: fixed_t): boolean;
 
+//==============================================================================
+//
+// P_PtInSolidFloor2
+//
+//==============================================================================
 function P_PtInSolidFloor2(const x, y, z: fixed_t; const radious: fixed_t): boolean;
 
+//==============================================================================
+//
+// P_SubSectorCentroid
+//
+//==============================================================================
 function P_SubSectorCentroid(const s: Psubsector_t): Psubsector_t;
 
+//==============================================================================
+//
+// P_3dFloorSetupSegs
+//
+//==============================================================================
 procedure P_3dFloorSetupSegs;
 
 implementation
@@ -75,10 +150,14 @@ uses
   p_slopes,
   p_spec,
   r_main,
-  tables,
-  z_zone;
+  tables;
 
+//==============================================================================
+// P_3dFloorNumber
+//
 // Which floor?
+//
+//==============================================================================
 function P_3dFloorNumber(const m: Pmobj_t): integer;
 var
   ss: Psubsector_t;
@@ -88,7 +167,7 @@ begin
   if ss.sector.midsec >= 0 then
   begin
     msec := @sectors[ss.sector.midsec];
-    if m.z < msec.ceilingheight then
+    if m.z <= msec.floorheight then
       result := 0
     else
       result := 1;
@@ -97,6 +176,11 @@ begin
     result := 0;
 end;
 
+//==============================================================================
+//
+// P_3dFloorNumber
+//
+//==============================================================================
 function P_3dFloorNumber(const s: Psector_t; const z: fixed_t): integer; overload;
 var
   msec: Psector_t;
@@ -104,7 +188,7 @@ begin
   if s.midsec >= 0 then
   begin
     msec := @sectors[s.midsec];
-    if z < msec.ceilingheight then
+    if z <= msec.floorheight then
       result := 0
     else
       result := 1;
@@ -113,6 +197,11 @@ begin
     result := 0;
 end;
 
+//==============================================================================
+//
+// P_3dFloorFindMapthingFloorDZ
+//
+//==============================================================================
 function P_3dFloorFindMapthingFloorDZ(const m: Pmapthing_t): fixed_t;
 var
   ss: Psubsector_t;
@@ -137,6 +226,11 @@ begin
     result := 0;
 end;
 
+//==============================================================================
+//
+// P_3dFloorFindMapthingFloorZ
+//
+//==============================================================================
 function P_3dFloorFindMapthingFloorZ(const m: Pmapthing_t): fixed_t;
 var
   ss: Psubsector_t;
@@ -161,6 +255,11 @@ begin
     result := P_FloorHeight(ss.sector, x, y);
 end;
 
+//==============================================================================
+//
+// P_3dFloorFindMapthingCeilingZ
+//
+//==============================================================================
 function P_3dFloorFindMapthingCeilingZ(const m: Pmapthing_t): fixed_t;
 var
   ss: Psubsector_t;
@@ -185,7 +284,11 @@ begin
     result := P_CeilingHeight(ss.sector, x, y);
 end;
 
-
+//==============================================================================
+//
+// P_3dFloorHeight
+//
+//==============================================================================
 function P_3dFloorHeight(const x, y, z: fixed_t): fixed_t;
 var
   ss: Psubsector_t;
@@ -195,7 +298,7 @@ begin
   if ss.sector.midsec >= 0 then
   begin
     msec := @sectors[ss.sector.midsec];
-    if z < msec.ceilingheight then
+    if z <= msec.floorheight then
       result := P_FloorHeight(ss.sector, x, y)
     else
       result := msec.ceilingheight;
@@ -204,6 +307,11 @@ begin
     result := P_FloorHeight(ss.sector, x, y);
 end;
 
+//==============================================================================
+//
+// P_3dCeilingHeight
+//
+//==============================================================================
 function P_3dCeilingHeight(const x, y, z: fixed_t): fixed_t;
 var
   ss: Psubsector_t;
@@ -222,16 +330,31 @@ begin
     result := P_CeilingHeight(ss.sector, x, y);
 end;
 
+//==============================================================================
+//
+// P_3dFloorHeight
+//
+//==============================================================================
 function P_3dFloorHeight(const m: Pmobj_t): fixed_t;
 begin
   result := P_3dFloorHeight(m.x, m.y, m.z);
 end;
 
+//==============================================================================
+//
+// P_3dCeilingHeight
+//
+//==============================================================================
 function P_3dCeilingHeight(const m: Pmobj_t): fixed_t; overload;
 begin
   result := P_3dCeilingHeight(m.x, m.y, m.z);
 end;
 
+//==============================================================================
+//
+// P_3dFloorHeight
+//
+//==============================================================================
 function P_3dFloorHeight(const s: Psector_t; const x, y, z: fixed_t): fixed_t; overload;
 var
   msec: Psector_t;
@@ -239,7 +362,7 @@ begin
   if s.midsec >= 0 then
   begin
     msec := @sectors[s.midsec];
-    if z < msec.ceilingheight then
+    if z <= msec.floorheight then
       result := P_FloorHeight(s, x, y)
     else
       result := msec.ceilingheight;
@@ -248,6 +371,11 @@ begin
     result := P_FloorHeight(s, x, y);
 end;
 
+//==============================================================================
+//
+// P_3dCeilingHeight
+//
+//==============================================================================
 function P_3dCeilingHeight(const s: Psector_t; const x, y, z: fixed_t): fixed_t; overload;
 var
   msec: Psector_t;
@@ -264,6 +392,11 @@ begin
     result := P_CeilingHeight(s, x, y);
 end;
 
+//==============================================================================
+//
+// P_PtInSolidFloor
+//
+//==============================================================================
 function P_PtInSolidFloor(const x, y, z: fixed_t): boolean;
 var
   s: Psubsector_t;
@@ -279,6 +412,11 @@ begin
     result := false;
 end;
 
+//==============================================================================
+//
+// P_PtInSolidFloor2
+//
+//==============================================================================
 function P_PtInSolidFloor2(const x, y, z: fixed_t; const radious: fixed_t): boolean;
 var
   s: Psubsector_t;
@@ -294,9 +432,12 @@ begin
     result := false;
 end;
 
+//==============================================================================
+// P_SubSectorCentroid
 //
 // JVAL: Calculate the centroid of a subsector
 //
+//==============================================================================
 function P_SubSectorCentroid(const s: Psubsector_t): Psubsector_t;
 var
   signedArea: Double;
@@ -336,6 +477,11 @@ begin
   result.flags := result.flags or SSF_CENTROIDCALCED;
 end;
 
+//==============================================================================
+//
+// P_3dFloorSetupSegs
+//
+//==============================================================================
 procedure P_3dFloorSetupSegs;
 var
   i: integer;
@@ -364,6 +510,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// P_3dFloorMapThingFromMobj
+//
+//==============================================================================
 function P_3dFloorMapThingFromMobj(const mo: Pmobj_t; const x, y, z: integer): mapthing_t;
 var
   ss: Psubsector_t;

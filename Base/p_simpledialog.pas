@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   Simple dialogs
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,6 +36,11 @@ interface
 uses
   p_mobj_h;
 
+//==============================================================================
+//
+// A_SimpleDialog
+//
+//==============================================================================
 procedure A_SimpleDialog(actor: Pmobj_t);
 
 implementation
@@ -51,7 +56,7 @@ uses
   p_common,
   r_defs,
   s_sound,
-  sounds,
+  sounddata,
   v_data,
   v_video,
   w_pak,
@@ -61,6 +66,11 @@ uses
 const
   FOLDER_DIALOGS = 'DIALOGS';
 
+//==============================================================================
+//
+// P_SimpleDialogLoadText
+//
+//==============================================================================
 function P_SimpleDialogLoadText(const lumpname: string): string;
 var
   lump: integer;
@@ -97,6 +107,11 @@ begin
   strm.Free;
 end;
 
+//==============================================================================
+//
+// M_SimpleDialogDimMsg
+//
+//==============================================================================
 function M_SimpleDialogDimMsg(x, y: integer; str: string): string;
 var
   maxwidth: integer;
@@ -137,7 +152,7 @@ begin
     lst2 := TDStringList.Create;
     s := lst.Strings[i];
     repeat
-      splitstring(s, s1, s2);
+      splitstring_ch(s, s1, s2);
       lst2.Add(s1);
       s := s2;
     until s = '';
@@ -179,6 +194,11 @@ var
   numsimpledialogs: Integer;
   currentsimpledialog: Integer;
 
+//==============================================================================
+//
+// M_SimpleDialogChoice
+//
+//==============================================================================
 procedure M_SimpleDialogChoice(choice: Integer);
 begin
   Inc(currentsimpledialog);
@@ -188,6 +208,11 @@ begin
     M_SetupNextMenu(@simpledialogmenus[currentsimpledialog]);
 end;
 
+//==============================================================================
+//
+// M_SimpleDialogDrawer
+//
+//==============================================================================
 procedure M_SimpleDialogDrawer;
 var
   str: string;
@@ -197,6 +222,11 @@ begin
   M_WriteText(39, 17, str);
 end;
 
+//==============================================================================
+//
+// A_SimpleDialog
+//
+//==============================================================================
 procedure A_SimpleDialog(actor: Pmobj_t);
 var
   i, cnt: integer;

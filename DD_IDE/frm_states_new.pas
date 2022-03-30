@@ -55,6 +55,11 @@ implementation
 uses
   ddc_base, ide_utils;
 
+//==============================================================================
+//
+// TFrame_States.Create
+//
+//==============================================================================
 constructor TFrame_States.Create(AOwner: TComponent);
 begin
   inherited;
@@ -66,12 +71,22 @@ begin
   statenames := nil;
 end;
 
+//==============================================================================
+//
+// TFrame_States.CreateParams
+//
+//==============================================================================
 procedure TFrame_States.CreateParams(var Params: TCreateParams);
 begin
   sortcolumn := 0;
   Inherited;
 end;
 
+//==============================================================================
+//
+// TFrame_States.Destroy
+//
+//==============================================================================
 destructor TFrame_States.Destroy;
 begin
   ClearMinfo;
@@ -81,6 +96,11 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// TFrame_States.ClearMinfo
+//
+//==============================================================================
 procedure TFrame_States.ClearMinfo;
 var
   i: integer;
@@ -94,6 +114,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_States.ClearSinfo
+//
+//==============================================================================
 procedure TFrame_States.ClearSinfo;
 var
   i: integer;
@@ -107,6 +132,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_States.FocusAndSelectFirstItem
+//
+//==============================================================================
 procedure TFrame_States.FocusAndSelectFirstItem;
 var
   i: integer;
@@ -120,6 +150,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_States.FocusAndSelectFirstListItem
+//
+//==============================================================================
 procedure TFrame_States.FocusAndSelectFirstListItem;
 begin
   if ListView1.Items.Count > 0 then
@@ -129,6 +164,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_States.UpdateGameControls
+//
+//==============================================================================
 procedure TFrame_States.UpdateGameControls(const game: string);
 var
   lst: TStringList;
@@ -159,6 +199,11 @@ begin
   FillListView;
 end;
 
+//==============================================================================
+//
+// TFrame_States.FillTreeView
+//
+//==============================================================================
 procedure TFrame_States.FillTreeView;
 
   procedure AddTreeItem(const id: integer);
@@ -240,6 +285,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_States.FillListView
+//
+//==============================================================================
 procedure TFrame_States.FillListView;
 
   procedure AddListItem(const idx: integer; const fieldname, fieldvalue: string);
@@ -329,6 +379,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_States.SearchEditChange
+//
+//==============================================================================
 procedure TFrame_States.SearchEditChange(Sender: TObject);
 begin
   FillTreeView;
@@ -341,17 +396,32 @@ begin
   SearchEdit.Clear;
 end;
 
+//==============================================================================
+//
+// TFrame_States.HintPanelResize
+//
+//==============================================================================
 procedure TFrame_States.HintPanelResize(Sender: TObject);
 begin
   HintEdit.Width := HintPanel.Width - 16;
 end;
 
+//==============================================================================
+//
+// TFrame_States.TreeView1Editing
+//
+//==============================================================================
 procedure TFrame_States.TreeView1Editing(Sender: TObject; Node: TTreeNode;
   var AllowEdit: Boolean);
 begin
   AllowEdit := False;
 end;
 
+//==============================================================================
+//
+// TFrame_States.TreeView1Change
+//
+//==============================================================================
 procedure TFrame_States.TreeView1Change(Sender: TObject; Node: TTreeNode);
 var
   it: TTreeNode;

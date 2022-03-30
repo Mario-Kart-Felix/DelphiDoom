@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Handling interactions (i.e., collisions).
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,8 +37,7 @@ interface
 uses
   doomdef,
   h_strings,
-  sounds,
-  doomstat,
+  sounddata,
   m_rnd,
   i_system,
   am_map,
@@ -47,31 +46,65 @@ uses
   s_sound,
   d_player;
 
+//==============================================================================
+//
+// P_GivePower
+//
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: integer): boolean;
 
+//==============================================================================
+//
+// P_GiveBody
+//
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 
+//==============================================================================
+//
+// P_TouchSpecialThing
+//
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 
+//==============================================================================
+//
+// P_DamageMobj
+//
+//==============================================================================
 procedure P_DamageMobj(target, inflictor, source: Pmobj_t; damage: integer);
 
+//==============================================================================
+// A_RestoreArtifact
+//
 // Actions
+//
+//==============================================================================
 procedure A_RestoreArtifact(arti: Pmobj_t);
 
+//==============================================================================
+//
+// A_RestoreSpecialThing1
+//
+//==============================================================================
 procedure A_RestoreSpecialThing1(thing: Pmobj_t);
 
+//==============================================================================
+//
+// A_RestoreSpecialThing2
+//
+//==============================================================================
 procedure A_RestoreSpecialThing2(thing: Pmobj_t);
-
 
 const
 // a weapon is found with two clip loads,
 // a big item has five clip loads
   maxammo: array[0..Ord(NUMAMMO) - 1] of integer = (
-    100, // gold wand
-     50, // crossbow
-    200, // blaster
-    200, // skull rod
-     20, // phoenix rod
+    100,  // gold wand
+     50,  // crossbow
+    200,  // blaster
+    200,  // skull rod
+     20,  // phoenix rod
     150   // mace
   );
 
@@ -105,12 +138,21 @@ const
     7,    // phoenixrod
     8,    // mace
     2,    // gauntlets
-    0    // beak
+    0     // beak
   );
 
-
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 
+//==============================================================================
+//
+// P_SetMessage
+//
+//==============================================================================
 procedure P_SetMessage(player: Pplayer_t; const msg: string; ultmsg: boolean = false);
 
 var
@@ -126,6 +168,11 @@ var
   p_bluearmorclass: integer = 2;
   p_maxartifacts: integer = 16;
 
+//==============================================================================
+//
+// P_GiveArtifact
+//
+//==============================================================================
 function P_GiveArtifact(player: Pplayer_t; arti: artitype_t; mo: Pmobj_t): boolean;
 
 implementation
@@ -138,6 +185,8 @@ uses
   m_fixed,
   m_menu,
   g_game,
+  p_friends,
+  p_common,
   p_mobj,
   p_obituaries,
   p_3dfloors,
@@ -150,21 +199,22 @@ uses
   r_defs,
   r_main,
   sb_bar,
+  udmf_spec,
   tables;
 
 const
   BONUSADD = 6;
 
+//==============================================================================
 //
 // GET STUFF
-//
-
 //
 // P_GiveAmmo
 // Num is the number of clip loads,
 // not the individual count (0= 1/2 clip).
 // Returns false if the ammo can't be picked up at all
 //
+//==============================================================================
 function P_GiveAmmo(player: Pplayer_t; ammo: ammotype_t; num: integer): boolean;
 var
   oldammo: integer;
@@ -189,7 +239,6 @@ begin
     // extra ammo in baby mode and nightmare mode
     num := num  + num div 2
   end;
-
 
   oldammo := player.ammo[Ord(ammo)];
   player.ammo[Ord(ammo)] := player.ammo[Ord(ammo)] + num;
@@ -217,10 +266,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveWeapon
 // The weapon name may have a MF_DROPPED flag ored in.
 //
+//==============================================================================
 function P_GiveWeapon(player: Pplayer_t; weapon: weapontype_t): boolean;
 var
   gaveammo: boolean;
@@ -272,10 +323,12 @@ begin
   result := gaveweapon or gaveammo;
 end;
 
+//==============================================================================
 //
 // P_GiveBody
 // Returns false if the body isn't needed at all
 //
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 var
   maxhealth: integer;
@@ -299,11 +352,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveArmor
 // Returns false if the armor is worse
 // than the current armor.
 //
+//==============================================================================
 function P_GiveArmor(player: Pplayer_t; armortype: integer): boolean;
 var
   hits: integer;
@@ -321,9 +376,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// P_GiveKey
 //
 // P_GiveCard
 //
+//==============================================================================
 procedure P_GiveKey(player: Pplayer_t; key: keytype_t);
 begin
   if player.keys[Ord(key)] then
@@ -336,9 +394,11 @@ begin
   player.keys[Ord(key)] := true;
 end;
 
+//==============================================================================
 //
 // P_GivePower
 //
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: integer): boolean;
 begin
   if power = Ord(pw_invulnerability) then
@@ -415,7 +475,6 @@ begin
   end;
 end;
 
-
 //---------------------------------------------------------------------------
 //
 // FUNC P_GiveArtifact
@@ -423,7 +482,8 @@ end;
 // Returns true if artifact accepted.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_GiveArtifact(player: Pplayer_t; arti: artitype_t; mo: Pmobj_t): boolean;
 var
   i: integer;
@@ -467,7 +527,8 @@ end;
 // animation.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_SetDormantArtifact(arti: Pmobj_t);
 begin
   arti.flags := arti.flags and not MF_SPECIAL;
@@ -485,7 +546,8 @@ end;
 // PROC A_RestoreArtifact
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_RestoreArtifact(arti: Pmobj_t);
 begin
   arti.flags := arti.flags or MF_SPECIAL;
@@ -498,7 +560,8 @@ end;
 // PROC P_HideSpecialThing
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_HideSpecialThing(thing: Pmobj_t);
 begin
   thing.flags := thing.flags and not MF_SPECIAL;
@@ -513,7 +576,8 @@ end;
 // Make a special thing visible again.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_RestoreSpecialThing1(thing: Pmobj_t);
 begin
   if thing._type = Ord(MT_WMACE) then
@@ -529,7 +593,8 @@ end;
 // PROC A_RestoreSpecialThing2
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_RestoreSpecialThing2(thing: Pmobj_t);
 begin
   thing.flags := thing.flags or MF_SPECIAL;
@@ -541,7 +606,8 @@ end;
 // FUNC P_MinotaurSlam
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_MinotaurSlam(source: Pmobj_t; target: Pmobj_t);
 var
   angle: angle_t;
@@ -562,7 +628,8 @@ end;
 // FUNC P_TouchWhirlwind
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_TouchWhirlwind(target: Pmobj_t);
 var
   randVal: integer;
@@ -590,7 +657,8 @@ end;
 // Returns true if the player gets turned into a chicken.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_ChickenMorphPlayer(player: Pplayer_t): boolean;
 var
   pmo: Pmobj_t;
@@ -649,7 +717,8 @@ end;
 // FUNC P_ChickenMorph
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_ChickenMorph(actor: Pmobj_t): boolean;
 var
   fog: Pmobj_t;
@@ -703,7 +772,8 @@ end;
 // FUNC P_AutoUseChaosDevice
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_AutoUseChaosDevice(player: Pplayer_t): boolean;
 var
   i: integer;
@@ -727,7 +797,8 @@ end;
 // PROC P_AutoUseHealth
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_AutoUseHealth(player: Pplayer_t; saveHealth: integer);
 var
   i: integer;
@@ -794,9 +865,11 @@ begin
   player.mo.health := player.health;
 end;
 
+//==============================================================================
 //
 // P_TouchSpecialThing
 //
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 var
   player: Pplayer_t;
@@ -878,7 +951,14 @@ begin
           P_SetMessage(player, TXT_GOTBLUEKEY);
         P_GiveKey(player, key_blue);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
         sound := Ord(sfx_keyup);
       end;
 
@@ -886,20 +966,34 @@ begin
       begin
         if not player.keys[Ord(key_yellow)] then
           P_SetMessage(player, TXT_GOTYELLOWKEY);
-        sound := Ord(sfx_keyup);
         P_GiveKey(player, key_yellow);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
+        sound := Ord(sfx_keyup);
       end;
 
     Ord(SPR_AKYY): // Key_Green
       begin
       if not player.keys[Ord(key_green)] then
         P_SetMessage(player, TXT_GOTGREENKEY);
-        sound := Ord(sfx_keyup);
         P_GiveKey(player, key_green);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
+        sound := Ord(sfx_keyup);
       end;
 
     // Artifacts
@@ -908,6 +1002,11 @@ begin
         if P_GiveArtifact(player, arti_health, special) then
         begin
           P_SetMessage(player, TXT_ARTIHEALTH);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -918,6 +1017,11 @@ begin
         if P_GiveArtifact(player, arti_fly, special) then
         begin
           P_SetMessage(player, TXT_ARTIFLY);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -928,6 +1032,11 @@ begin
         if P_GiveArtifact(player, arti_invulnerability, special) then
         begin
           P_SetMessage(player, TXT_ARTIINVULNERABILITY);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -938,6 +1047,11 @@ begin
         if P_GiveArtifact(player, arti_tomeofpower, special) then
         begin
           P_SetMessage(player, TXT_ARTITOMEOFPOWER);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -948,6 +1062,11 @@ begin
         if P_GiveArtifact(player, arti_invisibility, special) then
         begin
           P_SetMessage(player, TXT_ARTIINVISIBILITY, false);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -958,6 +1077,11 @@ begin
         if P_GiveArtifact(player, arti_egg, special) then
         begin
           P_SetMessage(player, TXT_ARTIEGG, false);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -968,6 +1092,11 @@ begin
         if P_GiveArtifact(player, arti_superhealth, special) then
         begin
           P_SetMessage(player, TXT_ARTISUPERHEALTH, false);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -978,6 +1107,11 @@ begin
         if P_GiveArtifact(player, arti_torch, special) then
         begin
           P_SetMessage(player, TXT_ARTITORCH);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -988,6 +1122,11 @@ begin
         if P_GiveArtifact(player, arti_firebomb, special) then
         begin
           P_SetMessage(player, TXT_ARTIFIREBOMB);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -998,6 +1137,11 @@ begin
         if P_GiveArtifact(player, arti_teleport, special) then
         begin
           P_SetMessage(player, TXT_ARTITELEPORT);
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           P_SetDormantArtifact(special);
         end;
         exit;
@@ -1161,6 +1305,12 @@ begin
   if special.flags and MF_COUNTITEM <> 0 then
     inc(player.itemcount);
 
+  if special.special <> 0 then
+  begin
+    P_ExecuteActorSpecial(special.special, @special.args, toucher);
+    special.special := 0;
+  end;
+
   if (deathmatch <> 0) and respawn and (special.flags and MF_DROPPED = 0) then
     P_HideSpecialThing(special)
   else
@@ -1171,13 +1321,16 @@ begin
   if player = @players[consoleplayer] then
   begin
     S_StartSound(nil, sound);
-//    SB_PaletteFlash; // JVAL Check
+    //SB_PaletteFlash; // JVAL Check
   end;
 end;
 
+//==============================================================================
+// P_SpawnDroppedMobj
 //
 // KillMobj
 //
+//==============================================================================
 function P_SpawnDroppedMobj(x, y, z: fixed_t; _type: integer): Pmobj_t;
 begin
   result := P_SpawnMobj(x, y, z, _type);
@@ -1195,6 +1348,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_KillMobj
+//
+//==============================================================================
 procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 var
   item: integer;
@@ -1210,6 +1368,8 @@ begin
   target.flags := target.flags or (MF_CORPSE or MF_DROPOFF);
   target.flags2 := target.flags2 and not MF2_PASSMOBJ;
   target.height := _SHR(target.height, 2);
+
+  P_ExecuteActorSpecial(target.special, @target.args, target);
 
   if (source <> nil) and (source.player <> nil) then
   begin
@@ -1319,6 +1479,7 @@ begin
     P_SpawnDroppedMobj(target.x, target.y, ONFLOORZ, item);
 end;
 
+//==============================================================================
 //
 // P_DamageMobj
 // Damages both enemies and players
@@ -1330,6 +1491,7 @@ end;
 // Source can be NULL for slime, barrel explosions
 // and other environmental stuff.
 //
+//==============================================================================
 procedure P_DamageMobj(target, inflictor, source: Pmobj_t; damage: integer);
 var
   ang: angle_t;
@@ -1337,6 +1499,7 @@ var
   player: Pplayer_t;
   thrust: fixed_t;
   mass: integer;
+  ignore: boolean;
 begin
   if target.flags and MF_SHOOTABLE = 0 then
   begin
@@ -1476,7 +1639,6 @@ begin
     end;
   end;
 
-
   // Some close combat weapons should not
   // inflict thrust and push the victim out of reach,
   // thus kick away unless using the chainsaw.
@@ -1604,21 +1766,35 @@ begin
 
   target.reactiontime := 0; // we're awake now...
 
-  if (target.threshold = 0) and
+  if ((target.threshold = 0) or (target.flags4_ex and MF4_EX_NOTHRESHOLD <> 0)) and
      (source <> nil) and
      (source.flags2 and MF2_BOSS = 0) and
+     (source.flags4_ex and MF4_EX_DMGIGNORED = 0) and
      not ((target._type = Ord(MT_SORCERER2)) and (source._type = Ord(MT_WIZARD))) then
   begin
     // if not intent on another player,
     // chase after this one
-    target.target := source;
-    target.threshold := BASETHRESHOLD;
-    if (target.state = @states[target.info.spawnstate]) and
-       (target.info.seestate <> Ord(S_NULL)) then
-      P_SetMobjState(target, statenum_t(target.info.seestate));
+    if G_PlayingEngineVersion >= VERSION207 then
+      ignore := P_BothFriends(target, source) or P_InfightingImmune(target, source)
+    else
+      ignore := false;
+
+    if (target.flags2_ex and MF2_EX_DONTINFIGHTMONSTERS = 0) and not ignore then
+    begin
+      target.target := source;
+      target.threshold := BASETHRESHOLD;
+      if (target.state = @states[target.info.spawnstate]) and
+         (target.info.seestate <> Ord(S_NULL)) then
+        P_SetMobjState(target, statenum_t(target.info.seestate));
+    end;
   end;
 end;
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 begin
   if demoplayback then
@@ -1650,6 +1826,11 @@ end;
 var
   ultimatemsg: boolean;
 
+//==============================================================================
+//
+// P_SetMessage
+//
+//==============================================================================
 procedure P_SetMessage(player: Pplayer_t; const msg: string; ultmsg: boolean = false);
 begin
   if (ultimatemsg or (showMessages = 0)) and not ultmsg then
@@ -1663,6 +1844,4 @@ begin
 end;
 
 end.
-
-
 

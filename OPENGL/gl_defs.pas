@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -31,6 +31,7 @@ unit gl_defs;
 interface
 
 uses
+  d_delphi,
   doomdef,
   dglOpenGL,
   m_fixed,
@@ -48,7 +49,7 @@ type
   );
 
 const
-  CR_INVUL = Ord(CR_LIMIT) + MAXPLAYERS;
+  CR_INVUL = Ord(CR_LIMIT) + {$IFDEF HEXEN}3 *{$ENDIF} MAXPLAYERS;
 
 type
   GLTexture = record
@@ -57,11 +58,13 @@ type
     leftoffset, topoffset: integer;
     tex_width, tex_height: integer;
     realtexwidth, realtexheight: integer;
-    texturescale: single;
+    texturescale: float;
     buffer_width, buffer_height: integer;
+    inv_buffer_width, inv_buffer_height: float;
     buffer_size: integer;
-    heightscale: single;
+    heightscale: float;
     glTexID: array[0..CR_INVUL] of integer;
+    glRippleTexID: array[0..31] of integer;
     textype: GLTexType;
     mipmap: boolean;
   end;
@@ -96,6 +99,7 @@ var
   // Hack to avoid Intel HD4000 problem with Win10
   // https://communities.intel.com/thread/117626
   gl_no_glfinish_hack: Boolean = true;
+  gl_old_ripple_effect: Boolean = False;
 
 type
   lp3DFXFUNC = procedure(i1, i2, i3, i4, i5: integer; const p: pointer);

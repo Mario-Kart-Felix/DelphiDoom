@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Switches, buttons. Two-state animation. Exits.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,11 +39,26 @@ uses
   p_mobj_h,
   p_spec;
 
+//==============================================================================
+//
+// P_InitSwitchList
+//
+//==============================================================================
 procedure P_InitSwitchList;
 
+//==============================================================================
+//
+// P_ChangeSwitchTexture
+//
+//==============================================================================
 procedure P_ChangeSwitchTexture(line: Pline_t; useAgain: boolean);
 
-function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer): boolean;
+//==============================================================================
+//
+// P_UseSpecialLine
+//
+//==============================================================================
+function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer; const bossaction: boolean = false): boolean;
 
 var
   buttonlist: array[0..MAXBUTTONS - 1] of button_t;
@@ -51,25 +66,19 @@ var
 implementation
 
 uses
-  d_delphi,
   doomdata,
   m_fixed,
-  p_local,
   p_setup,
-  p_lights,
   p_plats,
   p_doors,
   p_ceilng,
   p_floor,
   i_system,
-  doomdef,
   g_game,
   s_sound,
   r_data,
 // Data
-  sounds,
-// State
-  doomstat;
+  sounddata;
 
 type
 //
@@ -97,10 +106,12 @@ var
   switchlist: array[0..2 * MAXSWITCHES - 1] of integer;
   numswitches: integer;
 
+//==============================================================================
 //
 // P_InitSwitchList
 // Only called at game initialization.
 //
+//==============================================================================
 procedure P_InitSwitchList;
 var
   i: integer;
@@ -127,9 +138,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// P_StartButton
 //
 // Start a button counting down till it turns off.
 //
+//==============================================================================
 procedure P_StartButton(line: Pline_t; w: bwhere_e; texture: integer; time: integer);
 var
   i: integer;
@@ -155,10 +169,13 @@ begin
   I_Error('P_StartButton(): no button slots left!');
 end;
 
+//==============================================================================
+// P_ChangeSwitchTexture
 //
 // Function that changes wall texture.
 // Tell it if switch is ok to use again (1=yes, it's a button).
 //
+//==============================================================================
 procedure P_ChangeSwitchTexture(line: Pline_t; useAgain: boolean);
 var
   texTop: integer;
@@ -219,12 +236,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_UseSpecialLine
 // Called when a thing uses a special line.
 // Only the front sides of lines are usable.
 //
-function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer): boolean;
+//==============================================================================
+function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer; const bossaction: boolean = false): boolean;
 begin
   // Switches that other things can activate.
   if thing.player = nil then
@@ -248,6 +267,24 @@ begin
       end;
     end;
   end;
+
+  if bossaction then
+    case line.special of
+    // MANUALS
+       1, // Vertical Door
+      26, // Blue Door/Locked
+      27, // Yellow Door /Locked
+      28, // Red Door /Locked
+
+      31, // Manual door open
+      32, // Blue locked door open
+      33, // Red locked door open
+      34: // Yellow locked door open
+        begin
+          result := false;
+          exit;
+        end;
+    end;
 
   // do something
   case line.special of
@@ -509,7 +546,5 @@ begin
   end;
   result := true;
 end;
-
-
 
 end.

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   Switches, buttons. Two-state animation. Exits.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,11 +38,26 @@ uses
   p_mobj_h,
   p_spec;
 
+//==============================================================================
+//
+// P_InitSwitchList
+//
+//==============================================================================
 procedure P_InitSwitchList;
 
+//==============================================================================
+//
+// P_ChangeSwitchTexture
+//
+//==============================================================================
 procedure P_ChangeSwitchTexture(line: Pline_t; useAgain: boolean);
 
-function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer): boolean;
+//==============================================================================
+//
+// P_UseSpecialLine
+//
+//==============================================================================
+function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer; const bossaction: boolean = false): boolean;
 
 var
   buttonlist: array[0..MAXBUTTONS - 1] of button_t;
@@ -68,7 +83,7 @@ uses
   w_wad,
   z_zone,
 // Data
-  sounds,
+  sounddata,
 // State
   doomstat;
 
@@ -155,10 +170,12 @@ var
   switchlist: PIntegerArray;
   numswitches: integer;
 
+//==============================================================================
 //
 // P_InitSwitchList
 // Only called at game initialization.
 //
+//==============================================================================
 procedure P_InitSwitchList;
 var
   i: integer;
@@ -233,9 +250,12 @@ begin
   switchlist := Z_ReAlloc(switchlist, (index + 1) * SizeOf(integer), PU_STATIC, nil);
 end;
 
+//==============================================================================
+// P_StartButton
 //
 // Start a button counting down till it turns off.
 //
+//==============================================================================
 procedure P_StartButton(line: Pline_t; w: bwhere_e; texture: integer; time: integer);
 var
   i: integer;
@@ -261,10 +281,13 @@ begin
   I_Error('P_StartButton(): no button slots left!');
 end;
 
+//==============================================================================
+// P_ChangeSwitchTexture
 //
 // Function that changes wall texture.
 // Tell it if switch is ok to use again (1=yes, it's a button).
 //
+//==============================================================================
 procedure P_ChangeSwitchTexture(line: Pline_t; useAgain: boolean);
 var
   texTop: integer;
@@ -329,12 +352,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_UseSpecialLine
 // Called when a thing uses a special line.
 // Only the front sides of lines are usable.
 //
-function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer): boolean;
+//==============================================================================
+function P_UseSpecialLine(thing: Pmobj_t; line: Pline_t; side: integer; const bossaction: boolean = false): boolean;
 var
   linefunc: linefunc_t;
   oldcompatibility: boolean;
@@ -369,7 +394,7 @@ begin
     // check each range of generalized linedefs
     if word(line.special) >= CGENFLOORBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) and not bossaction then
         if (line.special and gen_FloorChange <> 0) or (line.special and gen_FloorModel = 0) then
         begin
           result := false; // FloorModel is 'Allow Monsters' if FloorChange is 0
@@ -384,7 +409,7 @@ begin
     end
     else if word(line.special) >= CGENCEILINGBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) and not bossaction then
         if (line.special and CeilingChange <> 0) or (line.special and CeilingModel = 0) then
         begin
           result := false;   // CeilingModel is 'Allow Monsters' if CeilingChange is 0
@@ -399,7 +424,7 @@ begin
     end
     else if word(line.special) >= CGENDOORBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) and not bossaction then
       begin
         if line.special and DoorMonster = 0 then
         begin
@@ -421,7 +446,7 @@ begin
     end
     else if word(line.special) >= CGENLOCKEDBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) or bossaction then
       begin
         result := false;   // monsters disallowed from unlocking doors
         exit;
@@ -440,7 +465,7 @@ begin
     end
     else if word(line.special) >= CGENLIFTBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) and not bossaction then
         if line.special and LiftMonster = 0 then
         begin
           result := false; // monsters disallowed
@@ -455,7 +480,7 @@ begin
     end
     else if word(line.special) >= CGENSTAIRSBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) and not bossaction then
         if line.special and StairMonster = 0 then
         begin
           result := false; // monsters disallowed
@@ -470,7 +495,7 @@ begin
     end
     else if word(line.special) >= CGENCRUSHERBASE then
     begin
-      if thing.player = nil then
+      if (thing.player = nil) and not bossaction then
         if line.special and CrusherMonster = 0 then
         begin
           result := false; // monsters disallowed
@@ -527,7 +552,7 @@ begin
   end;
 
   // Switches that other things can activate.
-  if thing.player = nil then
+  if (thing.player = nil) and not bossaction then
   begin
     // never open secret doors
     if line.flags and ML_SECRET <> 0 then
@@ -553,6 +578,34 @@ begin
       end;
     end;
   end;
+
+  if bossaction then
+    case line.special of
+		// 0-tag specials, locked switches and teleporters need to be blocked for boss actions.
+      1,         // MANUAL DOOR RAISE
+      32,        // MANUAL BLUE
+      33,        // MANUAL RED
+      34,        // MANUAL YELLOW
+      117,       // Blazing door raise
+      118,       // Blazing door open
+      133,       // BlzOpenDoor BLUE
+      135,       // BlzOpenDoor RED
+      137,       // BlzOpenDoor YEL
+
+      99,        // BlzOpenDoor BLUE
+      134,       // BlzOpenDoor RED
+      136,       // BlzOpenDoor YELLOW
+
+		//jff 3/5/98 add ability to use teleporters for monsters
+      195,       // switch teleporters
+      174,
+      210,       // silent switch teleporters
+      209:
+        begin
+          result := false;
+          exit;
+        end;
+    end;
 
   if not P_CheckTag(line) then  //jff 2/27/98 disallow zero tag on some types
   begin
@@ -1152,7 +1205,6 @@ begin
                 P_ChangeSwitchTexture(line, false);
             end;
 
-
           // jff 1/29/98 end of added S1 linedef types
 
           //jff 1/29/98 added linedef types to fill all functions out so that
@@ -1420,6 +1472,5 @@ begin
 
   result := true;
 end;
-
 
 end.

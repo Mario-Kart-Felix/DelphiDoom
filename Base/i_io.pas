@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,16 +39,46 @@ var
   stdout: TFile;
   stdoutbuffer: TDStringList;
 
+//==============================================================================
+//
+// I_InitializeIO
+//
+//==============================================================================
 procedure I_InitializeIO;
 
+//==============================================================================
+//
+// I_ShutDownIO
+//
+//==============================================================================
 procedure I_ShutDownIO;
 
+//==============================================================================
+//
+// I_IOMessageBox
+//
+//==============================================================================
 procedure I_IOMessageBox(const s: string);
 
+//==============================================================================
+//
+// I_IOErrorMessageBox
+//
+//==============================================================================
 procedure I_IOErrorMessageBox(const s: string);
 
+//==============================================================================
+//
+// I_IOprintf
+//
+//==============================================================================
 procedure I_IOprintf(const s: string);
 
+//==============================================================================
+//
+// I_IOSetWindowHandle
+//
+//==============================================================================
 procedure I_IOSetWindowHandle(const handle: integer);
 
 implementation
@@ -66,11 +96,21 @@ uses
 var
   msghandle: integer = 0;
 
+//==============================================================================
+//
+// I_IOMessageBox
+//
+//==============================================================================
 procedure I_IOMessageBox(const s: string);
 begin
   MessageBox(msghandle, PChar(s), AppTitle, MB_OK);
 end;
 
+//==============================================================================
+//
+// I_IOErrorMessageBox
+//
+//==============================================================================
 procedure I_IOErrorMessageBox(const s: string);
 begin
   MessageBox(msghandle, PChar(s), AppTitle, MB_OK or MB_ICONERROR or MB_APPLMODAL);
@@ -79,6 +119,11 @@ end;
 var
   io_lastNL: boolean = true;
 
+//==============================================================================
+//
+// I_IOprintf
+//
+//==============================================================================
 procedure I_IOprintf(const s: string);
 var
   i: integer;
@@ -131,6 +176,11 @@ const
   basename = 'Strife';
 {$ENDIF}
 
+//==============================================================================
+//
+// I_InitializeIO
+//
+//==============================================================================
 procedure I_InitializeIO;
 var
   dfilename: string;
@@ -170,7 +220,11 @@ begin
   stdout := TFile.Create(sfilename, fCreate);
 end;
 
-
+//==============================================================================
+//
+// I_ShutDownIO
+//
+//==============================================================================
 procedure I_ShutDownIO;
 begin
   stderr.Free;
@@ -181,6 +235,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// I_IOSetWindowHandle
+//
+//==============================================================================
 procedure I_IOSetWindowHandle(const handle: integer);
 begin
   if handle > 0 then

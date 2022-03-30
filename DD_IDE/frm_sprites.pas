@@ -51,6 +51,11 @@ implementation
 uses
   ddc_base, ide_utils;
 
+//==============================================================================
+//
+// TFrame_Sprites.Create
+//
+//==============================================================================
 constructor TFrame_Sprites.Create(AOwner: TComponent);
 begin
   inherited;
@@ -60,18 +65,33 @@ begin
   sprinfo := nil;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.CreateParams
+//
+//==============================================================================
 procedure TFrame_Sprites.CreateParams(var Params: TCreateParams);
 begin
   sortcolumn := 0;
   Inherited;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.Destroy
+//
+//==============================================================================
 destructor TFrame_Sprites.Destroy;
 begin
   ClearSPRinfo;
   inherited;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.ClearSPRinfo
+//
+//==============================================================================
 procedure TFrame_Sprites.ClearSPRinfo;
 var
   i: integer;
@@ -95,6 +115,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.FocusAndSelectFirstItem
+//
+//==============================================================================
 procedure TFrame_Sprites.FocusAndSelectFirstItem;
 var
   i: integer;
@@ -108,6 +133,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.FocusAndSelectFirstListItem
+//
+//==============================================================================
 procedure TFrame_Sprites.FocusAndSelectFirstListItem;
 begin
   if ListView1.Items.Count > 0 then
@@ -117,6 +147,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.UpdateGameControls
+//
+//==============================================================================
 procedure TFrame_Sprites.UpdateGameControls(const game: string);
 var
   lst, tmp: TStringList;
@@ -245,6 +280,11 @@ begin
   FillListView;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.FillTreeView
+//
+//==============================================================================
 procedure TFrame_Sprites.FillTreeView;
 
   procedure AddTreeItem(const id: integer);
@@ -276,6 +316,7 @@ begin
   if sprinfo = nil then
     Exit;
 
+  TreeView1.OnChange := nil;
   TreeView1.Items.BeginUpdate;
   try
     TreeView1.Items.Clear;
@@ -292,10 +333,16 @@ begin
 
   finally
     TreeView1.Items.EndUpdate;
+    TreeView1.OnChange := TreeView1Change;
     FocusAndSelectFirstItem;
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.FillListView
+//
+//==============================================================================
 procedure TFrame_Sprites.FillListView;
 var
   it, dad: TTreeNode;
@@ -377,6 +424,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.SearchEditChange
+//
+//==============================================================================
 procedure TFrame_Sprites.SearchEditChange(Sender: TObject);
 begin
   FillTreeView;
@@ -389,17 +441,32 @@ begin
   SearchEdit.Clear;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.HintPanelResize
+//
+//==============================================================================
 procedure TFrame_Sprites.HintPanelResize(Sender: TObject);
 begin
   HintEdit.Width := HintPanel.Width - 16;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.TreeView1Editing
+//
+//==============================================================================
 procedure TFrame_Sprites.TreeView1Editing(Sender: TObject; Node: TTreeNode;
   var AllowEdit: Boolean);
 begin
   AllowEdit := False;
 end;
 
+//==============================================================================
+//
+// TFrame_Sprites.TreeView1Change
+//
+//==============================================================================
 procedure TFrame_Sprites.TreeView1Change(Sender: TObject; Node: TTreeNode);
 var
   it: TTreeNode;

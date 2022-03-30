@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  PNG image format.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,7 +37,6 @@
 {for the latest version, please be sure to check my website   }
 {http://pngdelphi.sourceforge.net                             }
 {Gustavo Huffenbacher Daud (gustavo.daud@terra.com.br)        }
-
 
 {
   Version 1.564
@@ -67,8 +66,6 @@
                            shared zlib implementation and to avoid including
                            two or three times the same P-Code.
                            (Gabriel Corneanu idea)
-
-
 
   Version 1.561
   2006-05-17   BUG 1     - There was a bug in the method that draws semi
@@ -234,8 +231,6 @@ interface
 {$DEFINE Store16bits}            //Stores the extra 8 bits from 16bits/sample
 {$RANGECHECKS OFF} {$J+}
 
-
-
 uses
   windows,
   t_main,
@@ -325,7 +320,6 @@ const
   COLOR_GRAYSCALEALPHA = 4;
   COLOR_RGBALPHA       = 6;
 
-
 type
   {Direct access to pixels using R,G,B}
   TRGBTriple = packed record
@@ -375,7 +369,7 @@ type
   TPNGPointerList = class
   private
     fOwner: TPNGObject;
-    fCount : Cardinal;
+    fCount: Cardinal;
     fMemory: pPointerArray;
     function GetItem(Index: Cardinal): Pointer;
     procedure SetItem(Index: Cardinal; const Value: Pointer);
@@ -795,7 +789,7 @@ type
     {Stores temporary image width and height}
     ImageWidth, ImageHeight: Integer;
     {Size in bytes of each line and offset}
-    Row_Bytes, Offset : Cardinal;
+    Row_Bytes, Offset: Cardinal;
     {Contains data for the lines}
     Encode_Buffer: array[0..5] of PByteArray;
     Row_Buffer: array[Boolean] of PByteArray;
@@ -961,13 +955,24 @@ type
 {$IFDEF VER90}{$DEFINE DelphiBuilder3Less}{$ENDIF}
 {$IFDEF VER80}{$DEFINE DelphiBuilder3Less}{$ENDIF}
 
-
 {Registers a new chunk class}
+
+//==============================================================================
+//
+// RegisterChunk
+//
+//==============================================================================
 procedure RegisterChunk(ChunkClass: TChunkClass);
 {Calculates crc}
 function update_crc(crc: {$IFNDEF DelphiBuilder3Less}Cardinal{$ELSE}Integer
   {$ENDIF}; buf: PByteArray; len: Integer): Cardinal;
 {Invert bytes using assembly}
+
+//==============================================================================
+//
+// ByteSwap
+//
+//==============================================================================
 function ByteSwap(const a: integer): integer;
 
 type
@@ -1002,8 +1007,18 @@ const
   PNGEXT = '.PNG';
   PNGSPRITEEXT = '.PNGSPRITE';
 
+//==============================================================================
+//
+// PNG_RegisterCommonChunks
+//
+//==============================================================================
 procedure PNG_RegisterCommonChunks(const onlyimportant: boolean);
 
+//==============================================================================
+//
+// PNG_FreeChunkClassList
+//
+//==============================================================================
 procedure PNG_FreeChunkClassList;
 
 implementation
@@ -1019,6 +1034,12 @@ var
   crc_table_computed: Boolean = False;
 
 {Make the table for a fast CRC.}
+
+//==============================================================================
+//
+// make_crc_table
+//
+//==============================================================================
 procedure make_crc_table;
 var
   c: Cardinal;
@@ -1066,6 +1087,12 @@ begin
 end;
 
 {Calculates the paeth predictor}
+
+//==============================================================================
+//
+// PaethPredictor
+//
+//==============================================================================
 function PaethPredictor(a, b, c: Byte): Byte;
 var
   pa, pb, pc: Integer;
@@ -1086,11 +1113,22 @@ begin
 end;
 
 {Invert bytes using assembly}
+
+//==============================================================================
+//
+// ByteSwap
+//
+//==============================================================================
 function ByteSwap(const a: integer): integer;
 asm
   bswap eax
 end;
 
+//==============================================================================
+//
+// ByteSwap16
+//
+//==============================================================================
 function ByteSwap16(inp: word): word;
 asm
   bswap eax
@@ -1099,6 +1137,12 @@ end;
 
 {Calculates number of bytes for the number of pixels using the}
 {color mode in the paramenter}
+
+//==============================================================================
+//
+// BytesForPixels
+//
+//==============================================================================
 function BytesForPixels(const Pixels: Integer; const ColorType,
   BitDepth: Byte): Integer;
 begin
@@ -1129,6 +1173,12 @@ type
   end;
 
 {Register a chunk type}
+
+//==============================================================================
+//
+// RegisterChunk
+//
+//==============================================================================
 procedure RegisterChunk(ChunkClass: TChunkClass);
 var
   NewClass: PChunkClassInfo;
@@ -1144,6 +1194,12 @@ begin
 end;
 
 {Free chunk class list}
+
+//==============================================================================
+//
+// PNG_FreeChunkClassList
+//
+//==============================================================================
 procedure PNG_FreeChunkClassList;
 var
   i: Integer;
@@ -1158,6 +1214,12 @@ begin
 end;
 
 {Registering of common chunk classes}
+
+//==============================================================================
+//
+// PNG_RegisterCommonChunks
+//
+//==============================================================================
 procedure PNG_RegisterCommonChunks(const onlyimportant: boolean);
 begin
   {Important chunks}
@@ -1179,9 +1241,15 @@ begin
 end;
 
 {Creates a new chunk of this class}
+
+//==============================================================================
+//
+// CreateClassChunk
+//
+//==============================================================================
 function CreateClassChunk(Owner: TPngObject; Name: TChunkName): TChunk;
 var
-  i       : Integer;
+  i: Integer;
   NewChunk: TChunkClass;
 begin
   {Looks for this chunk}
@@ -1209,6 +1277,12 @@ const
   ZLIBAllocate = High(Word);
 
 {Initializes ZLIB for decompression}
+
+//==============================================================================
+//
+// ZLIBInitInflate
+//
+//==============================================================================
 function ZLIBInitInflate(Stream: TDStream): TZStreamRec2;
 begin
   {Fill record}
@@ -1226,6 +1300,12 @@ begin
 end;
 
 {Initializes ZLIB for compression}
+
+//==============================================================================
+//
+// ZLIBInitDeflate
+//
+//==============================================================================
 function ZLIBInitDeflate(Stream: TDStream;
   Level: TCompressionlevel; Size: Cardinal): TZStreamRec2;
 begin
@@ -1246,6 +1326,12 @@ begin
 end;
 
 {Terminates ZLIB for compression}
+
+//==============================================================================
+//
+// ZLIBTerminateDeflate
+//
+//==============================================================================
 procedure ZLIBTerminateDeflate(var ZLIBStream: TZStreamRec2);
 begin
   {Terminates decompression}
@@ -1255,6 +1341,12 @@ begin
 end;
 
 {Terminates ZLIB for decompression}
+
+//==============================================================================
+//
+// ZLIBTerminateInflate
+//
+//==============================================================================
 procedure ZLIBTerminateInflate(var ZLIBStream: TZStreamRec2);
 begin
   {Terminates decompression}
@@ -1264,12 +1356,18 @@ begin
 end;
 
 {Decompresses ZLIB into a memory address}
+
+//==============================================================================
+//
+// DecompressZLIB
+//
+//==============================================================================
 function DecompressZLIB(const Input: Pointer; InputSize: Integer;
   var Output: Pointer; var OutputSize: Integer;
   var ErrorOutput: String): Boolean;
 var
-  StreamRec : TZStreamRec;
-  Buffer    : array[Byte] of Byte;
+  StreamRec: TZStreamRec;
+  Buffer: array[Byte] of Byte;
   InflateRet: Integer;
 begin
   with StreamRec do
@@ -1322,12 +1420,18 @@ begin
 end;
 
 {Compresses ZLIB into a memory address}
+
+//==============================================================================
+//
+// CompressZLIB
+//
+//==============================================================================
 function CompressZLIB(Input: Pointer; InputSize, CompressionLevel: Integer;
   var Output: Pointer; var OutputSize: Integer;
   var ErrorOutput: String): Boolean;
 var
-  StreamRec : TZStreamRec;
-  Buffer    : array[Byte] of Byte;
+  StreamRec: TZStreamRec;
+  Buffer: array[Byte] of Byte;
   DeflateRet: Integer;
 begin
   with StreamRec do
@@ -1359,7 +1463,9 @@ begin
         {Updates the output memory}
         inc(OutputSize, total_out);
         if Output = nil then
-          GetMem(Output, OutputSize) else ReallocMem(Output, OutputSize);
+          GetMem(Output, OutputSize)
+        else
+          ReallocMem(Output, OutputSize);
 
         {Copies the new data}
         memcpy({$IFDEF FPC}pointer{$ELSE}Ptr{$ENDIF}(Longint(Output) + OutputSize - total_out),
@@ -1385,6 +1491,12 @@ end;
 {TPngPointerList implementation}
 
 {Object being created}
+
+//==============================================================================
+//
+// TPngPointerList.Create
+//
+//==============================================================================
 constructor TPngPointerList.Create(AOwner: TPNGObject);
 begin
   inherited Create; {Let ancestor work}
@@ -1397,6 +1509,12 @@ begin
 end;
 
 {Removes value from the list}
+
+//==============================================================================
+//
+// TPngPointerList.Remove
+//
+//==============================================================================
 function TPngPointerList.Remove(Value: Pointer): Pointer;
 var
   I, Position: Integer;
@@ -1420,14 +1538,25 @@ begin
 end;
 
 {Add a new value in the list}
+
+//==============================================================================
+//
+// TPngPointerList.Add
+//
+//==============================================================================
 procedure TPngPointerList.Add(Value: Pointer);
 begin
   Count := Count + 1;
   Item[Count - 1] := Value;
 end;
 
-
 {Object being destroyed}
+
+//==============================================================================
+//
+// TPngPointerList.Destroy
+//
+//==============================================================================
 destructor TPngPointerList.Destroy;
 begin
   {Release memory if needed}
@@ -1439,6 +1568,12 @@ begin
 end;
 
 {Returns one item from the list}
+
+//==============================================================================
+//
+// TPngPointerList.GetItem
+//
+//==============================================================================
 function TPngPointerList.GetItem(Index: Cardinal): Pointer;
 begin
   if Index <= Count - 1 then
@@ -1449,6 +1584,12 @@ begin
 end;
 
 {Inserts a new item in the list}
+
+//==============================================================================
+//
+// TPngPointerList.Insert
+//
+//==============================================================================
 procedure TPngPointerList.Insert(Value: Pointer; Position: Cardinal);
 begin
   if (Position < Count) or (Count = 0) then
@@ -1465,6 +1606,12 @@ begin
 end;
 
 {Sets one item from the list}
+
+//==============================================================================
+//
+// TPngPointerList.SetItem
+//
+//==============================================================================
 procedure TPngPointerList.SetItem(Index: Cardinal; const Value: Pointer);
 begin
   {If index is in bounds, set value}
@@ -1473,6 +1620,12 @@ begin
 end;
 
 {This method resizes the list}
+
+//==============================================================================
+//
+// TPngPointerList.SetSize
+//
+//==============================================================================
 procedure TPngPointerList.SetSize(const Size: Cardinal);
 begin
   {Sets the size}
@@ -1494,6 +1647,12 @@ end;
 {TPNGList implementation}
 
 {Finds the first chunk of this class}
+
+//==============================================================================
+//
+// TPNGList.FindChunk
+//
+//==============================================================================
 function TPNGList.FindChunk(ChunkClass: TChunkClass): TChunk;
 var
   i: Integer;
@@ -1507,8 +1666,13 @@ begin
     end
 end;
 
-
 {Removes an item}
+
+//==============================================================================
+//
+// TPNGList.RemoveChunk
+//
+//==============================================================================
 procedure TPNGList.RemoveChunk(Chunk: TChunk);
 begin
   Remove(Chunk);
@@ -1516,6 +1680,12 @@ begin
 end;
 
 {Add a new item}
+
+//==============================================================================
+//
+// TPNGList.Add
+//
+//==============================================================================
 function TPNGList.Add(ChunkClass: TChunkClass): TChunk;
 var
   IHDR: TChunkIHDR;
@@ -1575,12 +1745,24 @@ begin
 end;
 
 {Returns item from the list}
+
+//==============================================================================
+//
+// TPNGList.GetItem
+//
+//==============================================================================
 function TPNGList.GetItem(Index: Cardinal): TChunk;
 begin
   Result := inherited GetItem(Index);
 end;
 
 {Returns first item from the list using the class from parameter}
+
+//==============================================================================
+//
+// TPNGList.ItemFromClass
+//
+//==============================================================================
 function TPNGList.ItemFromClass(ChunkClass: TChunkClass): TChunk;
 var
   i: Integer;
@@ -1599,6 +1781,12 @@ end;
 {TChunk implementation}
 
 {Resizes the data}
+
+//==============================================================================
+//
+// TChunk.ResizeData
+//
+//==============================================================================
 procedure TChunk.ResizeData(const NewSize: Cardinal);
 begin
   fDataSize := NewSize;
@@ -1606,6 +1794,12 @@ begin
 end;
 
 {Returns index from list}
+
+//==============================================================================
+//
+// TChunk.GetIndex
+//
+//==============================================================================
 function TChunk.GetIndex: Integer;
 var
   i: Integer;
@@ -1622,12 +1816,24 @@ begin
 end;
 
 {Returns pointer to the TChunkIHDR}
+
+//==============================================================================
+//
+// TChunk.GetHeader
+//
+//==============================================================================
 function TChunk.GetHeader: TChunkIHDR;
 begin
   Result := Owner.Chunks.Item[0] as TChunkIHDR;
 end;
 
 {Assigns from another TChunk}
+
+//==============================================================================
+//
+// TChunk.Assign
+//
+//==============================================================================
 procedure TChunk.Assign(Source: TChunk);
 begin
   {Copy properties}
@@ -1641,6 +1847,12 @@ begin
 end;
 
 {Chunk being created}
+
+//==============================================================================
+//
+// TChunk.Create
+//
+//==============================================================================
 constructor TChunk.Create(Owner: TPngObject);
 var
   ChunkName: String;
@@ -1663,6 +1875,12 @@ begin
 end;
 
 {Chunk being destroyed}
+
+//==============================================================================
+//
+// TChunk.Destroy
+//
+//==============================================================================
 destructor TChunk.Destroy;
 begin
   {Free data holder}
@@ -1672,6 +1890,12 @@ begin
 end;
 
 {Returns the chunk name 1}
+
+//==============================================================================
+//
+// TChunk.GetChunkName
+//
+//==============================================================================
 function TChunk.GetChunkName: String;
 begin
   Result := fName
@@ -1688,6 +1912,12 @@ begin
 end;
 
 {Saves the data to the stream}
+
+//==============================================================================
+//
+// TChunk.SaveData
+//
+//==============================================================================
 function TChunk.SaveData(Stream: TDStream): Boolean;
 var
   ChunkSize, ChunkCRC: Cardinal;
@@ -1710,13 +1940,24 @@ begin
 end;
 
 {Saves the chunk to the stream}
+
+//==============================================================================
+//
+// TChunk.SaveToStream
+//
+//==============================================================================
 function TChunk.SaveToStream(Stream: TDStream): Boolean;
 begin
   Result := SaveData(Stream)
 end;
 
-
 {Loads the chunk from a stream}
+
+//==============================================================================
+//
+// TChunk.LoadFromStream
+//
+//==============================================================================
 function TChunk.LoadFromStream(Stream: TDStream; const ChunkName: TChunkName;
   Size: Integer): Boolean;
 var
@@ -1730,6 +1971,12 @@ begin
   {Reads CRC}
   Stream.Read(CheckCRC, 4);
   CheckCrc := ByteSwap(CheckCRC);
+
+  if ChunkName = 'grAb' then
+  begin
+    Result := true;
+    exit;
+  end;
 
   {Check if crc readed is valid}
   {$IFDEF CheckCRC}
@@ -1751,6 +1998,12 @@ end;
 {TChunktIME implementation}
 
 {Chunk being loaded from a stream}
+
+//==============================================================================
+//
+// TChunktIME.LoadFromStream
+//
+//==============================================================================
 function TChunktIME.LoadFromStream(Stream: TDStream;
   const ChunkName: TChunkName; Size: Integer): Boolean;
 begin
@@ -1760,7 +2013,7 @@ begin
     Exit; {Size must be 7}
 
   {Reads data}
-  fYear := ((PByte(Longint(Data) )^) * 256)+ (PByte(Longint(Data) + 1)^);
+  fYear := ((PByte(Longint(Data) )^) * 256) + (PByte(Longint(Data) + 1)^);
   fMonth := PByte(Longint(Data) + 2)^;
   fDay := PByte(Longint(Data) + 3)^;
   fHour := PByte(Longint(Data) + 4)^;
@@ -1769,6 +2022,12 @@ begin
 end;
 
 {Assigns from another TChunk}
+
+//==============================================================================
+//
+// TChunktIME.Assign
+//
+//==============================================================================
 procedure TChunktIME.Assign(Source: TChunk);
 begin
   fYear := TChunktIME(Source).fYear;
@@ -1780,6 +2039,12 @@ begin
 end;
 
 {Saving the chunk to a stream}
+
+//==============================================================================
+//
+// TChunktIME.SaveToStream
+//
+//==============================================================================
 function TChunktIME.SaveToStream(Stream: TDStream): Boolean;
 begin
   {Update data}
@@ -1797,6 +2062,11 @@ end;
 
 {TChunkztXt implementation}
 
+//==============================================================================
+//
+// ischarbuffer
+//
+//==============================================================================
 function ischarbuffer(const p: PChar; const len: integer): boolean;
 var
   i: integer;
@@ -1821,6 +2091,12 @@ begin
 end;
 
 {Loading the chunk from a stream}
+
+//==============================================================================
+//
+// TChunkzTXt.LoadFromStream
+//
+//==============================================================================
 function TChunkzTXt.LoadFromStream(Stream: TDStream;
   const ChunkName: TChunkName; Size: Integer): Boolean;
 var
@@ -1874,6 +2150,12 @@ begin
 end;
 
 {Saving the chunk to a stream}
+
+//==============================================================================
+//
+// TChunkztXt.SaveToStream
+//
+//==============================================================================
 function TChunkztXt.SaveToStream(Stream: TDStream): Boolean;
 var
   Output: Pointer;
@@ -1914,6 +2196,12 @@ end;
 {TChunktEXt implementation}
 
 {Assigns from another text chunk}
+
+//==============================================================================
+//
+// TChunktEXt.Assign
+//
+//==============================================================================
 procedure TChunktEXt.Assign(Source: TChunk);
 begin
   fKeyword := TChunktEXt(Source).fKeyword;
@@ -1921,6 +2209,12 @@ begin
 end;
 
 {Loading the chunk from a stream}
+
+//==============================================================================
+//
+// TChunktEXt.LoadFromStream
+//
+//==============================================================================
 function TChunktEXt.LoadFromStream(Stream: TDStream;
   const ChunkName: TChunkName; Size: Integer): Boolean;
 begin
@@ -1936,6 +2230,12 @@ begin
 end;
 
 {Saving the chunk to a stream}
+
+//==============================================================================
+//
+// TChunktEXt.SaveToStream
+//
+//==============================================================================
 function TChunktEXt.SaveToStream(Stream: TDStream): Boolean;
 begin
   {Size is length from keyword, plus a null character to divide}
@@ -1952,10 +2252,15 @@ begin
   Result := inherited SaveToStream(Stream);
 end;
 
-
 {TChunkIHDR implementation}
 
 {Chunk being created}
+
+//==============================================================================
+//
+// TChunkIHDR.Create
+//
+//==============================================================================
 constructor TChunkIHDR.Create(Owner: TPngObject);
 begin
   {Prepare pointers}
@@ -1968,6 +2273,12 @@ begin
 end;
 
 {Chunk being destroyed}
+
+//==============================================================================
+//
+// TChunkIHDR.Destroy
+//
+//==============================================================================
 destructor TChunkIHDR.Destroy;
 begin
   {Free memory}
@@ -1978,6 +2289,12 @@ begin
 end;
 
 {Copies the palette}
+
+//==============================================================================
+//
+// CopyPalette
+//
+//==============================================================================
 procedure CopyPalette(Source: HPALETTE; Destination: HPALETTE);
 var
   PaletteSize: Integer;
@@ -1994,6 +2311,12 @@ begin
 end;
 
 {Assigns from another IHDR chunk}
+
+//==============================================================================
+//
+// TChunkIHDR.Assign
+//
+//==============================================================================
 procedure TChunkIHDR.Assign(Source: TChunk);
 begin
   {Copy the IHDR data}
@@ -2022,13 +2345,19 @@ begin
 end;
 
 {Release allocated image data}
+
+//==============================================================================
+//
+// TChunkIHDR.FreeImageData
+//
+//==============================================================================
 procedure TChunkIHDR.FreeImageData;
 begin
   {Free old image data}
   if ImageHandle <> 0 then
     DeleteObject(ImageHandle);
-  if ImageDC <> 0
-    then DeleteDC(ImageDC);
+  if ImageDC <> 0 then
+    DeleteDC(ImageDC);
   if ImageAlpha <> nil then
     FreeMem(ImageAlpha);
   if ImagePalette <> 0 then
@@ -2046,6 +2375,12 @@ begin
 end;
 
 {Chunk being loaded from a stream}
+
+//==============================================================================
+//
+// TChunkIHDR.LoadFromStream
+//
+//==============================================================================
 function TChunkIHDR.LoadFromStream(Stream: TDStream; const ChunkName: TChunkName;
   Size: Integer): Boolean;
 begin
@@ -2101,6 +2436,12 @@ begin
 end;
 
 {Saving the IHDR chunk to a stream}
+
+//==============================================================================
+//
+// TChunkIHDR.SaveToStream
+//
+//==============================================================================
 function TChunkIHDR.SaveToStream(Stream: TDStream): Boolean;
 begin
   {Ignore 2 bits images}
@@ -2120,6 +2461,12 @@ begin
 end;
 
 {Creates a grayscale palette}
+
+//==============================================================================
+//
+// TChunkIHDR.CreateGrayscalePalette
+//
+//==============================================================================
 function TChunkIHDR.CreateGrayscalePalette(Bitdepth: Integer): HPalette;
 var
   j: Integer;
@@ -2133,7 +2480,7 @@ begin
   {Fill it with grayscale colors}
   for j := 0 to palEntries.palNumEntries - 1 do
   begin
-    palEntries.palPalEntry[j].peRed  :=
+    palEntries.palPalEntry[j].peRed :=
       fOwner.GammaTable[MulDiv(j, 255, palEntries.palNumEntries - 1)];
     palEntries.palPalEntry[j].peGreen := palEntries.palPalEntry[j].peRed;
     palEntries.palPalEntry[j].peBlue := palEntries.palPalEntry[j].peRed;
@@ -2143,6 +2490,12 @@ begin
 end;
 
 {Copies the palette to the Device Independent bitmap header}
+
+//==============================================================================
+//
+// TChunkIHDR.PaletteToDIB
+//
+//==============================================================================
 procedure TChunkIHDR.PaletteToDIB(Palette: HPalette);
 var
   j: Integer;
@@ -2153,14 +2506,20 @@ begin
   BitmapInfo.bmiHeader.biClrUsed := GetPaletteEntries(Palette, 0, 256, palEntries.palPalEntry[0]);
   for j := 0 to BitmapInfo.bmiHeader.biClrUsed - 1 do
   begin
-    BitmapInfo.bmiColors[j].rgbBlue  := palEntries.palPalEntry[j].peBlue;
-    BitmapInfo.bmiColors[j].rgbRed   := palEntries.palPalEntry[j].peRed;
+    BitmapInfo.bmiColors[j].rgbBlue := palEntries.palPalEntry[j].peBlue;
+    BitmapInfo.bmiColors[j].rgbRed := palEntries.palPalEntry[j].peRed;
     BitmapInfo.bmiColors[j].rgbGreen := palEntries.palPalEntry[j].peGreen;
   end;
 end;
 
 {Resizes the image data to fill the color type, bit depth, }
 {width and height parameters}
+
+//==============================================================================
+//
+// TChunkIHDR.PrepareImageData
+//
+//==============================================================================
 procedure TChunkIHDR.PrepareImageData();
   {Set the bitmap info}
   procedure SetInfo(const Bitdepth: Integer; const Palette: Boolean);
@@ -2192,10 +2551,10 @@ begin
         {These are supported by windows}
         1, 4, 8: SetInfo(BitDepth, true);
         {2 bits for each pixel is not supported by windows bitmap}
-        2      : SetInfo(4, true);
+        2: SetInfo(4, true);
         {Also 16 bits (2 bytes) for each pixel is not supported}
         {and should be transormed into a 8 bit grayscale}
-        16     : SetInfo(8, true);
+        16: SetInfo(8, true);
       end;
     {Only 1 byte (8 bits) is supported}
     COLOR_RGB, COLOR_RGBALPHA:  SetInfo(24, false);
@@ -2250,6 +2609,11 @@ end;
 
 {TChunktRNS implementation}
 
+//==============================================================================
+//
+// CompareMem
+//
+//==============================================================================
 function CompareMem(P1, P2: PByte; const Size: Integer): Boolean;
 var i: Integer;
 begin
@@ -2267,6 +2631,12 @@ begin
 end;
 
 {Sets the transpararent color}
+
+//==============================================================================
+//
+// TChunktRNS.SetTransparentColor
+//
+//==============================================================================
 procedure TChunktRNS.SetTransparentColor(const Value: ColorRef);
 var
   i: Byte;
@@ -2276,7 +2646,6 @@ begin
   ZeroMemory(@PaletteValues, SizeOf(PaletteValues));
   {Sets that it uses bit transparency}
   fBitTransparency := true;
-
 
   {Depends on the color type}
   with Header do
@@ -2313,6 +2682,12 @@ begin
 end;
 
 {Returns the transparent color for the image}
+
+//==============================================================================
+//
+// TChunktRNS.GetTransparentColor
+//
+//==============================================================================
 function TChunktRNS.GetTransparentColor: ColorRef;
 var
   PaletteChunk: TChunkPLTE;
@@ -2352,6 +2727,12 @@ begin
 end;
 
 {Saving the chunk to a stream}
+
+//==============================================================================
+//
+// TChunktRNS.SaveToStream
+//
+//==============================================================================
 function TChunktRNS.SaveToStream(Stream: TDStream): Boolean;
 begin
   {Copy palette into data buffer}
@@ -2362,6 +2743,12 @@ begin
 end;
 
 {Assigns from another chunk}
+
+//==============================================================================
+//
+// TChunktRNS.Assign
+//
+//==============================================================================
 procedure TChunktRNS.Assign(Source: TChunk);
 begin
   memcpy(@PaletteValues[0], @TChunkTrns(Source).PaletteValues[0], 256);
@@ -2370,6 +2757,12 @@ begin
 end;
 
 {Loads the chunk from a stream}
+
+//==============================================================================
+//
+// TChunktRNS.LoadFromStream
+//
+//==============================================================================
 function TChunktRNS.LoadFromStream(Stream: TDStream; const ChunkName: TChunkName;
   Size: Integer): Boolean;
 var
@@ -2410,10 +2803,16 @@ begin
 end;
 
 {Prepares the image palette}
+
+//==============================================================================
+//
+// TChunkIDAT.PreparePalette
+//
+//==============================================================================
 procedure TChunkIDAT.PreparePalette;
 var
   Entries: Word;
-  j      : Integer;
+  j: Integer;
   palEntries: TMaxLogPalette;
 begin
   {In case the image uses grayscale, build a grayscale palette}
@@ -2440,13 +2839,19 @@ begin
 end;
 
 {Reads from ZLIB}
+
+//==============================================================================
+//
+// TChunkIDAT.IDATZlibRead
+//
+//==============================================================================
 function TChunkIDAT.IDATZlibRead(var ZLIBStream: TZStreamRec2;
   Buffer: Pointer; Count: Integer; var EndPos: Integer;
   var crcfile: Cardinal): Integer;
 var
-  Procresult : Integer;
-  IDATHeader : array[0..3] of char;
-  IDATCRC    : Cardinal;
+  Procresult: Integer;
+  IDATHeader: array[0..3] of char;
+  IDATCRC: Cardinal;
 begin
   {Uses internal record pointed by ZLIBStream to gather information}
   with ZLIBStream, ZLIBStream.zlib do
@@ -2493,7 +2898,6 @@ begin
         {$ENDIF}
         EndPos := fStream.Position + ByteSwap(EndPos);
       end;
-
 
       {In case it needs compressed data to read from}
       if avail_in = 0 then
@@ -2549,6 +2953,12 @@ const
   ColumnIncrement: array[0..6] of Integer = (8, 8, 4, 4, 2, 2, 1);
 
 {Copy interlaced images with 1 byte for R, G, B}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedRGB8
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedRGB8(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2571,6 +2981,12 @@ begin
 end;
 
 {Copy interlaced images with 2 bytes for R, G, B}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedRGB16
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedRGB16(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2599,6 +3015,12 @@ begin
 end;
 
 {Copy ímages with palette using bit depths 1, 4 or 8}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedPalette148
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedPalette148(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 const
@@ -2633,6 +3055,12 @@ begin
 end;
 
 {Copy ímages with palette using bit depth 2}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedPalette2
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedPalette2(const Pass: Byte; Src, Dest,
   Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2662,6 +3090,12 @@ begin
 end;
 
 {Copy ímages with grayscale using bit depth 2}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedGray2
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedGray2(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2691,6 +3125,12 @@ begin
 end;
 
 {Copy ímages with palette using 2 bytes for each pixel}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedGrayscale16
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedGrayscale16(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2714,6 +3154,12 @@ begin
 end;
 
 {Decodes interlaced RGB alpha with 1 byte for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedRGBAlpha8
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedRGBAlpha8(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2726,9 +3172,9 @@ begin
   repeat
     {Copy this row and alpha value}
     Trans^ := PChar(Longint(Src) + 3)^;
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 1)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 1)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
 
     {Move to next column}
     inc(Src, 4);
@@ -2739,6 +3185,12 @@ begin
 end;
 
 {Decodes interlaced RGB alpha with 2 bytes for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedRGBAlpha16
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedRGBAlpha16(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2751,9 +3203,9 @@ begin
   repeat
     {Copy this row and alpha value}
     Trans^ := PChar(Longint(Src) + 6)^;
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 4)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 4)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
     {$IFDEF Store16bits}
     {Copy extra pixel values}
     Byte(Extra^) := fOwner.GammaTable[PByte(Longint(Src) + 5)^]; inc(Extra);
@@ -2770,6 +3222,12 @@ begin
 end;
 
 {Decodes 8 bit grayscale image followed by an alpha sample}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedGrayscaleAlpha8
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedGrayscaleAlpha8(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2792,6 +3250,12 @@ begin
 end;
 
 {Decodes 16 bit grayscale image followed by an alpha sample}
+
+//==============================================================================
+//
+// TChunkIDAT.CopyInterlacedGrayscaleAlpha16
+//
+//==============================================================================
 procedure TChunkIDAT.CopyInterlacedGrayscaleAlpha16(const Pass: Byte;
   Src, Dest, Trans{$IFDEF Store16bits}, Extra{$ENDIF}: PChar);
 var
@@ -2817,6 +3281,12 @@ begin
 end;
 
 {Decodes an interlaced image}
+
+//==============================================================================
+//
+// TChunkIDAT.DecodeInterlacedAdam7
+//
+//==============================================================================
 procedure TChunkIDAT.DecodeInterlacedAdam7(Stream: TDStream;
   var ZLIBStream: TZStreamRec2; const Size: Integer; var crcfile: Cardinal);
 var
@@ -2834,30 +3304,33 @@ begin
     {R, G, B values for each pixel}
     COLOR_RGB:
       case Header.BitDepth of
-        8:  CopyProc := CopyInterlacedRGB8;
-       16:  CopyProc := CopyInterlacedRGB16;
+        8: CopyProc := CopyInterlacedRGB8;
+       16: CopyProc := CopyInterlacedRGB16;
       end {case Header.BitDepth};
     {Palette}
     COLOR_PALETTE, COLOR_GRAYSCALE:
       case Header.BitDepth of
-        1, 4, 8: CopyProc := CopyInterlacedPalette148;
-        2      : if Header.ColorType = COLOR_PALETTE then
-                   CopyProc := CopyInterlacedPalette2
-                 else
-                   CopyProc := CopyInterlacedGray2;
-        16     : CopyProc := CopyInterlacedGrayscale16;
+        1, 4, 8:
+          CopyProc := CopyInterlacedPalette148;
+        2:
+          if Header.ColorType = COLOR_PALETTE then
+            CopyProc := CopyInterlacedPalette2
+          else
+            CopyProc := CopyInterlacedGray2;
+        16:
+          CopyProc := CopyInterlacedGrayscale16;
       end;
     {RGB followed by alpha}
     COLOR_RGBALPHA:
       case Header.BitDepth of
-        8:  CopyProc := CopyInterlacedRGBAlpha8;
-       16:  CopyProc := CopyInterlacedRGBAlpha16;
+        8: CopyProc := CopyInterlacedRGBAlpha8;
+       16: CopyProc := CopyInterlacedRGBAlpha16;
       end;
     {Grayscale followed by alpha}
     COLOR_GRAYSCALEALPHA:
       case Header.BitDepth of
-        8:  CopyProc := CopyInterlacedGrayscaleAlpha8;
-       16:  CopyProc := CopyInterlacedGrayscaleAlpha16;
+        8: CopyProc := CopyInterlacedGrayscaleAlpha8;
+       16: CopyProc := CopyInterlacedGrayscaleAlpha16;
       end;
   end {case Header.ColorType};
 
@@ -3028,9 +3501,9 @@ begin
   begin
     {Copy pixel values and transparency}
     Trans^ := PChar(Longint(Src) + 3)^;
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 1)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 1)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
     {Move to next pixel}
     inc(Src, 4); inc(Trans);
   end {for I}
@@ -3047,9 +3520,9 @@ begin
     //Copy rgb and alpha values (transforming from 16 bits to 8 bits)
     {Copy pixel values}
     Trans^ := PChar(Longint(Src) + 6)^;
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 4)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
-    Byte(Dest^)  := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 4)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src) + 2)^]; inc(Dest);
+    Byte(Dest^) := fOwner.GammaTable[PByte(Longint(Src)    )^]; inc(Dest);
     {$IFDEF Store16bits}
     {Copy extra pixel values}
     Byte(Extra^) := fOwner.GammaTable[PByte(Longint(Src) + 5)^]; inc(Extra);
@@ -3070,9 +3543,13 @@ begin
   for I := 1 to ImageWidth do
   begin
     {Copy alpha value and then gray value}
-    Dest^  := Src^;  inc(Src);
-    Trans^ := Src^;  inc(Src);
-    inc(Dest); inc(Trans);
+    Dest^ := Src^;
+    inc(Src);
+    Trans^ := Src^;
+    inc(Src);
+
+    inc(Dest);
+    inc(Trans);
   end;
 end;
 
@@ -3086,15 +3563,25 @@ begin
   begin
     {Copy alpha value and then gray value}
     {$IFDEF Store16bits}
-    Extra^ := PChar(Longint(Src) + 1)^; inc(Extra);
+    Extra^ := PChar(Longint(Src) + 1)^;
+    inc(Extra);
     {$ENDIF}
-    Dest^  := Src^;  inc(Src, 2);
-    Trans^ := Src^;  inc(Src, 2);
-    inc(Dest); inc(Trans);
+    Dest^ := Src^;
+    inc(Src, 2);
+    Trans^ := Src^;
+    inc(Src, 2);
+    inc(Dest);
+    inc(Trans);
   end;
 end;
 
 {Decode non interlaced image}
+
+//==============================================================================
+//
+// TChunkIDAT.DecodeNonInterlaced
+//
+//==============================================================================
 procedure TChunkIDAT.DecodeNonInterlaced(Stream: TDStream;
   var ZLIBStream: TZStreamRec2; const Size: Integer; var crcfile: Cardinal);
 var
@@ -3115,24 +3602,27 @@ begin
     {Types using palettes}
     COLOR_PALETTE, COLOR_GRAYSCALE:
       case Header.BitDepth of
-        1, 4, 8: CopyProc := CopyNonInterlacedPalette148;
-        2      : if Header.ColorType = COLOR_PALETTE then
-                   CopyProc := CopyNonInterlacedPalette2
-                 else
-                   CopyProc := CopyNonInterlacedGray2;
-        16     : CopyProc := CopyNonInterlacedGrayscale16;
+        1, 4, 8:
+          CopyProc := CopyNonInterlacedPalette148;
+        2:
+          if Header.ColorType = COLOR_PALETTE then
+            CopyProc := CopyNonInterlacedPalette2
+          else
+            CopyProc := CopyNonInterlacedGray2;
+        16:
+          CopyProc := CopyNonInterlacedGrayscale16;
       end;
     {R, G, B followed by alpha}
     COLOR_RGBALPHA:
       case Header.BitDepth of
-        8  : CopyProc := CopyNonInterlacedRGBAlpha8;
-       16  : CopyProc := CopyNonInterlacedRGBAlpha16;
+        8: CopyProc := CopyNonInterlacedRGBAlpha8;
+       16: CopyProc := CopyNonInterlacedRGBAlpha16;
       end;
     {Grayscale followed by alpha}
     COLOR_GRAYSCALEALPHA:
       case Header.BitDepth of
-        8  : CopyProc := CopyNonInterlacedGrayscaleAlpha8;
-       16  : CopyProc := CopyNonInterlacedGrayscaleAlpha16;
+        8: CopyProc := CopyNonInterlacedGrayscaleAlpha8;
+       16: CopyProc := CopyNonInterlacedGrayscaleAlpha16;
       end;
   end;
 
@@ -3164,10 +3654,15 @@ begin
     inc(Trans, ImageWidth);
   end {for I};
 
-
 end;
 
 {Filter the current line}
+
+//==============================================================================
+//
+// TChunkIDAT.FilterRow
+//
+//==============================================================================
 procedure TChunkIDAT.FilterRow;
 var
   pp: Byte;
@@ -3235,12 +3730,17 @@ begin
 end;
 
 {Reads the image data from the stream}
+
+//==============================================================================
+//
+// TChunkIDAT.LoadFromStream
+//
+//==============================================================================
 function TChunkIDAT.LoadFromStream(Stream: TDStream; const ChunkName: TChunkName;
   Size: Integer): Boolean;
 var
   ZLIBStream: TZStreamRec2;
-  CRCCheck,
-  CRCFile  : Cardinal;
+  CRCCheck, CRCFile: Cardinal;
 begin
   {Get pointer to the header chunk}
   Header := Owner.Chunks.Item[0] as TChunkIHDR;
@@ -3271,8 +3771,10 @@ begin
 
   {Call special methods for the different interlace methods}
   case Owner.InterlaceMethod of
-    imNone:  DecodeNonInterlaced(stream, ZLIBStream, Size, crcfile);
-    imAdam7: DecodeInterlacedAdam7(stream, ZLIBStream, size, crcfile);
+    imNone:
+      DecodeNonInterlaced(stream, ZLIBStream, Size, crcfile);
+    imAdam7:
+      DecodeInterlacedAdam7(stream, ZLIBStream, size, crcfile);
   end;
 
   {Free memory}
@@ -3302,9 +3804,15 @@ const
   BUFFER = 5;
 
 {Saves the IDAT chunk to a stream}
+
+//==============================================================================
+//
+// TChunkIDAT.SaveToStream
+//
+//==============================================================================
 function TChunkIDAT.SaveToStream(Stream: TDStream): Boolean;
 var
-  ZLIBStream : TZStreamRec2;
+  ZLIBStream: TZStreamRec2;
 begin
   {Get pointer to the header chunk}
   Header := Owner.Chunks.Item[0] as TChunkIHDR;
@@ -3357,6 +3865,12 @@ begin
 end;
 
 {Writes the IDAT using the settings}
+
+//==============================================================================
+//
+// WriteIDAT
+//
+//==============================================================================
 procedure WriteIDAT(Stream: TDStream; Data: Pointer; const Length: Cardinal);
 var
   ChunkLen, CRC: Cardinal;
@@ -3375,6 +3889,12 @@ begin
 end;
 
 {Compress and writes IDAT chunk data}
+
+//==============================================================================
+//
+// TChunkIDAT.IDATZlibWrite
+//
+//==============================================================================
 procedure TChunkIDAT.IDATZlibWrite(var ZLIBStream: TZStreamRec2;
   Buffer: Pointer; const Length: Cardinal);
 begin
@@ -3406,6 +3926,12 @@ begin
 end;
 
 {Finishes compressing data to write IDAT chunk}
+
+//==============================================================================
+//
+// TChunkIDAT.FinishIDATZlib
+//
+//==============================================================================
 procedure TChunkIDAT.FinishIDATZlib(var ZLIBStream: TZStreamRec2);
 begin
   with ZLIBStream, ZLIBStream.ZLIB do
@@ -3431,6 +3957,12 @@ begin
 end;
 
 {Copy memory to encode RGB image with 1 byte for each color sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlacedRGB8
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlacedRGB8(Src, Dest, Trans: PChar);
 var
   I: Integer;
@@ -3447,6 +3979,12 @@ begin
 end;
 
 {Copy memory to encode RGB images with 16 bits for each color sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlacedRGB16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlacedRGB16(Src, Dest, Trans: PChar);
 var
   I: Integer;
@@ -3466,6 +4004,12 @@ begin
 end;
 
 {Copy memory to encode types using palettes (1, 4 or 8 bits per pixel)}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlacedPalette148
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlacedPalette148(Src, Dest, Trans: PChar);
 begin
   {It's simple as copying the data}
@@ -3473,6 +4017,12 @@ begin
 end;
 
 {Copy memory to encode grayscale images with 2 bytes for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlacedGrayscale16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlacedGrayscale16(Src, Dest, Trans: PChar);
 var
   I: Integer;
@@ -3488,6 +4038,12 @@ begin
 end;
 
 {Encode images using RGB followed by an alpha value using 1 byte for each}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlacedRGBAlpha8
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlacedRGBAlpha8(Src, Dest, Trans: PChar);
 var
   i: Integer;
@@ -3504,6 +4060,12 @@ begin
 end;
 
 {Encode images using RGB followed by an alpha value using 2 byte for each}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlacedRGBAlpha16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlacedRGBAlpha16(Src, Dest, Trans: PChar);
 var
   i: Integer;
@@ -3550,6 +4112,12 @@ begin
 end;
 
 {Encode non interlaced images}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeNonInterlaced
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeNonInterlaced(Stream: TDStream;
   var ZLIBStream: TZStreamRec2);
 var
@@ -3587,8 +4155,8 @@ begin
     {Grayscale images followed by an alpha}
     COLOR_GRAYSCALEALPHA:
       case Header.BitDepth of
-        8:  CopyProc := EncodeNonInterlacedGrayscaleAlpha8;
-       16:  CopyProc := EncodeNonInterlacedGrayscaleAlpha16;
+        8: CopyProc := EncodeNonInterlacedGrayscaleAlpha8;
+       16: CopyProc := EncodeNonInterlacedGrayscaleAlpha16;
       end;
   end {case Header.ColorType};
 
@@ -3620,6 +4188,12 @@ end;
 
 {Copy memory to encode interlaced images using RGB value with 1 byte for}
 {each color sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedRGB8
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedRGB8(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3641,6 +4215,12 @@ begin
 end;
 
 {Copy memory to encode interlaced RGB images with 2 bytes each color sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedRGB16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedRGB16(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3663,6 +4243,12 @@ end;
 
 {Copy memory to encode interlaced images using palettes using bit depths}
 {1, 4, 8 (each pixel in the image)}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedPalette148
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedPalette148(const Pass: Byte;
   Src, Dest, Trans: PChar);
 const
@@ -3700,6 +4286,12 @@ begin
 end;
 
 {Copy to encode interlaced grayscale images using 16 bits for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedGrayscale16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedGrayscale16(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3720,6 +4312,12 @@ end;
 
 {Copy to encode interlaced rgb images followed by an alpha value, all using}
 {one byte for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedRGBAlpha8
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedRGBAlpha8(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3745,6 +4343,12 @@ end;
 
 {Copy to encode interlaced rgb images followed by an alpha value, all using}
 {two byte for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedRGBAlpha16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedRGBAlpha16(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3770,6 +4374,12 @@ end;
 
 {Copy to encode grayscale interlaced images followed by an alpha value, all}
 {using 1 byte for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedGrayscaleAlpha8
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedGrayscaleAlpha8(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3793,6 +4403,12 @@ end;
 
 {Copy to encode grayscale interlaced images followed by an alpha value, all}
 {using 2 bytes for each sample}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedGrayscaleAlpha16
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedGrayscaleAlpha16(const Pass: Byte;
   Src, Dest, Trans: PChar);
 var
@@ -3815,12 +4431,18 @@ begin
 end;
 
 {Encode interlaced images}
+
+//==============================================================================
+//
+// TChunkIDAT.EncodeInterlacedAdam7
+//
+//==============================================================================
 procedure TChunkIDAT.EncodeInterlacedAdam7(Stream: TDStream;
   var ZLIBStream: TZStreamRec2);
 var
   CurrentPass, Filter: Byte;
   PixelsThisRow: Integer;
-  CurrentRow : Integer;
+  CurrentRow: Integer;
   Trans, Data: PChar;
   CopyProc: procedure(const Pass: Byte;
     Src, Dest, Trans: PChar) of object;
@@ -3899,6 +4521,12 @@ begin
 end;
 
 {Filters the row to be encoded and returns the best filter}
+
+//==============================================================================
+//
+// TChunkIDAT.FilterToEncode
+//
+//==============================================================================
 function TChunkIDAT.FilterToEncode: Byte;
 var
   Run, LongestRun, ii, jj: Cardinal;
@@ -4018,6 +4646,12 @@ end;
 {TChunkPLTE implementation}
 
 {Returns an item in the palette}
+
+//==============================================================================
+//
+// TChunkPLTE.GetPaletteItem
+//
+//==============================================================================
 function TChunkPLTE.GetPaletteItem(Index: Byte): TRGBQuad;
 begin
   {Test if item is valid, if not raise error}
@@ -4029,6 +4663,12 @@ begin
 end;
 
 {Loads the palette chunk from a stream}
+
+//==============================================================================
+//
+// TChunkPLTE.LoadFromStream
+//
+//==============================================================================
 function TChunkPLTE.LoadFromStream(Stream: TDStream;
   const ChunkName: TChunkName; Size: Integer): Boolean;
 type
@@ -4075,6 +4715,12 @@ begin
 end;
 
 {Saves the PLTE chunk to a stream}
+
+//==============================================================================
+//
+// TChunkPLTE.SaveToStream
+//
+//==============================================================================
 function TChunkPLTE.SaveToStream(Stream: TDStream): Boolean;
 var
   J: Integer;
@@ -4107,6 +4753,12 @@ begin
 end;
 
 {Assigns from another PLTE chunk}
+
+//==============================================================================
+//
+// TChunkPLTE.Assign
+//
+//==============================================================================
 procedure TChunkPLTE.Assign(Source: TChunk);
 begin
   {Copy the number of palette items}
@@ -4119,6 +4771,12 @@ end;
 {TChunkgAMA implementation}
 
 {Assigns from another chunk}
+
+//==============================================================================
+//
+// TChunkgAMA.Assign
+//
+//==============================================================================
 procedure TChunkgAMA.Assign(Source: TChunk);
 begin
   {Copy the gamma value}
@@ -4129,6 +4787,12 @@ begin
 end;
 
 {Gamma chunk being created}
+
+//==============================================================================
+//
+// TChunkgAMA.Create
+//
+//==============================================================================
 constructor TChunkgAMA.Create(Owner: TPngObject);
 begin
   {Call ancestor}
@@ -4137,6 +4801,12 @@ begin
 end;
 
 {Returns gamma value}
+
+//==============================================================================
+//
+// TChunkgAMA.GetValue
+//
+//==============================================================================
 function TChunkgAMA.GetValue: Cardinal;
 begin
   {Make sure that the size is four bytes}
@@ -4151,6 +4821,11 @@ begin
     Result := Cardinal(ByteSwap(pCardinal(Data)^))
 end;
 
+//==============================================================================
+//
+// Power
+//
+//==============================================================================
 function Power(Base, Exponent: Extended): Extended;
 begin
   if Exponent = 0.0 then
@@ -4162,6 +4837,12 @@ begin
 end;
 
 {Loading the chunk from a stream}
+
+//==============================================================================
+//
+// TChunkgAMA.LoadFromStream
+//
+//==============================================================================
 function TChunkgAMA.LoadFromStream(Stream: TDStream;
   const ChunkName: TChunkName; Size: Integer): Boolean;
 var
@@ -4186,6 +4867,12 @@ begin
 end;
 
 {Sets the gamma value}
+
+//==============================================================================
+//
+// TChunkgAMA.SetValue
+//
+//==============================================================================
 procedure TChunkgAMA.SetValue(const Value: Cardinal);
 begin
   {Make sure that the size is four bytes}
@@ -4197,6 +4884,12 @@ end;
 {TPngObject implementation}
 
 {Clear all the chunks in the list}
+
+//==============================================================================
+//
+// TPngObject.ClearChunks
+//
+//==============================================================================
 procedure TPngObject.ClearChunks;
 var
   i: Integer;
@@ -4210,9 +4903,16 @@ begin
 end;
 
 {Portable Network Graphics object being created as a blank image}
+
+//==============================================================================
+//
+// TPNGObject.CreateBlank
+//
+//==============================================================================
 constructor TPNGObject.CreateBlank(ColorType, BitDepth: Cardinal;
   cx, cy: Integer);
-var NewIHDR: TChunkIHDR;
+var
+  NewIHDR: TChunkIHDR;
 begin
   {Calls creator}
   Create;
@@ -4244,6 +4944,12 @@ begin
 end;
 
 {Portable Network Graphics object being created}
+
+//==============================================================================
+//
+// TPngObject.Create
+//
+//==============================================================================
 constructor TPngObject.Create;
 begin
   {Let it be created}
@@ -4261,6 +4967,12 @@ begin
 end;
 
 {Portable Network Graphics object being destroyed}
+
+//==============================================================================
+//
+// TPngObject.Destroy
+//
+//==============================================================================
 destructor TPngObject.Destroy;
 begin
   {Free object list}
@@ -4272,6 +4984,12 @@ begin
 end;
 
 {Returns linesize and byte offset for pixels}
+
+//==============================================================================
+//
+// TPngObject.GetPixelInfo
+//
+//==============================================================================
 procedure TPngObject.GetPixelInfo(var LineSize, Offset: Cardinal);
 begin
   {There must be an Header chunk to calculate size}
@@ -4315,6 +5033,12 @@ begin
 end;
 
 {Returns image height}
+
+//==============================================================================
+//
+// TPngObject.GetHeight
+//
+//==============================================================================
 function TPngObject.GetHeight: Integer;
 begin
   {There must be a Header chunk to get the size, otherwise returns 0}
@@ -4325,6 +5049,12 @@ begin
 end;
 
 {Returns image width}
+
+//==============================================================================
+//
+// TPngObject.GetWidth
+//
+//==============================================================================
 function TPngObject.GetWidth: Integer;
 begin
   {There must be a Header chunk to get the size, otherwise returns 0}
@@ -4335,17 +5065,34 @@ begin
 end;
 
 {Returns if the image is empty}
+
+//==============================================================================
+//
+// TPngObject.GetEmpty
+//
+//==============================================================================
 function TPngObject.GetEmpty: Boolean;
 begin
   Result := (Chunks.Count = 0);
 end;
 
 {Raises an error}
+
+//==============================================================================
+//
+// TPngObject.RaiseError
+//
+//==============================================================================
 procedure TPngObject.RaiseError(Text: String);
 begin
   fError := Text;
 end;
 
+//==============================================================================
+//
+// TPngObject.IOresult
+//
+//==============================================================================
 function TPngObject.IOresult: string;
 begin
   Result := fError;
@@ -4353,6 +5100,12 @@ begin
 end;
 
 {Set the maximum size for IDAT chunk}
+
+//==============================================================================
+//
+// TPngObject.SetMaxIdatSize
+//
+//==============================================================================
 procedure TPngObject.SetMaxIdatSize(const Value: Integer);
 begin
   {Make sure the size is at least 65535}
@@ -4390,14 +5143,25 @@ end;
     FileStream.Free;             {Free file stream}
   end;
 
-
 {Returns if it has the pixel information chunk}
+
+//==============================================================================
+//
+// TPngObject.HasPixelInformation
+//
+//==============================================================================
 function TPngObject.HasPixelInformation: Boolean;
 begin
   Result := (Chunks.ItemFromClass(TChunkpHYs) as tChunkpHYs) <> nil;
 end;
 
 {Returns the pixel information chunk}
+
+//==============================================================================
+//
+// TPngObject.GetPixelInformation
+//
+//==============================================================================
 function TPngObject.GetPixelInformation: TChunkpHYs;
 begin
   Result := Chunks.ItemFromClass(TChunkpHYs) as tChunkpHYs;
@@ -4409,6 +5173,12 @@ begin
 end;
 
 {Returns pointer to the chunk TChunkIHDR which should be the first}
+
+//==============================================================================
+//
+// TPngObject.GetHeader
+//
+//==============================================================================
 function TPngObject.GetHeader: TChunkIHDR;
 begin
   {If there is a TChunkIHDR returns it, otherwise returns nil}
@@ -4423,6 +5193,12 @@ begin
 end;
 
 {Draws using partial transparency}
+
+//==============================================================================
+//
+// TPngObject.DrawPartialTrans
+//
+//==============================================================================
 procedure TPngObject.DrawPartialTrans(DC: HDC; Rect: TRect);
   {Adjust the rectangle structure}
   procedure AdjustRect(var Rect: TRect);
@@ -4447,6 +5223,7 @@ type
   {Access to pixels}
   TPixelLine = array[Word] of TRGBQuad;
   pPixelLine = ^TPixelLine;
+
 const
   {Structure used to create the bitmap}
   BitmapInfoHeader: TBitmapInfoHeader =
@@ -4463,9 +5240,9 @@ const
      biClrImportant: 0);
 var
   {Buffer bitmap creation}
-  BitmapInfo  : TBitmapInfo;
-  BufferDC    : HDC;
-  BufferBits  : Pointer;
+  BitmapInfo: TBitmapInfo;
+  BufferDC: HDC;
+  BufferBits: Pointer;
   OldBitmap,
   BufferBitmap: HBitmap;
   Header: TChunkIHDR;
@@ -4482,13 +5259,13 @@ var
   BytesPerRowSrc,
   BytesPerRowAlpha: Integer;
   ImageSource, ImageSourceOrg,
-  AlphaSource     : PByteArray;
-  ImageData       : pPixelLine;
-  i, j, i2, j2    : Integer;
+  AlphaSource: PByteArray;
+  ImageData: pPixelLine;
+  i, j, i2, j2: Integer;
 
   {for bitmap stretching}
-  W, H            : Cardinal;
-  Stretch         : Boolean;
+  W, H: Cardinal;
+  Stretch: Boolean;
   FactorX, FactorY: Double;
 begin
   {Prepares the rectangle structure to stretch draw}
@@ -4686,6 +5463,12 @@ const
   PngHeader: array[0..7] of Char = (#137, #80, #78, #71, #13, #10, #26, #10);
 
 {Loads the image from a stream of data}
+
+//==============================================================================
+//
+// TPngObject.LoadFromStream
+//
+//==============================================================================
 procedure TPngObject.LoadFromStream(Stream: TDStream);
 var
   Header: array[0..7] of Char;
@@ -4815,24 +5598,48 @@ begin
 end;
 
 {Changing height is not supported}
+
+//==============================================================================
+//
+// TPngObject.SetHeight
+//
+//==============================================================================
 procedure TPngObject.SetHeight(Value: Integer);
 begin
   Resize(Width, Value)
 end;
 
 {Changing width is not supported}
+
+//==============================================================================
+//
+// TPngObject.SetWidth
+//
+//==============================================================================
 procedure TPngObject.SetWidth(Value: Integer);
 begin
   Resize(Value, Height)
 end;
 
 {Returns if the image is transparent}
+
+//==============================================================================
+//
+// TPngObject.GetTransparent
+//
+//==============================================================================
 function TPngObject.GetTransparent: Boolean;
 begin
   Result := (TransparencyMode <> ptmNone);
 end;
 
 {Saving the PNG image to a stream of data}
+
+//==============================================================================
+//
+// TPngObject.SaveToStream
+//
+//==============================================================================
 procedure TPngObject.SaveToStream(Stream: TDStream);
 var
   j: Integer;
@@ -4845,12 +5652,18 @@ begin
 end;
 
 {Prepares the Header chunk}
+
+//==============================================================================
+//
+// BuildHeader
+//
+//==============================================================================
 procedure BuildHeader(Header: TChunkIHDR; Handle: HBitmap; Info: pBitmap);
 var
   DC: HDC;
 begin
   {Set width and height}
-  Header.Width  := Info.bmWidth;
+  Header.Width := Info.bmWidth;
   Header.Height := abs(Info.bmHeight);
   {Set bit depth}
   if Info.bmBitsPixel >= 16 then
@@ -4873,6 +5686,12 @@ begin
 end;
 
 {Assigns from a bitmap object}
+
+//==============================================================================
+//
+// TPngObject.AssignHandle
+//
+//==============================================================================
 procedure TPngObject.AssignHandle(Handle: HBitmap; Transparent: Boolean;
   TransparentColor: ColorRef);
 var
@@ -4884,7 +5703,7 @@ var
   IEND: TChunkIEND;
   TRNS: TChunkTRNS;
   i: Integer;
-  palEntries : TMaxLogPalette;
+  palEntries: TMaxLogPalette;
 begin
   {Obtain bitmap info}
   GetObject(Handle, SizeOf(BitmapInfo), @BitmapInfo);
@@ -4925,9 +5744,9 @@ begin
     palEntries.palNumEntries := 1 shl BitmapInfo.bmBitsPixel;
     for i := 0 to palEntries.palNumEntries - 1 do
     begin
-      palEntries.palPalEntry[i].peRed   := Header.BitmapInfo.bmiColors[i].rgbRed;
+      palEntries.palPalEntry[i].peRed := Header.BitmapInfo.bmiColors[i].rgbRed;
       palEntries.palPalEntry[i].peGreen := Header.BitmapInfo.bmiColors[i].rgbGreen;
-      palEntries.palPalEntry[i].peBlue  := Header.BitmapInfo.bmiColors[i].rgbBlue;
+      palEntries.palPalEntry[i].peBlue := Header.BitmapInfo.bmiColors[i].rgbBlue;
     end;
     DoSetPalette(CreatePalette(pLogPalette(@palEntries)^), false);
   end;
@@ -4937,6 +5756,12 @@ begin
 end;
 
 {Assigns from another PNG}
+
+//==============================================================================
+//
+// TPngObject.AssignPNG
+//
+//==============================================================================
 procedure TPngObject.AssignPNG(Source: TPNGObject);
 var
   J: Integer;
@@ -4960,6 +5785,12 @@ begin
 end;
 
 {Returns a alpha data scanline}
+
+//==============================================================================
+//
+// TPngObject.GetAlphaScanline
+//
+//==============================================================================
 function TPngObject.GetAlphaScanline(const LineIndex: Integer): PByteArray;
 begin
   with Header do
@@ -4971,6 +5802,12 @@ end;
 
 {$IFDEF Store16bits}
 {Returns a png data extra scanline}
+
+//==============================================================================
+//
+// TPngObject.GetExtraScanline
+//
+//==============================================================================
 function TPngObject.GetExtraScanline(const LineIndex: Integer): Pointer;
 begin
   with Header do
@@ -4980,6 +5817,12 @@ end;
 {$ENDIF}
 
 {Returns a png data scanline}
+
+//==============================================================================
+//
+// TPngObject.GetScanline
+//
+//==============================================================================
 function TPngObject.GetScanline(const LineIndex: Integer): Pointer;
 begin
   with Header do
@@ -4988,6 +5831,12 @@ begin
 end;
 
 {Initialize gamma table}
+
+//==============================================================================
+//
+// TPngObject.InitializeGamma
+//
+//==============================================================================
 procedure TPngObject.InitializeGamma;
 var
   i: Integer;
@@ -5001,6 +5850,12 @@ begin
 end;
 
 {Returns the transparency mode used by this png}
+
+//==============================================================================
+//
+// TPngObject.GetTransparencyMode
+//
+//==============================================================================
 function TPngObject.GetTransparencyMode: TPNGTransparencyMode;
 var
   TRNS: TChunkTRNS;
@@ -5034,6 +5889,12 @@ begin
 end;
 
 {Add a text chunk}
+
+//==============================================================================
+//
+// TPngObject.AddtEXt
+//
+//==============================================================================
 procedure TPngObject.AddtEXt(const Keyword, Text: String);
 var
   TextChunk: TChunkTEXT;
@@ -5044,6 +5905,12 @@ begin
 end;
 
 {Add a text chunk}
+
+//==============================================================================
+//
+// TPngObject.AddzTXt
+//
+//==============================================================================
 procedure TPngObject.AddzTXt(const Keyword, Text: String);
 var
   TextChunk: TChunkzTXt;
@@ -5054,6 +5921,12 @@ begin
 end;
 
 {Removes the image transparency}
+
+//==============================================================================
+//
+// TPngObject.RemoveTransparency
+//
+//==============================================================================
 procedure TPngObject.RemoveTransparency;
 var
   TRNS: TChunkTRNS;
@@ -5086,6 +5959,12 @@ begin
 end;
 
 {Generates alpha information}
+
+//==============================================================================
+//
+// TPngObject.CreateAlpha
+//
+//==============================================================================
 procedure TPngObject.CreateAlpha;
 var
   TRNS: TChunkTRNS;
@@ -5129,6 +6008,12 @@ begin
 end;
 
 {Returns transparent color}
+
+//==============================================================================
+//
+// TPngObject.GetTransparentColor
+//
+//==============================================================================
 function TPngObject.GetTransparentColor: LongWord;
 var
   TRNS: TChunkTRNS;
@@ -5141,7 +6026,12 @@ begin
     Result := 0
 end;
 
+//==============================================================================
+// TPngObject.SetTransparentColor
+//
 //{$OPTIMIZATION OFF}
+//
+//==============================================================================
 procedure TPngObject.SetTransparentColor(const Value: LongWord);
 var
   TRNS: TChunkTRNS;
@@ -5166,17 +6056,34 @@ begin
 end;
 
 {Returns if header is present}
+
+//==============================================================================
+//
+// TPngObject.HeaderPresent
+//
+//==============================================================================
 function TPngObject.HeaderPresent: Boolean;
 begin
   Result := ((Chunks.Count <> 0) and (Chunks.Item[0] is TChunkIHDR))
 end;
 
+//==============================================================================
+//
+// TPngObject.GettRNSArray256
+//
+//==============================================================================
 function TPngObject.GettRNSArray256: PByteArray;
 begin
   Result := @ftRNSArray256;
 end;
 
 {Returns pixel for png using palette and grayscale}
+
+//==============================================================================
+//
+// GetByteArrayPixel
+//
+//==============================================================================
 function GetByteArrayPixel(const png: TPngObject; const X, Y: Integer): LongWord;
 var
   ByteData: Byte;
@@ -5204,9 +6111,10 @@ begin
             GammaTable[rgbBlue]);
       COLOR_GRAYSCALE:
       begin
-        if BitDepth = 1
-        then ByteData := GammaTable[Byte(ByteData * 255)]
-        else ByteData := GammaTable[Byte(ByteData * ((1 shl DataDepth) + 1))];
+        if BitDepth = 1 then
+          ByteData := GammaTable[Byte(ByteData * 255)]
+        else
+          ByteData := GammaTable[Byte(ByteData * ((1 shl DataDepth) + 1))];
         Result := rgb(ByteData, ByteData, ByteData);
       end;
       else
@@ -5216,6 +6124,12 @@ begin
 end;
 
 {Sets a pixel for grayscale and palette pngs}
+
+//==============================================================================
+//
+// SetByteArrayPixel
+//
+//==============================================================================
 procedure SetByteArrayPixel(const png: TPngObject; const X, Y: Integer;
   const Value: LongWord);
 const
@@ -5246,6 +6160,12 @@ begin
 end;
 
 {Returns pixel when png uses RGB}
+
+//==============================================================================
+//
+// GetRGBLinePixel
+//
+//==============================================================================
 function GetRGBLinePixel(const png: TPngObject;
   const X, Y: Integer): LongWord;
 begin
@@ -5254,6 +6174,12 @@ begin
 end;
 
 {Sets pixel when png uses RGB}
+
+//==============================================================================
+//
+// SetRGBLinePixel
+//
+//==============================================================================
 procedure SetRGBLinePixel(const png: TPngObject;
  const X, Y: Integer; Value: LongWord);
 begin
@@ -5266,6 +6192,12 @@ begin
 end;
 
 {Returns pixel when png uses grayscale}
+
+//==============================================================================
+//
+// GetGrayLinePixel
+//
+//==============================================================================
 function GetGrayLinePixel(const png: TPngObject;
   const X, Y: Integer): LongWord;
 var
@@ -5276,6 +6208,12 @@ begin
 end;
 
 {Sets pixel when png uses grayscale}
+
+//==============================================================================
+//
+// SetGrayLinePixel
+//
+//==============================================================================
 procedure SetGrayLinePixel(const png: TPngObject;
  const X, Y: Integer; Value: LongWord);
 begin
@@ -5283,6 +6221,12 @@ begin
 end;
 
 {Resizes the PNG image}
+
+//==============================================================================
+//
+// TPngObject.Resize
+//
+//==============================================================================
 procedure TPngObject.Resize(const CX, CY: Integer);
   function Min(const A, B: Integer): Integer;
   begin
@@ -5367,6 +6311,12 @@ begin
 end;
 
 {Sets a pixel}
+
+//==============================================================================
+//
+// TPngObject.SetPixels
+//
+//==============================================================================
 procedure TPngObject.SetPixels(const X, Y: Integer; const Value: LongWord);
 begin
   if ((X >= 0) and (X <= Width - 1)) and
@@ -5382,8 +6332,13 @@ begin
     end {with}
 end;
 
-
 {Returns a pixel}
+
+//==============================================================================
+//
+// TPngObject.GetPixels
+//
+//==============================================================================
 function TPngObject.GetPixels(const X, Y: Integer): LongWord;
 begin
   if ((X >= 0) and (X <= Width - 1)) and
@@ -5402,12 +6357,24 @@ begin
 end;
 
 {Returns the image palette}
+
+//==============================================================================
+//
+// TPngObject.GetPalette
+//
+//==============================================================================
 function TPngObject.GetPalette: HPalette;
 begin
   Result := Header.ImagePalette;
 end;
 
 {Assigns from another TChunk}
+
+//==============================================================================
+//
+// TChunkpHYs.Assign
+//
+//==============================================================================
 procedure TChunkpHYs.Assign(Source: TChunk);
 begin
   fPPUnitY := TChunkpHYs(Source).fPPUnitY;
@@ -5416,6 +6383,12 @@ begin
 end;
 
 {Loads the chunk from a stream}
+
+//==============================================================================
+//
+// TChunkpHYs.LoadFromStream
+//
+//==============================================================================
 function TChunkpHYs.LoadFromStream(Stream: TDStream; const ChunkName: TChunkName;
   Size: Integer): Boolean;
 begin
@@ -5431,6 +6404,12 @@ begin
 end;
 
 {Saves the chunk to a stream}
+
+//==============================================================================
+//
+// TChunkpHYs.SaveToStream
+//
+//==============================================================================
 function TChunkpHYs.SaveToStream(Stream: TDStream): Boolean;
 begin
   {Update data}
@@ -5443,6 +6422,11 @@ begin
   Result := inherited SaveToStream(Stream);
 end;
 
+//==============================================================================
+//
+// TPngObject.DoSetPalette
+//
+//==============================================================================
 procedure TPngObject.DoSetPalette(Value: HPALETTE; const UpdateColors: boolean);
 begin
   if Header.HasPalette then
@@ -5462,6 +6446,12 @@ begin
 end;
 
 {Set palette based on a windows palette handle}
+
+//==============================================================================
+//
+// TPngObject.SetPalette
+//
+//==============================================================================
 procedure TPngObject.SetPalette(palEntries: pLogPalette);
 var
   i: integer;
@@ -5473,18 +6463,33 @@ begin
   DoSetPalette(Value, true);
 end;
 
+//==============================================================================
+//
+// TPngObject.SetHPalette
+//
+//==============================================================================
 procedure TPngObject.SetHPalette(value: HPALETTE);
 begin
   DoSetPalette(Value, true);
 end;
 
 {Returns the library version}
+
+//==============================================================================
+//
+// TPNGObject.GetLibraryVersion
+//
+//==============================================================================
 function TPNGObject.GetLibraryVersion: String;
 begin
   Result := PNGLibraryVersion
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
+//
+// T_IsCommonTransparentColor
+//
+//==============================================================================
 function T_IsCommonTransparentColor(c: LongWord): Boolean;
 var
   ca: array[0..2] of byte;
@@ -5512,6 +6517,13 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 // TPNGBaseTextureManager
+////////////////////////////////////////////////////////////////////////////////
+
+//==============================================================================
+//
+// TPNGBaseTextureManager.Create
+//
+//==============================================================================
 constructor TPNGBaseTextureManager.Create(ext: string);
 begin
   inherited Create;
@@ -5519,6 +6531,11 @@ begin
   png := TPngObject.Create;
 end;
 
+//==============================================================================
+//
+// TPNGBaseTextureManager.RGBSwap
+//
+//==============================================================================
 function TPNGBaseTextureManager.RGBSwap(buffer: LongWord): LongWord;
 var
   r, g, b: LongWord;
@@ -5532,6 +6549,11 @@ begin
   Result := r + g shl 8 + b shl 16;
 end;
 
+//==============================================================================
+//
+// TPNGBaseTextureManager.CheckPNGError
+//
+//==============================================================================
 function TPNGBaseTextureManager.CheckPNGError: boolean;
 var
   pngerr: string;
@@ -5542,6 +6564,11 @@ begin
     I_Warning('TPNGTextureManager(): ' + pngerr + #13#10);
 end;
 
+//==============================================================================
+//
+// TPNGBaseTextureManager.Destroy
+//
+//==============================================================================
 destructor TPNGBaseTextureManager.Destroy;
 begin
   png.Free;
@@ -5550,11 +6577,23 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 // TPNGTextureManager
+////////////////////////////////////////////////////////////////////////////////
+
+//==============================================================================
+//
+// TPNGTextureManager.Create
+//
+//==============================================================================
 constructor TPNGTextureManager.Create;
 begin
   inherited Create(PNGEXT);
 end;
 
+//==============================================================================
+//
+// TPNGTextureManager.LoadHeader
+//
+//==============================================================================
 function TPNGTextureManager.LoadHeader(stream: TDStream): boolean;
 begin
   png.LoadFromStream(stream);
@@ -5569,6 +6608,11 @@ begin
   Result := CheckPNGError;
 end;
 
+//==============================================================================
+//
+// TPNGTextureManager.LoadImage
+//
+//==============================================================================
 function TPNGTextureManager.LoadImage(stream: TDStream): boolean;
 var
   x, y: integer;
@@ -5619,16 +6663,27 @@ begin
   end;
   Result := CheckPNGError;
 end;
-////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
 // TPNGSpriteTextureManager
+////////////////////////////////////////////////////////////////////////////////
+
+//==============================================================================
+//
+// TPNGSpriteTextureManager.Create
+//
+//==============================================================================
 constructor TPNGSpriteTextureManager.Create;
 begin
   ftransparentcolor := 0;
   inherited Create(PNGSPRITEEXT);
 end;
 
+//==============================================================================
+//
+// TPNGSpriteTextureManager.LoadHeader
+//
+//==============================================================================
 function TPNGSpriteTextureManager.LoadHeader(stream: TDStream): boolean;
 begin
   png.LoadFromStream(stream);
@@ -5644,6 +6699,11 @@ begin
   Result := CheckPNGError;
 end;
 
+//==============================================================================
+//
+// TPNGSpriteTextureManager.LoadImage
+//
+//==============================================================================
 function TPNGSpriteTextureManager.LoadImage(stream: TDStream): boolean;
 var
   x, y: integer;

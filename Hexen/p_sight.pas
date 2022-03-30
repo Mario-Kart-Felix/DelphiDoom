@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  LineOfSight/Visibility checks, uses REJECT Lookup Table.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,10 +38,32 @@ uses
   m_fixed,
   p_mobj_h;
 
+//==============================================================================
+//
+// P_CheckSight
+//
+//==============================================================================
 function P_CheckSight(t1: Pmobj_t; t2: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_CheckSightXYZ
+//
+//==============================================================================
+function P_CheckSightXYZ(const x, y, z: fixed_t; t2: Pmobj_t): boolean;
+
+//==============================================================================
+//
+// P_SightPathTraverse
+//
+//==============================================================================
 function P_SightPathTraverse(x1, y1, x2, y2: fixed_t): boolean;
 
+//==============================================================================
+//
+// P_CheckCameraSight
+//
+//==============================================================================
 function P_CheckCameraSight(camx, camy, camz: fixed_t; mo: Pmobj_t): boolean;
 
 var
@@ -77,7 +99,7 @@ type
   end;
   Plos_t = ^los_t;
 
-
+//==============================================================================
 //
 //==============
 //
@@ -85,7 +107,7 @@ type
 //
 //==============
 //
-
+//==============================================================================
 function PTR_SightTraverse(_in: Pintercept_t): boolean;
 var
   li: Pline_t;
@@ -121,8 +143,7 @@ begin
   result := topslope > bottomslope;
 end;
 
-
-
+//==============================================================================
 //
 //==================
 //
@@ -130,7 +151,7 @@ end;
 //
 //===================
 //
-
+//==============================================================================
 function P_SightBlockLinesIterator(x, y: integer): boolean;
 var
   offset: integer;
@@ -249,6 +270,7 @@ begin
   result := true; // everything was checked
 end;
 
+//==============================================================================
 //
 //====================
 //
@@ -257,7 +279,7 @@ end;
 // Returns true if the traverser function returns true for all lines
 //====================
 //
-
+//==============================================================================
 function P_SightTraverseIntercepts: boolean;
 var
   i: integer;
@@ -307,8 +329,8 @@ begin
   result := true; // everything was traversed
 end;
 
-
-
+//==============================================================================
+// P_SightPathTraverse32
 //
 //==================
 //
@@ -318,7 +340,7 @@ end;
 // Returns true if the traverser function returns true for all lines
 //==================
 //
-
+//==============================================================================
 function P_SightPathTraverse32(x1, y1, x2, y2: fixed_t): boolean;
 var
   xt1, yt1, xt2, yt2: fixed_t;
@@ -379,7 +401,6 @@ begin
   end;
   yintercept := MapToFrac(y1) + FixedMul(partial, ystep);
 
-
   if yt2 > yt1 then
   begin
     mapystep := 1;
@@ -400,13 +421,11 @@ begin
   end;
   xintercept := MapToFrac(x1) + FixedMul(partial, xstep);
 
-
 //
 // step through map blocks
 // Count is present to prevent a round off error from skipping the break
   mapx := xt1;
   mapy := yt1;
-
 
   for count := 0 to 63 do
   begin
@@ -432,13 +451,17 @@ begin
 
   end;
 
-
 //
 // couldn't early out, so go through the sorted list
 //
   result := P_SightTraverseIntercepts;
 end;
 
+//==============================================================================
+//
+// P_SightPathTraverse64
+//
+//==============================================================================
 function P_SightPathTraverse64(x1, y1, x2, y2: fixed_t): boolean;
 var
   _x1, _x2, _y1, _y2: int64;
@@ -516,7 +539,6 @@ begin
   end;
   yintercept := MapToFrac(y1) + FixedMul(partial, ystep);
 
-
   if yt2 > yt1 then
   begin
     mapystep := 1;
@@ -537,13 +559,11 @@ begin
   end;
   xintercept := MapToFrac(x1) + FixedMul(partial, xstep);
 
-
 //
 // step through map blocks
 // Count is present to prevent a round off error from skipping the break
   mapx := xt1;
   mapy := yt1;
-
 
   for count := 0 to 63 do
   begin
@@ -569,13 +589,17 @@ begin
 
   end;
 
-
 //
 // couldn't early out, so go through the sorted list
 //
   result := P_SightTraverseIntercepts;
 end;
 
+//==============================================================================
+//
+// P_SightPathTraverse
+//
+//==============================================================================
 function P_SightPathTraverse(x1, y1, x2, y2: fixed_t): boolean;
 begin
   if largemap or internalblockmapformat then
@@ -584,6 +608,7 @@ begin
     result := P_SightPathTraverse32(x1, y1, x2, y2);
 end;
 
+//==============================================================================
 //
 //=====================
 //
@@ -594,7 +619,7 @@ end;
 //
 //=====================
 //
-
+//==============================================================================
 function P_CheckSight(t1: Pmobj_t; t2: Pmobj_t): boolean;
 var
   s1: integer;
@@ -653,9 +678,9 @@ begin
         exit;
       end;
     end
-    else
     // JVAL 20191206 - Fix problem reported by slayermbm
     // https://www.doomworld.com/forum/topic/92113-delphidoom-204720-updated-oct-12-2019/?do=findComment&comment=2051252
+    else
     begin
       if midn > -1 then
         if Psubsector_t(t1.subsector).sector = Psubsector_t(t2.subsector).sector then
@@ -665,7 +690,6 @@ begin
         end;
     end;
   end;
-
 
 //
 // check precisely
@@ -677,12 +701,23 @@ begin
   result := P_SightPathTraverse(t1.x, t1.y, t2.x, t2.y);
 end;
 
+//==============================================================================
+//
+// P_CheckSightXYZ
+//
+//==============================================================================
+function P_CheckSightXYZ(const x, y, z: fixed_t; t2: Pmobj_t): boolean;
+begin
+  Result := P_CheckCameraSight(x, y, z, t2);
+end;
+
+//==============================================================================
 //
 // P_CheckCameraSight
 //
 // JVAL: Check if the camera can see mo (=player.mo)
 //
-
+//==============================================================================
 function P_CheckCameraSight(camx, camy, camz: fixed_t; mo: Pmobj_t): boolean;
 begin
   if mo = nil then

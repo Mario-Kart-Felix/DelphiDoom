@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,6 +45,7 @@ const
   RTL_ST_HEAL = 256;
   RTL_ST_CRASH = 512;
   RTL_ST_INTERACT = 1024;
+  RTL_ST_CRUSH = 2048;
 
 // Weapon states
 const
@@ -72,6 +73,7 @@ type
     gotostr_calc: string;
     alias: string;
     savealias: string;
+    fast: boolean; // MBF21
   end;
   Prtl_state_t = ^rtl_state_t;
 
@@ -111,6 +113,8 @@ type
     flags2_ex: string;
     flags3_ex: string;
     flags4_ex: string;
+    flags5_ex: string;  // VERSION 207
+    flags6_ex: string;  // VERSION 207
     raisestate: integer;
     customsound1: string;
     customsound2: string;
@@ -126,9 +130,7 @@ type
     healstate: integer;
     crashstate: integer;
     interactstate: integer;
-    {$IFDEF DOOM_OR_STRIFE}
     missileheight: integer;
-    {$ENDIF}
     vspeed: float;
     pushfactor: float;
     friction: float;
@@ -152,6 +154,17 @@ type
     WeaveIndexZ: integer;
     spriteDX: float;
     spriteDY: float;
+    // MBF21 ---------------------
+    infighting_group: integer;
+    projectile_group: integer;
+    splash_group: integer;
+    mbf21bits: integer; // not actually flags, the bits will be converted to DelphiDoom flags
+    ripsound: string;
+    // ---------------------------
+    crushstate: integer;
+    bloodcolor: string;
+    translation: string;
+    meleethreshold: integer;
   end;
   Prtl_mobjinfo_t = ^rtl_mobjinfo_t;
 
@@ -171,7 +184,9 @@ type
     attackstate: integer;
     holdattackstate: integer;
     flashstate: integer;
+    ammopershot: integer;
     statesdefined: LongWord;
+    flags: string;
   end;
   Prtl_weaponinfo_t = ^rtl_weaponinfo_t;
 

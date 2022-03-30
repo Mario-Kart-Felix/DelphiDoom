@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Slopes software rendering.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,10 +37,25 @@ uses
   r_defs,
   r_visplanes;
 
+//==============================================================================
+//
+// R_StoreSlopeRange
+//
+//==============================================================================
 procedure R_StoreSlopeRange(const start: integer; const stop: integer);
 
+//==============================================================================
+//
+// R_VisSlopesFromSubsector
+//
+//==============================================================================
 procedure R_VisSlopesFromSubsector(const ssector: Psubsector_t);
 
+//==============================================================================
+//
+// R_DoDrawSlope
+//
+//==============================================================================
 procedure R_DoDrawSlope(const pl: Pvisplane_t);
 
 const
@@ -55,10 +70,25 @@ var
   floorslope: Pvisslope_t;
   ceilingslope: Pvisslope_t;
 
+//==============================================================================
+//
+// R_DrawSlopeMedium
+//
+//==============================================================================
 procedure R_DrawSlopeMedium;
 
+//==============================================================================
+//
+// R_DrawSlopeMedium_Ripple
+//
+//==============================================================================
 procedure R_DrawSlopeMedium_Ripple;
 
+//==============================================================================
+//
+// R_ClearVisSlopes
+//
+//==============================================================================
 procedure R_ClearVisSlopes;
 
 var
@@ -80,7 +110,6 @@ uses
   r_cliputils,
   r_column,
   r_data,
-  r_depthbuffer,
   r_draw,
   r_hires,
   r_fake3d,
@@ -97,14 +126,15 @@ uses
   r_things,
   r_zbuffer,
   r_flatinfo,
-  r_utils,
   tables,
-  i_system,
   z_zone;
 
+//==============================================================================
+// R_DrawSlopeMedium
 //
 // Draws the actual span (Medium resolution).
 //
+//==============================================================================
 procedure R_DrawSlopeMedium;
 var
   xfrac: fixed_t;
@@ -115,7 +145,6 @@ var
   count: integer;
   i: integer;
   spot: integer;
-  fb: fourbytes_t;
 begin
   dest := @((ylookup[ds_y]^)[columnofs[ds_x1]]);
 
@@ -125,6 +154,11 @@ begin
   {$I R_DrawSlopeMedium.inc}
 end;
 
+//==============================================================================
+//
+// R_DrawSlopeMedium_Ripple
+//
+//==============================================================================
 procedure R_DrawSlopeMedium_Ripple;
 var
   xfrac: fixed_t;
@@ -136,7 +170,6 @@ var
   i: integer;
   spot: integer;
   rpl: PIntegerArray;
-  fb: fourbytes_t;
 begin
   dest := @((ylookup[ds_y]^)[columnofs[ds_x1]]);
 
@@ -148,6 +181,11 @@ begin
   {$I R_DrawSlopeMedium.inc}
 end;
 
+//==============================================================================
+//
+// R_NewVisSlope
+//
+//==============================================================================
 function R_NewVisSlope: Pvisslope_t;
 begin
   // JVAL: Do not overflow and crash - Unneeded (?) we'll have a visplane overflow before
@@ -185,6 +223,11 @@ begin
   inc(lastvisslope);
 end;
 
+//==============================================================================
+//
+// R_ClearVisSlopes
+//
+//==============================================================================
 procedure R_ClearVisSlopes;
 var
   i: integer;
@@ -199,6 +242,11 @@ begin
   maxvisslope := -1;
 end;
 
+//==============================================================================
+//
+// R_FindExistingVisSlope
+//
+//==============================================================================
 function R_FindExistingVisSlope(const sectorID: Integer; const virtualfloor: Boolean): Pvisslope_t;
 var
   sec: Psector_t;
@@ -226,6 +274,11 @@ begin
   Result := nil;
 end;
 
+//==============================================================================
+//
+// R_FindVisSlope
+//
+//==============================================================================
 function R_FindVisSlope(const sectorID: Integer; const virtualfloor: Boolean): Pvisslope_t;
 begin
   Result := R_FindExistingVisSlope(sectorID, virtualfloor);
@@ -247,11 +300,13 @@ end;
 var
   visslope: Pvisslope_t;
 
+//==============================================================================
 //
 //  R_MapSlopePerPixelLight
 //  Slow, but accurate light
 //  Light calculated in every pixel
 //
+//==============================================================================
 procedure R_MapSlopePerPixelLight(const y: integer; const x1, x2: integer);
 var
   angle: angle_t;
@@ -264,7 +319,8 @@ var
   Theta, rTheta: integer;
   yidx: integer;
   screenDX: integer;
-  zleft, zright: Double;
+  zleft, zright: float;
+  inv_zleft, inv_zright: float;
   xleft, xright: fixed_t;
 begin
   if y >= viewheight then
@@ -294,7 +350,9 @@ begin
   screenDX := xright - xleft + 1;
 
   zleft := zleft * screenDX;
+  inv_zleft := 1.0 / zleft;
   zright := zright * screenDX;
+  inv_zright := 1.0 / zright;
 
   ds_y := y;
 
@@ -327,7 +385,7 @@ begin
       Theta := x - xleft;
       rTheta := screenDX - Theta;
 
-      distance := Abs(Round(1.0 / (rTheta / zleft + Theta / zright)));
+      distance := Abs(Round(1.0 / (rTheta * inv_zleft + Theta * inv_zright)));
     end;
 
     len := FixedMul(distance, distscale[x]);
@@ -380,15 +438,16 @@ begin
 
 end;
 
-
 const
   SLOPESRECALCSTEP = 16;
 
+//==============================================================================
 //
 //  R_MapSlope
 //  Fast, but not accurate light
 //  Light calculated after SLOPESRECALCSTEP pixels and in start and stop pixels
 //
+//==============================================================================
 procedure R_MapSlope(const y: integer; const x1, x2: integer);
 var
   angle: angle_t;
@@ -401,7 +460,8 @@ var
   Theta, rTheta: integer;
   yidx: integer;
   screenDX: integer;
-  zleft, zright: Double;
+  zleft, zright: float;
+  inv_zleft, inv_zright: float;
   xleft, xright: fixed_t;
   xfrac1: fixed_t;
   xfrac2: fixed_t;
@@ -436,7 +496,9 @@ begin
   screenDX := xright - xleft + 1;
 
   zleft := zleft * screenDX;
+  inv_zleft := 1.0 / zleft;
   zright := zright * screenDX;
+  inv_zright := 1.0 / zright;
 
   ds_y := y;
 
@@ -475,7 +537,7 @@ begin
         Theta := x - xleft;
         rTheta := screenDX - Theta;
 
-        distance := Abs(Round(1.0 / (rTheta / zleft + Theta / zright)));
+        distance := Abs(Round(1.0 / (rTheta * inv_zleft + Theta * inv_zright)));
       end;
 
       len := FixedMul(distance, distscale[x]);
@@ -557,6 +619,11 @@ end;
 const
   ANGLESLOPESRECALCSTEP = 8;
 
+//==============================================================================
+//
+// R_MapSlopeAngle
+//
+//==============================================================================
 procedure R_MapSlopeAngle(const y: integer; const x1, x2: integer);
 var
   angle: fixed_t;
@@ -570,6 +637,7 @@ var
   yidx: integer;
   screenDX: integer;
   zleft, zright: float;
+  inv_zleft, inv_zright: float;
   xleft, xright: fixed_t;
   xfrac1: fixed_t;
   xfrac2: fixed_t;
@@ -577,8 +645,6 @@ var
   yfrac2: fixed_t;
   cnt: integer;
   pviewsin, pviewcos: float;
-  tcos, tsin: float;
-  tviewx, tviewy: fixed_t;
 begin
   if y >= viewheight then
     exit;
@@ -607,7 +673,9 @@ begin
   screenDX := xright - xleft + 1;
 
   zleft := zleft * screenDX;
+  inv_zleft := 1.0 / zleft;
   zright := zright * screenDX;
+  inv_zright := 1.0 / zright;
 
   ds_y := y;
 
@@ -629,17 +697,6 @@ begin
   ds_x1 := x1;
   cnt := 0;
 
-{  tsin := sin(-ds_angle / ANGLE_MAX * 2 * pi);
-  tcos := cos(-ds_angle / ANGLE_MAX * 2 * pi);
-
-  tviewx := Round(viewx * tcos - viewy * tsin);
-  tviewy := Round(viewx * tsin + viewy * tcos);}
-  tsin := ds_sine;
-  tcos := ds_cosine;
-
-  tviewx := Round((viewx - ds_anglex) * tcos - (viewy - ds_angley) * tsin) + ds_anglex;
-  tviewy := Round((viewx - ds_anglex) * tsin + (viewy - ds_angley) * tcos) + ds_angley;
-
   // JVAL: 20200430 - For slope lightmap
   yslopey := slyslope[y];
 
@@ -657,15 +714,15 @@ begin
         Theta := x - xleft;
         rTheta := screenDX - Theta;
 
-        distance := Abs(Round(1.0 / (rTheta / zleft + Theta / zright)));
+        distance := Abs(Round(1.0 / (rTheta * inv_zleft + Theta * inv_zright)));
       end;
 
       len := FixedMul(distance, distscale[x]);
       angle := (viewangle + xtoviewangle[x] - ds_angle) shr FRACBITS;
 
-      xfrac1 := tviewx + FixedMul(fixedcosine[angle], len)
+      xfrac1 := ds_tviewx + FixedMul(fixedcosine[angle], len)
       {$IFDEF DOOM_OR_STRIFE} + xoffs{$ENDIF} {$IFDEF HEXEN} + ds_xoffset{$ENDIF};
-      yfrac1 := -tviewy - FixedMul(fixedsine[angle], len)
+      yfrac1 := -ds_tviewy - FixedMul(fixedsine[angle], len)
       {$IFDEF DOOM_OR_STRIFE} + yoffs{$ENDIF} {$IFDEF HEXEN} + ds_yoffset{$ENDIF};
 
       if x = x1 then
@@ -735,6 +792,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_DoDrawSlope
+//
+//==============================================================================
 procedure R_DoDrawSlope(const pl: Pvisplane_t);
 var
   light: integer;
@@ -807,10 +869,12 @@ begin
   begin
     ds_anglex := pl.anglex;
     ds_angley := pl.angley;
-    ds_sine := sin(-ds_angle / ANGLE_MAX * 2 * pi);    // JVAL: 20200225 - Texture angle
-    ds_cosine := cos(ds_angle / ANGLE_MAX * 2 * pi);  // JVAL: 20200225 - Texture angle
-    ds_viewsine := sin((viewangle - ds_angle) / ANGLE_MAX * 2 * pi);    // JVAL: 20200225 - Texture angle
-    ds_viewcosine := cos((viewangle - ds_angle) / ANGLE_MAX * 2 * pi);  // JVAL: 20200225 - Texture angle
+    ds_sine := sin(-ds_angle * ANGLE_T_TO_RAD);   // JVAL: 20200225 - Texture angle
+    ds_cosine := cos(ds_angle * ANGLE_T_TO_RAD);  // JVAL: 20200225 - Texture angle
+    ds_viewsine := sin((viewangle - ds_angle) * ANGLE_T_TO_RAD);    // JVAL: 20200225 - Texture angle
+    ds_viewcosine := cos((viewangle - ds_angle) * ANGLE_T_TO_RAD);  // JVAL: 20200225 - Texture angle
+    ds_tviewx := Round((viewx - ds_anglex) * ds_cosine - (viewy - ds_angley) * ds_sine) + ds_anglex;
+    ds_tviewy := Round((viewx - ds_anglex) * ds_sine + (viewy - ds_angley) * ds_cosine) + ds_angley;
     // Slope with angle
     for x := pl.minx to stop do
     begin
@@ -838,11 +902,13 @@ begin
     Z_ChangeTag(ds_source, PU_CACHE);
 end;
 
+//==============================================================================
 //
 // R_StoreSlopeRange
 // A wall segment will be drawn
 //  between start and stop pixels (inclusive).
 //
+//==============================================================================
 procedure R_StoreSlopeRange(const start: integer; const stop: integer);
 var
   lightnum: integer;
@@ -930,12 +996,7 @@ begin
     lightnum := _SHR(frontsector.lightlevel, LIGHTSEGSHIFT) + extralight;
 
     if r_fakecontrast then
-    begin
-      if curline.v1.y = curline.v2.y then
-        dec(lightnum)
-      else if curline.v1.x = curline.v2.x then
-        inc(lightnum);
-    end;
+      inc(lightnum, curline.fakecontrastlight);
 
     if lightnum < 0 then
       lightnum := 0
@@ -951,12 +1012,7 @@ begin
       lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
 
       if r_fakecontrast then
-      begin
-        if curline.v1.y = curline.v2.y then
-          dec(lightnum2)
-        else if curline.v1.x = curline.v2.x then
-          inc(lightnum2);
-      end;
+        inc(lightnum2, curline.fakecontrastlight);
 
       if lightnum2 < 0 then
         lightnum2 := 0
@@ -985,12 +1041,7 @@ begin
       lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
 
       if r_fakecontrast then
-      begin
-        if curline.v1.y = curline.v2.y then
-          dec(lightnum2)
-        else if curline.v1.x = curline.v2.x then
-          inc(lightnum2);
-      end;
+        inc(lightnum2, curline.fakecontrastlight);
 
       if lightnum2 < 0 then
         lightnum2 := 0
@@ -1032,12 +1083,7 @@ begin
       end;
 
       if r_fakecontrast then
-      begin
-        if curline.v1.y = curline.v2.y then
-          dec(lightnum2)
-        else if curline.v1.x = curline.v2.x then
-          inc(lightnum2);
-      end;
+        inc(lightnum2, curline.fakecontrastlight);
 
       if lightnum2 < 0 then
         lightnum2 := 0
@@ -1191,7 +1237,7 @@ begin
 
     rw_midtexturemid := frontsector.ceilingheight - textureheight[sidedef.midtexture] - viewz;
 
-    rw_midtexturemid := rw_midtexturemid + sidedef.rowoffset;
+    rw_midtexturemid := rw_midtexturemid + sidedef.rowoffset + sidedef.midrowoffset;
 
     pds.sprtopclip := @screenheightarray;
     pds.sprbottomclip := @negonearray;
@@ -1201,7 +1247,6 @@ begin
     // two sided line
     pds.sprtopclip := nil;
     pds.sprbottomclip := nil;
-
 
     if (sc11 > sc1) or (sc22 > sc2) then
     begin
@@ -1215,8 +1260,8 @@ begin
       rw_bottomtexturemid := frontsector.floorheight - viewz;
     end;
 
-    rw_toptexturemid := rw_toptexturemid + sidedef.rowoffset;
-    rw_bottomtexturemid := rw_bottomtexturemid + sidedef.rowoffset;
+    rw_toptexturemid := rw_toptexturemid + sidedef.rowoffset + sidedef.toprowoffset;
+    rw_bottomtexturemid := rw_bottomtexturemid + sidedef.rowoffset + sidedef.bottomrowoffset;
 
     // JVAL: 3d Floors
     R_StoreThickSideRange(pds, frontsector, backsector);
@@ -1239,7 +1284,15 @@ begin
   // calculate rw_offset (only needed for textured lines)
   segtextured := ((midtexture or toptexture or bottomtexture) <> 0) or maskedtexture;
   if segtextured then
+  begin
     rw_offset := rw_offset + sidedef.textureoffset + curline.offset;
+    if curline.specialoffsets then
+    begin
+      rw_offset_mid := rw_offset + sidedef.midtextureoffset;
+      rw_offset_bot := rw_offset + sidedef.bottomtextureoffset;
+      rw_offset_top := rw_offset + sidedef.toptextureoffset;
+    end;
+  end;
 
   // killough 3/7/98: add deep water check
   {$IFDEF DOOM_OR_STRIFE}
@@ -1293,53 +1346,109 @@ begin
       markfloor := false;
   end;
 
-  if pds.use_double then
+  if curline.specialoffsets then
   begin
-    if pds.midvis <> nil then
+    if pds.use_double then
     begin
-      if (pds.midsec <> nil) then
+      if pds.midvis <> nil then
       begin
-        f_RenderSegLoop_dbl_3dFloors_Vis(pds);
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_dbl_3dFloors_Vis_SO(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_dbl_Vis_SO(pds);
+        end;
       end
       else
       begin
-        f_RenderSegLoop_dbl_Vis(pds);
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_dbl_3dFloors_SO(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_dbl_SO;
+        end;
       end;
     end
     else
     begin
-      if (pds.midsec <> nil) then
+      if pds.midvis <> nil then
       begin
-        f_RenderSegLoop_dbl_3dFloors(pds);
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_3dFloors_Vis_SO(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_Vis_SO(pds);
+        end;
       end
       else
       begin
-        f_RenderSegLoop_dbl;
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_3dFloors_SO(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_SO;
+        end;
       end;
     end;
   end
   else
   begin
-    if pds.midvis <> nil then
+    if pds.use_double then
     begin
-      if (pds.midsec <> nil) then
+      if pds.midvis <> nil then
       begin
-        f_RenderSegLoop_3dFloors_Vis(pds);
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_dbl_3dFloors_Vis(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_dbl_Vis(pds);
+        end;
       end
       else
       begin
-        f_RenderSegLoop_Vis(pds);
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_dbl_3dFloors(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_dbl;
+        end;
       end;
     end
     else
     begin
-      if (pds.midsec <> nil) then
+      if pds.midvis <> nil then
       begin
-        f_RenderSegLoop_3dFloors(pds);
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_3dFloors_Vis(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop_Vis(pds);
+        end;
       end
       else
       begin
-        f_RenderSegLoop;
+        if (pds.midsec <> nil) then
+        begin
+          f_RenderSegLoop_3dFloors(pds);
+        end
+        else
+        begin
+          f_RenderSegLoop;
+        end;
       end;
     end;
   end;
@@ -1379,8 +1488,13 @@ type
 var
   sspoints: sspoint_tArray;
 
+//==============================================================================
+// R_SlopesCalcSSPoint
+//
 // input: wx, wy, wz -> World coordinates
 // output: x, y, z -> Screen coordinates
+//
+//==============================================================================
 procedure R_SlopesCalcSSPoint(const wx, wy, wz: fixed_t; var x, y, z: Double);
 var
   x1, y1: Double;
@@ -1399,16 +1513,16 @@ begin
   dcos := dviewcos;
   dsin := dviewsin;
 
-  tz := tr_x * dcos + tr_y * dsin;
+  tz := 1.0 / (tr_x * dcos + tr_y * dsin);
 
-  z := projection / tz;
-  xscale := projection / FRACUNIT / tz;
+  z := projection * tz;
+  xscale := z / FRACUNIT;
 
   tx := tr_x * dsin - tr_y * dcos;
 
   x1 := centerx + tx * xscale;
 
-  yscale := projectiony / FRACUNIT / tz;
+  yscale := projectiony / FRACUNIT * tz;
   y1 := centery - tr_z * yscale;
 
   x := x1;
@@ -1419,6 +1533,11 @@ const
   SLOPESPLITFACTOR = 2;
   SLOPECOEFF = 256 * FRACUNIT;
 
+//==============================================================================
+//
+// R_VisSlopeFromSubsector
+//
+//==============================================================================
 function R_VisSlopeFromSubsector(const ssector: Psubsector_t;
   const virtualfloor: boolean): Pvisslope_t;
 var
@@ -1777,6 +1896,11 @@ begin
   result := plane;
 end;
 
+//==============================================================================
+//
+// R_VisSlopesFromSubsector
+//
+//==============================================================================
 procedure R_VisSlopesFromSubsector(const ssector: Psubsector_t);
 var
   sec: Psector_t;

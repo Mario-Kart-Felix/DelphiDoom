@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //    Savegame I/O, archiving, persistence.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -43,40 +43,125 @@ interface
 uses
   d_delphi;
 
+//==============================================================================
+// P_ArchivePlayers
+//
 // Persistent storage/archiving.
 // These are the load / save game routines.
+//
+//==============================================================================
 procedure P_ArchivePlayers;
 
+//==============================================================================
+//
+// P_UnArchivePlayers
+//
+//==============================================================================
 procedure P_UnArchivePlayers(userload: boolean);
 
+//==============================================================================
+//
+// P_ArchiveWorld
+//
+//==============================================================================
 procedure P_ArchiveWorld;
 
+//==============================================================================
+//
+// P_UnArchiveWorld
+//
+//==============================================================================
 procedure P_UnArchiveWorld;
 
+//==============================================================================
+//
+// P_ArchiveThinkers
+//
+//==============================================================================
 procedure P_ArchiveThinkers;
 
+//==============================================================================
+//
+// P_UnArchiveThinkers
+//
+//==============================================================================
 procedure P_UnArchiveThinkers;
 
+//==============================================================================
+//
+// P_ArchiveSpecials
+//
+//==============================================================================
 procedure P_ArchiveSpecials;
 
+//==============================================================================
+//
+// P_UnArchiveSpecials
+//
+//==============================================================================
 procedure P_UnArchiveSpecials;
 
+//==============================================================================
+//
+// P_ArchiveMapVariables
+//
+//==============================================================================
 procedure P_ArchiveMapVariables;
 
+//==============================================================================
+//
+// P_ArchiveWorldVariables
+//
+//==============================================================================
 procedure P_ArchiveWorldVariables(const fname: string);
 
+//==============================================================================
+//
+// P_UnArchiveMapVariables
+//
+//==============================================================================
 procedure P_UnArchiveMapVariables;
 
+//==============================================================================
+//
+// P_UnArchiveWorldVariables
+//
+//==============================================================================
 procedure P_UnArchiveWorldVariables(const fname: string);
 
+//==============================================================================
+//
+// P_ArchivePSMapScript
+//
+//==============================================================================
 procedure P_ArchivePSMapScript;
 
+//==============================================================================
+//
+// P_UnArchivePSMapScript
+//
+//==============================================================================
 procedure P_UnArchivePSMapScript;
 
+//==============================================================================
+//
+// P_ArchiveOverlay
+//
+//==============================================================================
 procedure P_ArchiveOverlay;
 
+//==============================================================================
+//
+// P_UnArchiveOverlay
+//
+//==============================================================================
 procedure P_UnArchiveOverlay;
 
+//==============================================================================
+//
+// P_ArchiveScreenShot
+//
+//==============================================================================
 procedure P_ArchiveScreenShot(const fname: string);
 
 var
@@ -100,7 +185,9 @@ uses
   i_system,
   i_tmp,
   p_3dfloors,
-  p_local,
+  p_acs,
+  p_local,    // JVAL: sector gravity (VERSION 204)
+  p_playertrace,
   p_pspr_h,
   p_setup,
   p_mobj_h,
@@ -117,27 +204,42 @@ uses
   p_scroll,
   p_params,
   p_levelinfo,
+  p_udmf,
+  po_man,
   ps_main,
   psi_globals,
   psi_overlay,
   r_defs,
   r_data,
   r_colormaps,
+  r_translations,
+  sv_strife,
+  udmf_ceilng,
+  udmf_doors,
+  udmf_floor,
+  udmf_lights,
+  udmf_plats,
   w_wad,
   z_zone;
 
+//==============================================================================
+// PADSAVEP
+//
 // Pads save_p to a 4-byte boundary
 //  so that the load/save works on SGI&Gecko.
-
+//
+//==============================================================================
 procedure PADSAVEP;
 begin
   if savegameversion < VERSION122 then
     save_p := PByteArray(integer(save_p) + ((4 - (integer(save_p) and 3) and 3)));
 end;
 
+//==============================================================================
 //
 // P_ArchivePlayers
 //
+//==============================================================================
 procedure P_ArchivePlayers;
 var
   i: integer;
@@ -159,19 +261,24 @@ begin
         dest.psprites[j].state := Pstate_t(pDiff(dest.psprites[j].state, @states[0], SizeOf(dest.psprites[j].state^)));
     if dest.lastdialogtalker <> nil then
       dest.lastdialogtalker := Pmobj_t(dest.lastdialogtalker.key);
+    if dest.plinetarget <> nil then
+      dest.plinetarget := Pmobj_t(dest.plinetarget.key);
+
+    // JVAL: 20211224 - Save player history
+    memcpy(save_p, @playerhistory[i], SizeOf(playertracehistory_t));
+    incp(pointer(save_p), SizeOf(playertracehistory_t));
   end;
 end;
 
+//==============================================================================
 //
 // P_UnArchivePlayers
 //
+//==============================================================================
 procedure P_UnArchivePlayers(userload: boolean);
 var
   i: integer;
   j: integer;
-  p203: Pplayer_t203;
-  p205: Pplayer_t205;
-  p206: Pplayer_t206;
 begin
   for i := 0 to MAXPLAYERS - 1 do
   begin
@@ -190,235 +297,26 @@ begin
     begin
       if userload then
       begin
-        p206 := Pplayer_t206(save_p);
-
-        players[i].mo := p206.mo;
-        players[i].playerstate := p206.playerstate;
-        players[i].cmd202.forwardmove := p206.cmd202.forwardmove;
-        players[i].cmd202.sidemove := p206.cmd202.sidemove;
-        players[i].cmd202.angleturn := p206.cmd202.angleturn;
-        players[i].cmd202.consistancy := p206.cmd202.consistancy;
-        players[i].cmd202.chatchar := p206.cmd202.chatchar;
-        players[i].cmd202.buttons := p206.cmd202.buttons;
-        players[i].cmd202.buttons2 := p206.cmd202.buttons2;
-        players[i].cmd202.inventory := p206.cmd202.inventory;
-        players[i].cmd202.commands := p206.cmd202.commands;
-        players[i].cmd202.lookupdown := p206.cmd202.lookupdown;
-        players[i].cmd202.lookleftright := p206.cmd202.lookleftright;
-        players[i].cmd202.jump := p206.cmd202.jump;
-        players[i].viewz := p206.viewz;
-        players[i].viewheight := p206.viewheight;
-        players[i].deltaviewheight := p206.deltaviewheight;
-        players[i].bob := p206.bob;
-        players[i].lookdir := p206.lookdir;
-        players[i].centering := p206.centering;
-        players[i].lookdir2 := p206.lookdir2;
-        players[i].oldlook2 := p206.oldlook2;
-        players[i].forwarding := p206.forwarding;
-        players[i].oldjump := p206.oldjump;
-        players[i].health := p206.health;
-        players[i].armorpoints := p206.armorpoints;
-        players[i].armortype := p206.armortype;
-        for j := 0 to Ord(NUMPOWERS) - 1 do
-          players[i].powers[j] := p206.powers[j];
-        players[i].sigiltype := p206.sigiltype;
-        players[i].nukagecount := p206.nukagecount;
-        players[i].questflags := p206.questflags;
-        players[i].centerview := p206.centerview;
-        players[i].inventory := p206.inventory;
-        players[i].st_update := p206.st_update;
-        players[i].numinventory := p206.numinventory;
-        players[i].inventorycursor := p206.inventorycursor;
-        players[i].accuracy := p206.accuracy;
-        players[i].stamina := p206.stamina;
-        for j := 0 to Ord(NUMCARDS) - 1 do
-          players[i].cards[j] := p206.cards[j];
-        players[i].backpack := p206.backpack;
-        for j := 0 to MAXPLAYERS - 1 do
-          players[i].frags[j] := p206.frags[j];
-        players[i].readyweapon := p206.readyweapon;
-        players[i].pendingweapon := p206.pendingweapon;
-        for j := 0 to Ord(NUMWEAPONS) - 1 do
-          players[i].weaponowned[j] := p206.weaponowned[j];
-        for j := 0 to Ord(NUMAMMO) - 1 do
-        begin
-          players[i].ammo[j] := p206.ammo[j];
-          players[i].maxammo[j] := p206.maxammo[j];
-        end;
-        players[i].attackdown := p206.attackdown;
-        players[i].usedown := p206.usedown;
-        players[i].inventorydown := p206.inventorydown;
-        players[i].cheats := p206.cheats;
-        players[i].refire := p206.refire;
-        players[i].killcount := p206.killcount;
-        players[i]._message := p206._message;
-        players[i].damagecount := p206.damagecount;
-        players[i].bonuscount := p206.bonuscount;
-        players[i].attacker := p206.attacker;
-        players[i].extralight := p206.extralight;
-        players[i].fixedcolormap := p206.fixedcolormap;
-        players[i].colormap := p206.colormap;
-        for j := 0 to Ord(NUMPSPRITES) - 1 do
-          players[i].psprites[j] := p206.psprites[j];
-        players[i].attackerx := p206.attackerx;
-        players[i].attackery := p206.attackery;
-        players[i].lastbreath := p206.lastbreath;
-        players[i].hardbreathtics := p206.hardbreathtics;
-        players[i].angletargetx := p206.angletargetx;
-        players[i].angletargety := p206.angletargety;
-        players[i].angletargetticks := p206.angletargetticks;
-        players[i].allegiance := p206.allegiance;
-        for j := 0 to 39 do
-          players[i].mapstate[j] := p206.mapstate[j];
-        players[i].laddertics := p206.laddertics;
-        players[i].viewbob := p206.viewbob;
-        players[i].slopetics := p206.slopetics;
-        players[i].oldviewz := p206.oldviewz;
-        players[i].teleporttics := p206.teleporttics;
-        players[i].quaketics := p206.quaketics;
-        players[i].lookdir16 := p206.lookdir16;
-        players[i].cmd.forwardmove := p206.cmd.forwardmove;
-        players[i].cmd.sidemove := p206.cmd.sidemove;
-        players[i].cmd.angleturn := p206.cmd.angleturn;
-        players[i].cmd.consistancy := p206.cmd.consistancy;
-        players[i].cmd.chatchar := p206.cmd.chatchar;
-        players[i].cmd.buttons := p206.cmd.buttons;
-        players[i].cmd.buttons2 := p206.cmd.buttons2;
-        players[i].cmd.inventory := p206.cmd.inventory;
-        players[i].cmd.commands := p206.cmd.commands;
-        players[i].cmd.lookupdown := p206.cmd.lookupdown;
-        players[i].cmd.lookleftright := p206.cmd.lookleftright;
-        players[i].cmd.jump_crouch := p206.cmd.jump_crouch;
-        players[i].cmd.lookupdown16 := p206.cmd.lookupdown16;
-        if savegameversionhack = 0 then
-        begin
-          players[i].nextoof := p206.nextoof;
-          players[i].lastdialogtalker := p206.lastdialogtalker;
-          players[i].quakeintensity := p206.quakeintensity;
-        end
-        else if savegameversionhack = 1 then
-        begin
-          players[i].nextoof := 0;
-          players[i].lastdialogtalker := nil;
-          if p206.quaketics > 0 then
-            players[i].quakeintensity := FRACUNIT
-          else
-            players[i].quakeintensity := 0;
-          incp(pointer(save_p), -12);
-        end;
+        memcpy(@players[i], save_p, SizeOf(player_t206));
 
         // version 207
         players[i].oldcrouch := 0;
         players[i].lastongroundtime := 0;
         players[i].lastautocrouchtime := 0;
         players[i].crouchheight := 0;
+        players[i].plinetarget := nil;
+        players[i].pcrosstic := 0;
+        players[i].nextfire := 0;
       end;
       incp(pointer(save_p), SizeOf(player_t206));
+      P_ClearPlayerHistory(@players[i]);
     end
     else if savegameversion >= VERSION204 then
     begin
       if userload then
       begin
-        p205 := Pplayer_t205(save_p);
+        memcpy(@players[i], save_p, SizeOf(player_t205));
 
-        players[i].mo := p205.mo;
-        players[i].playerstate := p205.playerstate;
-        players[i].cmd202.forwardmove := p205.cmd202.forwardmove;
-        players[i].cmd202.sidemove := p205.cmd202.sidemove;
-        players[i].cmd202.angleturn := p205.cmd202.angleturn;
-        players[i].cmd202.consistancy := p205.cmd202.consistancy;
-        players[i].cmd202.chatchar := p205.cmd202.chatchar;
-        players[i].cmd202.buttons := p205.cmd202.buttons;
-        players[i].cmd202.buttons2 := p205.cmd202.buttons2;
-        players[i].cmd202.inventory := p205.cmd202.inventory;
-        players[i].cmd202.commands := p205.cmd202.commands;
-        players[i].cmd202.lookupdown := p205.cmd202.lookupdown;
-        players[i].cmd202.lookleftright := p205.cmd202.lookleftright;
-        players[i].cmd202.jump := p205.cmd202.jump;
-        players[i].viewz := p205.viewz;
-        players[i].viewheight := p205.viewheight;
-        players[i].deltaviewheight := p205.deltaviewheight;
-        players[i].bob := p205.bob;
-        players[i].lookdir := p205.lookdir;
-        players[i].centering := p205.centering;
-        players[i].lookdir2 := p205.lookdir2;
-        players[i].oldlook2 := p205.oldlook2;
-        players[i].forwarding := p205.forwarding;
-        players[i].oldjump := p205.oldjump;
-        players[i].health := p205.health;
-        players[i].armorpoints := p205.armorpoints;
-        players[i].armortype := p205.armortype;
-        for j := 0 to Ord(NUMPOWERS) - 1 do
-          players[i].powers[j] := p205.powers[j];
-        players[i].sigiltype := p205.sigiltype;
-        players[i].nukagecount := p205.nukagecount;
-        players[i].questflags := p205.questflags;
-        players[i].centerview := p205.centerview;
-        players[i].inventory := p205.inventory;
-        players[i].st_update := p205.st_update;
-        players[i].numinventory := p205.numinventory;
-        players[i].inventorycursor := p205.inventorycursor;
-        players[i].accuracy := p205.accuracy;
-        players[i].stamina := p205.stamina;
-        for j := 0 to Ord(NUMCARDS) - 1 do
-          players[i].cards[j] := p205.cards[j];
-        players[i].backpack := p205.backpack;
-        for j := 0 to MAXPLAYERS - 1 do
-          players[i].frags[j] := p205.frags[j];
-        players[i].readyweapon := p205.readyweapon;
-        players[i].pendingweapon := p205.pendingweapon;
-        for j := 0 to Ord(NUMWEAPONS) - 1 do
-          players[i].weaponowned[j] := p205.weaponowned[j];
-        for j := 0 to Ord(NUMAMMO) - 1 do
-        begin
-          players[i].ammo[j] := p205.ammo[j];
-          players[i].maxammo[j] := p205.maxammo[j];
-        end;
-        players[i].attackdown := p205.attackdown;
-        players[i].usedown := p205.usedown;
-        players[i].inventorydown := p205.inventorydown;
-        players[i].cheats := p205.cheats;
-        players[i].refire := p205.refire;
-        players[i].killcount := p205.killcount;
-        players[i]._message := p205._message;
-        players[i].damagecount := p205.damagecount;
-        players[i].bonuscount := p205.bonuscount;
-        players[i].attacker := p205.attacker;
-        players[i].extralight := p205.extralight;
-        players[i].fixedcolormap := p205.fixedcolormap;
-        players[i].colormap := p205.colormap;
-        for j := 0 to Ord(NUMPSPRITES) - 1 do
-          players[i].psprites[j] := p205.psprites[j];
-        players[i].attackerx := p205.attackerx;
-        players[i].attackery := p205.attackery;
-        players[i].lastbreath := p205.lastbreath;
-        players[i].hardbreathtics := p205.hardbreathtics;
-        players[i].angletargetx := p205.angletargetx;
-        players[i].angletargety := p205.angletargety;
-        players[i].angletargetticks := p205.angletargetticks;
-        players[i].allegiance := p205.allegiance;
-        for j := 0 to 39 do
-          players[i].mapstate[j] := p205.mapstate[j];
-        players[i].laddertics := p205.laddertics;
-        players[i].viewbob := p205.viewbob;
-        players[i].slopetics := p205.slopetics;
-        players[i].oldviewz := p205.oldviewz;
-        players[i].teleporttics := p205.teleporttics;
-        players[i].quaketics := p205.quaketics;
-        players[i].lookdir16 := p205.lookdir16;
-        players[i].cmd.forwardmove := p205.cmd.forwardmove;
-        players[i].cmd.sidemove := p205.cmd.sidemove;
-        players[i].cmd.angleturn := p205.cmd.angleturn;
-        players[i].cmd.consistancy := p205.cmd.consistancy;
-        players[i].cmd.chatchar := p205.cmd.chatchar;
-        players[i].cmd.buttons := p205.cmd.buttons;
-        players[i].cmd.buttons2 := p205.cmd.buttons2;
-        players[i].cmd.inventory := p205.cmd.inventory;
-        players[i].cmd.commands := p205.cmd.commands;
-        players[i].cmd.lookupdown := p205.cmd.lookupdown;
-        players[i].cmd.lookleftright := p205.cmd.lookleftright;
-        players[i].cmd.jump_crouch := p205.cmd.jump_crouch;
-        players[i].cmd.lookupdown16 := p205.cmd.lookupdown16;
         players[i].nextoof := 0;
         players[i].lastdialogtalker := nil;
         if players[i].quaketics > 0 then
@@ -431,113 +329,19 @@ begin
         players[i].lastongroundtime := 0;
         players[i].lastautocrouchtime := 0;
         players[i].crouchheight := 0;
+        players[i].plinetarget := nil;
+        players[i].pcrosstic := 0;
+        players[i].nextfire := 0;
       end;
       incp(pointer(save_p), SizeOf(player_t205));
+      P_ClearPlayerHistory(@players[i]);
     end
     else if savegameversion = VERSION203 then
     begin
       if userload then
       begin
-        p203 := Pplayer_t203(save_p);
+        memcpy(@players[i], save_p, SizeOf(player_t203));
 
-        players[i].mo := p203.mo;
-        players[i].playerstate := p203.playerstate;
-        players[i].cmd202.forwardmove := p203.cmd202.forwardmove;
-        players[i].cmd202.sidemove := p203.cmd202.sidemove;
-        players[i].cmd202.angleturn := p203.cmd202.angleturn;
-        players[i].cmd202.consistancy := p203.cmd202.consistancy;
-        players[i].cmd202.chatchar := p203.cmd202.chatchar;
-        players[i].cmd202.buttons := p203.cmd202.buttons;
-        players[i].cmd202.buttons2 := p203.cmd202.buttons2;
-        players[i].cmd202.inventory := p203.cmd202.inventory;
-        players[i].cmd202.commands := p203.cmd202.commands;
-        players[i].cmd202.lookupdown := p203.cmd202.lookupdown;
-        players[i].cmd202.lookleftright := p203.cmd202.lookleftright;
-        players[i].cmd202.jump := p203.cmd202.jump_crouch;
-        players[i].viewz := p203.viewz;
-        players[i].viewheight := p203.viewheight;
-        players[i].deltaviewheight := p203.deltaviewheight;
-        players[i].bob := p203.bob;
-        players[i].lookdir := p203.lookdir;
-        players[i].centering := p203.centering;
-        players[i].lookdir2 := p203.lookdir2;
-        players[i].oldlook2 := p203.oldlook2;
-        players[i].forwarding := p203.forwarding;
-        players[i].oldjump := p203.oldjump;
-        players[i].health := p203.health;
-        players[i].armorpoints := p203.armorpoints;
-        players[i].armortype := p203.armortype;
-        for j := 0 to Ord(NUMPOWERS) - 1 do
-          players[i].powers[j] := p203.powers[j];
-        players[i].sigiltype := p203.sigiltype;
-        players[i].nukagecount := p203.nukagecount;
-        players[i].questflags := p203.questflags;
-        players[i].centerview := p203.centerview;
-        players[i].inventory := p203.inventory;
-        players[i].st_update := p203.st_update;
-        players[i].numinventory := p203.numinventory;
-        players[i].inventorycursor := p203.inventorycursor;
-        players[i].accuracy := p203.accuracy;
-        players[i].stamina := p203.stamina;
-        for j := 0 to Ord(NUMCARDS) - 1 do
-          players[i].cards[j] := p203.cards[j];
-        players[i].backpack := p203.backpack;
-        for j := 0 to MAXPLAYERS - 1 do
-          players[i].frags[j] := p203.frags[j];
-        players[i].readyweapon := p203.readyweapon;
-        players[i].pendingweapon := p203.pendingweapon;
-        for j := 0 to Ord(NUMWEAPONS) - 1 do
-          players[i].weaponowned[j] := p203.weaponowned[j];
-        for j := 0 to Ord(NUMAMMO) - 1 do
-        begin
-          players[i].ammo[j] := p203.ammo[j];
-          players[i].maxammo[j] := p203.maxammo[j];
-        end;
-        players[i].attackdown := p203.attackdown;
-        players[i].usedown := p203.usedown;
-        players[i].inventorydown := p203.inventorydown;
-        players[i].cheats := p203.cheats;
-        players[i].refire := p203.refire;
-        players[i].killcount := p203.killcount;
-        players[i]._message := p203._message;
-        players[i].damagecount := p203.damagecount;
-        players[i].bonuscount := p203.bonuscount;
-        players[i].attacker := p203.attacker;
-        players[i].extralight := p203.extralight;
-        players[i].fixedcolormap := p203.fixedcolormap;
-        players[i].colormap := p203.colormap;
-        for j := 0 to Ord(NUMPSPRITES) - 1 do
-          players[i].psprites[j] := p203.psprites[j];
-        players[i].attackerx := p203.attackerx;
-        players[i].attackery := p203.attackery;
-        players[i].lastbreath := p203.lastbreath;
-        players[i].hardbreathtics := p203.hardbreathtics;
-        players[i].angletargetx := p203.angletargetx;
-        players[i].angletargety := p203.angletargety;
-        players[i].angletargetticks := p203.angletargetticks;
-        players[i].allegiance := p203.allegiance;
-        for j := 0 to 39 do
-          players[i].mapstate[j] := p203.mapstate[j];
-        players[i].laddertics := p203.laddertics;
-        players[i].viewbob := p203.viewbob;
-        players[i].slopetics := p203.slopetics;
-        players[i].oldviewz := p203.oldviewz;
-        players[i].teleporttics := p203.teleporttics;
-        players[i].quaketics := p203.quaketics;
-        players[i].lookdir16 := p203.lookdir16;
-        players[i].cmd.forwardmove := p203.cmd.forwardmove;
-        players[i].cmd.sidemove := p203.cmd.sidemove;
-        players[i].cmd.angleturn := p203.cmd.angleturn;
-        players[i].cmd.consistancy := p203.cmd.consistancy;
-        players[i].cmd.chatchar := p203.cmd.chatchar;
-        players[i].cmd.buttons := p203.cmd.buttons;
-        players[i].cmd.buttons2 := p203.cmd.buttons2;
-        players[i].cmd.inventory := p203.cmd.inventory;
-        players[i].cmd.commands := p203.cmd.commands;
-        players[i].cmd.lookupdown := p203.cmd.lookupdown;
-        players[i].cmd.lookleftright := p203.cmd.lookleftright;
-        players[i].cmd.jump_crouch := p203.cmd.jump_crouch;
-        players[i].cmd.lookupdown16 := p203.cmd.lookupdown16;
         players[i].nextoof := 0;
         players[i].lastdialogtalker := nil;
         if players[i].quaketics > 0 then
@@ -550,8 +354,12 @@ begin
         players[i].lastongroundtime := 0;
         players[i].lastautocrouchtime := 0;
         players[i].crouchheight := 0;
+        players[i].plinetarget := nil;
+        players[i].pcrosstic := 0;
+        players[i].nextfire := 0;
       end;
       incp(pointer(save_p), SizeOf(player_t203));
+      P_ClearPlayerHistory(@players[i]);
     end
     else if savegameversion = VERSION122 then
     begin
@@ -576,8 +384,12 @@ begin
         players[i].lastongroundtime := 0;
         players[i].lastautocrouchtime := 0;
         players[i].crouchheight := 0;
+        players[i].plinetarget := nil;
+        players[i].pcrosstic := 0;
+        players[i].nextfire := 0;
       end;
       incp(pointer(save_p), SizeOf(player_t122));
+      P_ClearPlayerHistory(@players[i]);
     end
     else if savegameversion <= VERSION121 then
     begin
@@ -602,8 +414,12 @@ begin
         players[i].lastongroundtime := 0;
         players[i].lastautocrouchtime := 0;
         players[i].crouchheight := 0;
+        players[i].plinetarget := nil;
+        players[i].pcrosstic := 0;
+        players[i].nextfire := 0;
       end;
       incp(pointer(save_p), SizeOf(player_t121));
+      P_ClearPlayerHistory(@players[i]);
     end
     else
       I_Error('P_UnArchivePlayers(): Unsupported saved game version: %d', [savegameversion]);
@@ -617,12 +433,21 @@ begin
       for j := 0 to Ord(NUMPSPRITES) - 1 do
         if players[i].psprites[j].state <> nil then
           players[i].psprites[j].state := @states[integer(players[i].psprites[j].state)];
+
+    // JVAL: 202111224 - Load player history
+    if savegameversion >= VERSION207 then
+    begin
+      memcpy(@playerhistory[i], save_p, SizeOf(playertracehistory_t));
+      incp(pointer(save_p), SizeOf(playertracehistory_t));
+    end;
   end;
 end;
 
+//==============================================================================
 //
 // P_ArchiveWorld
 //
+//==============================================================================
 procedure P_ArchiveWorld;
 var
   i: integer;
@@ -630,97 +455,42 @@ var
   sec: Psector_t;
   li: Pline_t;
   si: Pside_t;
-  put: PSmallIntArray;
   levelinf: Plevelinfo_t;
-begin
-  put := PSmallIntArray(save_p);
 
+  procedure _put_char8(const c8: char8_t);
+  var
+    ii: integer;
+    b: byte;
+  begin
+    for ii := 0 to 7 do
+    begin
+      b := Ord(c8[ii]);
+      save_p[0] := b;
+      save_p := @save_p[1];
+      if b = 0 then
+        break;
+    end;
+  end;
+
+begin
   levelinf := P_GetLevelInfo(P_GetMapName(gamemap));
-  Pchar8_t(put)^ := levelinf.musname;
-  put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
-  Pchar8_t(put)^ := levelinf.skyflat;
-  put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
+  _put_char8(levelinf.musname);
+  _put_char8(levelinf.skyflat);
 
   // do sectors
   i := 0;
   while i < numsectors do
   begin
     sec := Psector_t(@sectors[i]);
-    PInteger(put)^ := sec.floorheight;
-    put := @put[2];
-    PInteger(put)^ := sec.ceilingheight;
-    put := @put[2];
+    save_p := @save_p[SectorSerializer.SaveToMem(save_p, sec, $FFFF)];
 
-    Pchar8_t(put)^ := flats[sec.floorpic].name;
-    put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
-    Pchar8_t(put)^ := flats[sec.ceilingpic].name;
-    put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
+    _put_char8(flats[sec.floorpic].name);
+    _put_char8(flats[sec.ceilingpic].name);
 
-    put[0] := sec.lightlevel;
-    put := @put[1];
-    put[0] := sec.special; // needed?
-    put := @put[1];
-    put[0] := sec.tag;  // needed?
-    put := @put[1];
-    PInteger(put)^ := sec.floor_xoffs;
-    put := @put[2];
-    PInteger(put)^ := sec.floor_yoffs;
-    put := @put[2];
-    PInteger(put)^ := sec.ceiling_xoffs;
-    put := @put[2];
-    PInteger(put)^ := sec.ceiling_yoffs;
-    put := @put[2];
-    PLongWord(put)^ := sec.renderflags;
-    put := @put[2];
-    PLongWord(put)^ := sec.flags;
-    put := @put[2];
-    // JVAL: 3d Floors
-    PInteger(put)^ := sec.midsec;
-    put := @put[2];
-    PInteger(put)^ := sec.midline;
-    put := @put[2];
-    // JVAL: sector gravity (VERSION 204)
-    PInteger(put)^ := sec.gravity;
-    put := @put[2];
-
-    // JVAL: 20200221 - Texture angle
-    PLongWord(put)^ := sec.floorangle;
-    put := @put[2];
-    PInteger(put)^ := sec.flooranglex;
-    put := @put[2];
-    PInteger(put)^ := sec.floorangley;
-    put := @put[2];
-    PLongWord(put)^ := sec.ceilingangle;
-    put := @put[2];
-    PInteger(put)^ := sec.ceilinganglex;
-    put := @put[2];
-    PInteger(put)^ := sec.ceilingangley;
-    put := @put[2];
-
-    // JVAL: 20200522 - Slope values
-    Pfloat(put)^ := sec.fa;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.fb;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.fd;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.fic;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.ca;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.cb;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.cd;
-    put := @put[SizeOf(float) div 2];
-    Pfloat(put)^ := sec.cic;
-    put := @put[SizeOf(float) div 2];
-
-    PInteger(put)^ := sec.num_saffectees;
-    put := @put[2];
     for j := 0 to sec.num_saffectees - 1 do
     begin
-      PInteger(put)^ := sec.saffectees[j];
-      put := @put[2];
+      PInteger(save_p)^ := sec.saffectees[j];
+      save_p := @save_p[4];
     end;
 
     inc(i);
@@ -731,43 +501,49 @@ begin
   while i < numlines do
   begin
     li := Pline_t(@lines[i]);
-    put[0] := li.flags;
-    put := @put[1];
-    put[0] := li.special;
-    put := @put[1];
-    put[0] := li.tag;
-    put := @put[1];
-    PLongWord(put)^ := li.renderflags;
-    put := @put[2];
-    for j := 0 to 1 do
-    begin
-      if li.sidenum[j] = -1 then
-        continue;
 
-      si := @sides[li.sidenum[j]];
+    save_p := @save_p[LineSerializer.SaveToMem(save_p, li, $FFFF)];
 
-      PInteger(put)^ := si.textureoffset;
-      put := @put[2];
-      PInteger(put)^ := si.rowoffset;
-      put := @put[2];
-
-      Pchar8_t(put)^ := R_NameForSideTexture(si.toptexture);
-      put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
-      Pchar8_t(put)^ := R_NameForSideTexture(si.bottomtexture);
-      put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
-      Pchar8_t(put)^ := R_NameForSideTexture(si.midtexture);
-      put := @put[SizeOf(char8_t) div SizeOf(SmallInt)];
-    end;
     inc(i);
   end;
 
-  save_p := PByteArray(put);
+  // do sides
+  i := 0;
+  while i < numsides do
+  begin
+    si := @sides[i];
+
+    save_p := @save_p[SideSerializer.SaveToMem(save_p, si, $FFFF)];
+
+    _put_char8(R_NameForSideTexture(si.toptexture));
+    _put_char8(R_NameForSideTexture(si.bottomtexture));
+    _put_char8(R_NameForSideTexture(si.midtexture));
+
+    inc(i);
+  end;
+
+  // JVAL: 20220216 - Polyobjs
+  PInteger(save_p)^ := po_NumPolyobjs;
+  save_p := @save_p[4];
+  for i := 0 to po_NumPolyobjs - 1 do
+  begin
+    PInteger(save_p)^ := polyobjs[i].tag;
+    save_p := @save_p[4];
+    PLongWord(save_p)^ := polyobjs[i].angle;
+    save_p := @save_p[4];
+    PInteger(save_p)^ := polyobjs[i].startSpot.x;
+    save_p := @save_p[4];
+    PInteger(save_p)^ := polyobjs[i].startSpot.y;
+    save_p := @save_p[4];
+  end;
 end;
 
+//==============================================================================
 //
-// P_UnArchiveWorld
+// P_UnArchiveWorld206
 //
-procedure P_UnArchiveWorld;
+//==============================================================================
+procedure P_UnArchiveWorld206;
 var
   i: integer;
   j: integer;
@@ -871,7 +647,7 @@ begin
       sec.gravity := GRAVITY;
 
     // JVAL: 20200221 - Texture angle
-    if savegameversion >= VERSION206 then
+    if savegameversion > VERSION205 then
     begin
       sec.floorangle := PLongWord(get)^;
       get := @get[2];
@@ -926,8 +702,22 @@ begin
       end;
     end;
 
+
+    sec.moreids := [];
+    if IsIntegerInRange(sec.tag, 0, 255) then
+      Include(sec.moreids, sec.tag);
+    sec.seqType := 0;
+    sec.lightninglightlevel := 255;
+    sec.windthrust := 0;
+    sec.windangle := 0;
+
     sec.touching_thinglist := nil;
-    sec.iSectorID := i;
+    sec.floordata := nil;
+    sec.ceilingdata := nil;
+    sec.lightingdata := nil;
+    sec.soundtarget := nil;
+    sec.specialdata := nil;
+    sec.iSectorID := i; // JVAL: 3d Floors
     inc(i);
   end;
 
@@ -947,6 +737,17 @@ begin
       li.renderflags := PLongWord(get)^;
       get := @get[2];
     end;
+
+    li.arg1 := 0;
+    li.arg2 := 0;
+    li.arg3 := 0;
+    li.arg4 := 0;
+    li.arg5 := 0;
+    li.activators := 0;
+    li.moreids := [];
+    if IsIntegerInRange(li.tag, 0, 255) then
+      Include(li.moreids, li.tag);
+
     for j := 0 to 1 do
     begin
       if li.sidenum[j] = -1 then
@@ -988,10 +789,152 @@ begin
           si.midtexture := -1 - R_CustomColorMapForName(Pchar8_t(get)^);
         get := @get[SizeOf(char8_t) div SizeOf(SmallInt)];
       end;
+
+      si.toptextureoffset := 0;
+      si.bottomtextureoffset := 0;
+      si.midtextureoffset := 0;
+      si.toprowoffset := 0;
+      si.bottomrowoffset := 0;
+      si.midrowoffset := 0;
+      si.flags := 0;
+
     end;
     inc(i);
   end;
   save_p := PByteArray(get);
+end;
+
+//==============================================================================
+//
+// P_UnArchiveWorld
+//
+//==============================================================================
+procedure P_UnArchiveWorld;
+var
+  i: integer;
+  j: integer;
+  sec: Psector_t;
+  li: Pline_t;
+  si: Pside_t;
+  levelinf: Plevelinfo_t;
+  deltaX: fixed_t;
+  deltaY: fixed_t;
+  tex: char8_t;
+
+  function _get_char8: char8_t;
+  var
+    ii: integer;
+    ch: Char;
+  begin
+    for ii := 0 to 7 do
+      result[ii] := #0;
+    for ii := 0 to 7 do
+    begin
+      ch := Chr(save_p[0]);
+      result[ii] := ch;
+      save_p := @save_p[1];
+      if ch = #0 then
+        break;
+    end;
+  end;
+
+begin
+  if savegameversion <= VERSION206 then
+  begin
+    P_UnArchiveWorld206;
+    exit;
+  end;
+
+  levelinf := P_GetLevelInfo(P_GetMapName(gamemap));
+  levelinf.musname := _get_char8;
+  levelinf.skyflat := _get_char8;
+
+  // do sectors
+  i := 0;
+  while i < numsectors do
+  begin
+    sec := Psector_t(@sectors[i]);
+
+    save_p := @save_p[SectorSerializer.LoadFromMem(save_p, sec, $FFFF)];
+
+    sec.floorpic := R_FlatNumForName(_get_char8);
+    sec.ceilingpic := R_FlatNumForName(_get_char8);
+
+    sec.saffectees := Z_Realloc(sec.saffectees, sec.num_saffectees * SizeOf(integer), PU_LEVEL, nil);
+    for j := 0 to sec.num_saffectees - 1 do
+    begin
+      sec.saffectees[j] := PInteger(save_p)^;
+      save_p := @save_p[4];
+    end;
+
+    sec.touching_thinglist := nil;
+    sec.floordata := nil;
+    sec.ceilingdata := nil;
+    sec.lightingdata := nil;
+    sec.specialdata := nil;
+    sec.soundtarget := nil;
+    sec.iSectorID := i; // JVAL: 3d Floors
+
+    inc(i);
+  end;
+
+  // do lines
+  i := 0;
+  while i < numlines do
+  begin
+    li := Pline_t(@lines[i]);
+
+    save_p := @save_p[LineSerializer.LoadFromMem(save_p, li, $FFFF)];
+
+    inc(i);
+  end;
+
+  // do lines
+  i := 0;
+  while i < numsides do
+  begin
+    si := Pside_t(@sides[i]);
+
+    save_p := @save_p[SideSerializer.LoadFromMem(save_p, si, $FFFF)];
+
+    tex := _get_char8;
+    si.toptexture := R_SafeTextureNumForName(tex);
+    if si.toptexture = 0 then
+      si.toptexture := -1 - R_CustomColorMapForName(tex);
+
+    tex := _get_char8;
+    si.bottomtexture := R_SafeTextureNumForName(tex);
+    if si.bottomtexture = 0 then
+      si.bottomtexture := -1 - R_CustomColorMapForName(tex);
+
+    tex := _get_char8;
+    si.midtexture := R_SafeTextureNumForName(tex);
+    if si.midtexture = 0 then
+      si.midtexture := -1 - R_CustomColorMapForName(tex);
+
+    inc(i);
+  end;
+
+  // JVAL: 20220216 - Polyobjs
+  if PInteger(save_p)^ <> po_NumPolyobjs then
+    I_Error('P_UnArchiveWorld(): Invalid number of polyobjs (%d should be %d)', [PInteger(save_p)^, po_NumPolyobjs]);
+  save_p := @save_p[4];
+  for i := 0 to po_NumPolyobjs - 1 do
+  begin
+    if PInteger(save_p)^ <> polyobjs[i].tag then
+      I_Error('P_UnArchiveWorld(): Invalid polyobj tag');
+    save_p := @save_p[4];
+    PO_RotatePolyobj(polyobjs[i].tag, PLongWord(save_p)^);
+    save_p := @save_p[4];
+    deltaX := PInteger(save_p)^ - polyobjs[i].startSpot.x;
+    save_p := @save_p[4];
+    deltaY := PInteger(save_p)^ - polyobjs[i].startSpot.y;
+    save_p := @save_p[4];
+    PO_MovePolyobj(polyobjs[i].tag, deltaX, deltaY);
+    polyobjs[i].prevangle := polyobjs[i].angle; // Interpolation
+    polyobjs[i].prevx := polyobjs[i].startSpot.x;
+    polyobjs[i].prevy := polyobjs[i].startSpot.y;
+  end;
 end;
 
 //
@@ -1000,9 +943,11 @@ end;
 type
   thinkerclass_t = (tc_end, tc_mobj);
 
+//==============================================================================
 //
 // P_ArchiveThinkers
 //
+//==============================================================================
 procedure P_ArchiveThinkers;
 var
   th: Pthinker_t;
@@ -1018,20 +963,9 @@ begin
       save_p[0] := Ord(tc_mobj);
       save_p := @save_p[1];
       PADSAVEP;
-      mobj := Pmobj_t(save_p);
-      memcpy(mobj, th, SizeOf(mobj_t));
-      incp(pointer(save_p), SizeOf(mobj_t));
-      mobj.state := Pstate_t(pDiff(mobj.state, @states[0], SizeOf(state_t)));
-      mobj.prevstate := Pstate_t(pDiff(mobj.prevstate, @states[0], SizeOf(state_t)));
-      if mobj.tracer <> nil then
-        mobj.tracer := Pmobj_t(mobj.tracer.key);
-      if mobj.target <> nil then
-        mobj.target := Pmobj_t(mobj.target.key);
-      if mobj.master <> nil then
-        mobj.master := Pmobj_t(mobj.master.key);
 
-      if mobj.player <> nil then
-        mobj.player := Pplayer_t(pDiff(mobj.player, @players[0], SizeOf(player_t)) + 1);
+      mobj := Pmobj_t(th);
+      save_p := @save_p[MobjSerializer.SaveToMem(save_p, mobj, $FFFF)];
 
       parm := mobj.customparams;
       while parm <> nil do
@@ -1041,9 +975,7 @@ begin
         incp(pointer(save_p), SizeOf(mobjcustomparam_t));
         parm := parm.next;
       end;
-
     end;
-  // I_Error ("P_ArchiveThinkers: Unknown thinker function");
     th := th.next;
   end;
 
@@ -1052,16 +984,185 @@ begin
   save_p := @save_p[1];
 end;
 
+//==============================================================================
+//
+// P_UnArchiveOldPmobj
+//
+//==============================================================================
+function P_UnArchiveOldPmobj(const amobj: Pmobj_t): boolean;
+var
+  mobj206: mobj_t206;
+  mobj: Pmobj_t206;
+  m: TDMemoryStream;
+begin
+  ZeroMemory(amobj, SizeOf(mobj_t));
+  ZeroMemory(@mobj206, SizeOf(mobj_t206));
+  mobj := @mobj206;
+  if savegameversion = VERSION206 then
+  begin
+    if savegameversionhack = 0 then
+    begin
+      memcpy(mobj, save_p, SizeOf(mobj_t206));
+      incp(pointer(save_p), SizeOf(mobj_t206));
+    end
+    else
+    begin
+      memcpy(mobj, save_p, SizeOf(mobj_t205));
+      incp(pointer(save_p), SizeOf(mobj_t205));
+
+      // version 206
+      mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+      mobj.args[0] := 0;
+      mobj.args[1] := 0;
+      mobj.args[2] := 0;
+      mobj.args[3] := 0;
+      mobj.args[4] := 0;
+      mobj.special := 0;
+      mobj.master := nil;
+      mobj.WeaveIndexXY := 0;
+      mobj.WeaveIndexZ := 0;
+    end;
+
+    result := true;
+  end
+  else if savegameversion >= VERSION205 then
+  begin
+    memcpy(mobj, save_p, SizeOf(mobj_t205));
+    incp(pointer(save_p), SizeOf(mobj_t205));
+
+    // version 206
+    mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+    mobj.args[0] := 0;
+    mobj.args[1] := 0;
+    mobj.args[2] := 0;
+    mobj.args[3] := 0;
+    mobj.args[4] := 0;
+    mobj.special := 0;
+    mobj.master := nil;
+    mobj.WeaveIndexXY := 0;
+    mobj.WeaveIndexZ := 0;
+
+    result := true;
+  end
+  else if savegameversion >= VERSION122 then
+  begin
+    memcpy(mobj, save_p, SizeOf(mobj_t204));
+    incp(pointer(save_p), SizeOf(mobj_t204));
+
+    mobj.lightvalidcount := 0;
+    mobj.scale := FRACUNIT;
+    mobj.pushfactor := FRACUNIT div 4;
+    mobj.gravity := FRACUNIT;
+    mobj.flags3_ex := 0;
+    mobj.flags4_ex := 0;
+    mobj.rendervalidcount := 0;
+
+    // version 206
+    mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+    mobj.args[0] := 0;
+    mobj.args[1] := 0;
+    mobj.args[2] := 0;
+    mobj.args[3] := 0;
+    mobj.args[4] := 0;
+    mobj.special := 0;
+    mobj.master := nil;
+    mobj.WeaveIndexXY := 0;
+    mobj.WeaveIndexZ := 0;
+
+    result := true;
+  end
+  else if savegameversion = VERSION121 then
+  begin
+    memcpy(mobj, save_p, SizeOf(mobj_t121));
+    incp(pointer(save_p), SizeOf(mobj_t121));
+
+    mobj.dropitem := 0;
+
+    mobj.lightvalidcount := 0;
+    mobj.scale := FRACUNIT;
+    mobj.pushfactor := FRACUNIT div 4;
+    mobj.gravity := FRACUNIT;
+    mobj.flags3_ex := 0;
+    mobj.flags4_ex := 0;
+    mobj.rendervalidcount := 0;
+
+    // version 206
+    mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+    mobj.args[0] := 0;
+    mobj.args[1] := 0;
+    mobj.args[2] := 0;
+    mobj.args[3] := 0;
+    mobj.args[4] := 0;
+    mobj.special := 0;
+    mobj.master := nil;
+    mobj.WeaveIndexXY := 0;
+    mobj.WeaveIndexZ := 0;
+
+    result := true;
+  end
+  else if savegameversion = VERSION120 then
+  begin
+    memcpy(mobj, save_p, SizeOf(mobj_t120));
+    incp(pointer(save_p), SizeOf(mobj_t120));
+
+    mobj.prevx := mobj.x;
+    mobj.prevy := mobj.y;
+    mobj.prevz := mobj.z;
+    mobj.nextx := mobj.x;
+    mobj.nexty := mobj.y;
+    mobj.nextz := mobj.z;
+    mobj.prevangle := mobj.angle;
+    mobj.nextangle := mobj.angle;
+    mobj.intrplcnt := 0;
+
+    mobj.dropitem := 0;
+
+    mobj.lightvalidcount := 0;
+    mobj.scale := FRACUNIT;
+    mobj.pushfactor := FRACUNIT div 4;
+    mobj.gravity := FRACUNIT;
+    mobj.flags3_ex := 0;
+    mobj.flags4_ex := 0;
+    mobj.rendervalidcount := 0;
+
+    // version 206
+    mobj.mass := mobjinfo[Ord(mobj._type)].mass;
+    mobj.args[0] := 0;
+    mobj.args[1] := 0;
+    mobj.args[2] := 0;
+    mobj.args[3] := 0;
+    mobj.args[4] := 0;
+    mobj.special := 0;
+    mobj.master := nil;
+    mobj.WeaveIndexXY := 0;
+    mobj.WeaveIndexZ := 0;
+
+    result := true;
+  end
+  else
+    result := false;
+  if result then
+  begin
+    m := TDMemoryStream.Create;
+    MobjSerializer206.SaveToStream(m, mobj, $FFFF);
+    MobjSerializer.LoadFromMem(m.Memory, amobj, m.Size);
+    m.Free;
+  end;
+end;
+
+//==============================================================================
+//
 // P_UnArchiveThinkers
 //
+//==============================================================================
 procedure P_UnArchiveThinkers;
 var
+  i: integer;
   tclass: byte;
   currentthinker: Pthinker_t;
   next: Pthinker_t;
   mobj: Pmobj_t;
   parm: mobjcustomparam_t;
-  i: integer;
 begin
   // remove all the current thinkers
   currentthinker := thinkercap.next;
@@ -1105,9 +1206,12 @@ begin
 
             for i := 0 to MAXPLAYERS - 1 do
               if playeringame[i] then
+              begin
                 if players[i].lastdialogtalker <> nil then
                   players[i].lastdialogtalker := P_FindMobjFromKey(integer(players[i].lastdialogtalker));
-
+                if players[i].plinetarget <> nil then
+                  players[i].plinetarget := P_FindMobjFromKey(integer(players[i].plinetarget));
+              end;
           end;
           exit; // end of list
         end;
@@ -1118,167 +1222,8 @@ begin
           mobj := Z_Malloc(SizeOf(mobj_t), PU_LEVEL, nil);
 
           if savegameversion >= VERSION207 then
-          begin
-            memcpy(mobj, save_p, SizeOf(mobj_t));
-            incp(pointer(save_p), SizeOf(mobj_t));
-          end
-          else if savegameversion >= VERSION206 then
-          begin
-            if savegameversionhack = 0 then
-            begin
-              memcpy(mobj, save_p, SizeOf(mobj_t206));
-              incp(pointer(save_p), SizeOf(mobj_t206));
-            end
-            else
-            begin
-              memcpy(mobj, save_p, SizeOf(mobj_t205));
-              incp(pointer(save_p), SizeOf(mobj_t205));
-
-              // version 206
-              mobj.mass := mobjinfo[Ord(mobj._type)].mass;
-              mobj.args[0] := 0;
-              mobj.args[1] := 0;
-              mobj.args[2] := 0;
-              mobj.args[3] := 0;
-              mobj.args[4] := 0;
-              mobj.special := 0;
-              mobj.master := nil;
-              mobj.WeaveIndexXY := 0;
-              mobj.WeaveIndexZ := 0;
-            end;
-
-            // version 207
-            mobj.painchance := mobjinfo[mobj._type].painchance;
-            mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
-            mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
-          end
-          else if savegameversion >= VERSION205 then
-          begin
-            memcpy(mobj, save_p, SizeOf(mobj_t205));
-            incp(pointer(save_p), SizeOf(mobj_t205));
-
-            // version 206
-            mobj.mass := mobjinfo[Ord(mobj._type)].mass;
-            mobj.args[0] := 0;
-            mobj.args[1] := 0;
-            mobj.args[2] := 0;
-            mobj.args[3] := 0;
-            mobj.args[4] := 0;
-            mobj.special := 0;
-            mobj.master := nil;
-            mobj.WeaveIndexXY := 0;
-            mobj.WeaveIndexZ := 0;
-
-            // version 207
-            mobj.painchance := mobjinfo[mobj._type].painchance;
-            mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
-            mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
-          end
-          else if savegameversion >= VERSION122 then
-          begin
-            memcpy(mobj, save_p, SizeOf(mobj_t204));
-            incp(pointer(save_p), SizeOf(mobj_t204));
-
-            mobj.lightvalidcount := 0;
-            mobj.scale := FRACUNIT;
-            mobj.pushfactor := FRACUNIT div 4;
-            mobj.gravity := FRACUNIT;
-            mobj.flags3_ex := 0;
-            mobj.flags4_ex := 0;
-            mobj.rendervalidcount := 0;
-
-            // version 206
-            mobj.mass := mobjinfo[Ord(mobj._type)].mass;
-            mobj.args[0] := 0;
-            mobj.args[1] := 0;
-            mobj.args[2] := 0;
-            mobj.args[3] := 0;
-            mobj.args[4] := 0;
-            mobj.special := 0;
-            mobj.master := nil;
-            mobj.WeaveIndexXY := 0;
-            mobj.WeaveIndexZ := 0;
-
-            // version 207
-            mobj.painchance := mobjinfo[mobj._type].painchance;
-            mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
-            mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
-          end
-          else if savegameversion = VERSION121 then
-          begin
-            memcpy(mobj, save_p, SizeOf(mobj_t121));
-            incp(pointer(save_p), SizeOf(mobj_t121));
-
-            mobj.dropitem := 0;
-
-            mobj.lightvalidcount := 0;
-            mobj.scale := FRACUNIT;
-            mobj.pushfactor := FRACUNIT div 4;
-            mobj.gravity := FRACUNIT;
-            mobj.flags3_ex := 0;
-            mobj.flags4_ex := 0;
-            mobj.rendervalidcount := 0;
-
-            // version 206
-            mobj.mass := mobjinfo[Ord(mobj._type)].mass;
-            mobj.args[0] := 0;
-            mobj.args[1] := 0;
-            mobj.args[2] := 0;
-            mobj.args[3] := 0;
-            mobj.args[4] := 0;
-            mobj.special := 0;
-            mobj.master := nil;
-            mobj.WeaveIndexXY := 0;
-            mobj.WeaveIndexZ := 0;
-
-            // version 207
-            mobj.painchance := mobjinfo[mobj._type].painchance;
-            mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
-            mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
-          end
-          else if savegameversion = VERSION120 then
-          begin
-            memcpy(mobj, save_p, SizeOf(mobj_t120));
-            incp(pointer(save_p), SizeOf(mobj_t120));
-
-            mobj.prevx := mobj.x;
-            mobj.prevy := mobj.y;
-            mobj.prevz := mobj.z;
-            mobj.nextx := mobj.x;
-            mobj.nexty := mobj.y;
-            mobj.nextz := mobj.z;
-            mobj.prevangle := mobj.angle;
-            mobj.nextangle := mobj.angle;
-            mobj.intrplcnt := 0;
-
-            mobj.dropitem := 0;
-
-            mobj.lightvalidcount := 0;
-            mobj.scale := FRACUNIT;
-            mobj.pushfactor := FRACUNIT div 4;
-            mobj.gravity := FRACUNIT;
-            mobj.flags3_ex := 0;
-            mobj.flags4_ex := 0;
-            mobj.rendervalidcount := 0;
-
-            // version 206
-            mobj.mass := mobjinfo[Ord(mobj._type)].mass;
-            mobj.args[0] := 0;
-            mobj.args[1] := 0;
-            mobj.args[2] := 0;
-            mobj.args[3] := 0;
-            mobj.args[4] := 0;
-            mobj.special := 0;
-            mobj.master := nil;
-            mobj.WeaveIndexXY := 0;
-            mobj.WeaveIndexZ := 0;
-
-            // version 207
-            mobj.painchance := mobjinfo[mobj._type].painchance;
-            mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
-            mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
-          end
-          else
+            save_p := @save_p[MobjSerializer.LoadFromMem(save_p, mobj, $FFFF)]
+          else if not P_UnArchiveOldPmobj(mobj) then
             I_Error('P_UnArchiveThinkers(): Unsupported saved game version: %d', [savegameversion]);
 
           mobj.validcount := 0;
@@ -1316,6 +1261,7 @@ begin
             Pplayer_t(mobj.player).mo := mobj;
           end;
 
+          R_InitMobjTranslation(mobj);
           P_SetThingPosition(mobj);
           mobj.info := @mobjinfo[Ord(mobj._type)];
           mobj.floorz := P_3dFloorHeight(mobj);
@@ -1347,11 +1293,24 @@ type
     tc_pusher,      // phares 3/22/98:  new push/pull effect thinker
     tc_fireflicker, // JVAL 20171211
     tc_elevator,    //jff 2/22/98 new elevator type thinker
+    tc_endspecials206,
+    tch_movefloor,
+    tch_platraise,
+    tch_moveceiling,
+    tch_light,
+    tch_verticaldoor,
+    tch_phase,
+    tch_interpretacs,
+    tch_rotatepoly,
+    tch_buildpillar,
+    tch_movepoly,
+    tch_polydoor,
+    tch_floorwaggle,
     tc_endspecials
   );
 
-
-
+//==============================================================================
+// P_ArchiveSpecials
 //
 // Things to handle:
 //
@@ -1363,6 +1322,7 @@ type
 // T_Glow, (glow_t: sector_t *),
 // T_PlatRaise, (plat_t: sector_t *), - active list
 //
+//==============================================================================
 procedure P_ArchiveSpecials;
 var
   th: Pthinker_t;
@@ -1380,7 +1340,23 @@ var
   pusher: Ppusher_t;
   flicker: Pfireflicker_t;
   elevator: Pelevator_t;
+  light: Plight_t;
+  phase: Pphase_t;
+  acs: Pacs_t;
+  polyevent: Ppolyevent_t;
+  pillar: Ppillar_t;
+  polydoor: Ppolydoor_t;
+  floorwaggle: PfloorWaggle_t;
   i: integer;
+
+  function _savesector(const sec: Psector_t): Psector_t;
+  begin
+    if sec <> nil then
+      result := Psector_t(pDiff(door.sector, sectors, SizeOf(sector_t)))
+    else
+      result := Psector_t(-1);
+  end;
+
 begin
   // save off the current thinkers
   th1 := thinkercap.next;
@@ -1388,6 +1364,9 @@ begin
   begin
     th := th1;
     th1 := th1.next;
+    if @th._function.acp1 = @P_MobjThinker then
+      continue;
+
     if not Assigned(th._function.acv) then
     begin
       i := 0;
@@ -1407,7 +1386,29 @@ begin
         memcpy(ceiling, th, SizeOf(ceiling_t));
         incp(pointer(save_p), SizeOf(ceiling_t));
         ceiling.sector := Psector_t(pDiff(ceiling.sector, sectors, SizeOf(sector_t)));
+        continue;
       end;
+
+      // JVAL: 20220218 - Handle hactiveceilings
+      i := 0;
+      while i < MAXCEILINGS do
+      begin
+        if hactiveceilings[i] = Pceiling_t(th) then
+          break;
+        inc(i);
+      end;
+
+      if i < MAXCEILINGS then
+      begin
+        save_p[0] := Ord(tch_moveceiling);
+        save_p := @save_p[1];
+        PADSAVEP;
+        ceiling := Pceiling_t(save_p);
+        memcpy(ceiling, th, SizeOf(ceiling_t));
+        incp(pointer(save_p), SizeOf(ceiling_t));
+        ceiling.sector := _savesector(ceiling.sector);
+      end;
+
       continue;
     end;
 
@@ -1559,8 +1560,8 @@ begin
       PADSAVEP;
       flicker := Pfireflicker_t(save_p);
       memcpy(flicker, th, SizeOf(fireflicker_t));
-      flicker.sector := Psector_t(flicker.sector.iSectorID);
       incp(pointer(save_p), SizeOf(fireflicker_t));
+      flicker.sector := Psector_t(flicker.sector.iSectorID);
       continue;
     end;
 
@@ -1576,15 +1577,165 @@ begin
       continue;
     end;
 
+    // JVAL: 20220218 - Handle UDMF special effects
+    if @th._function.acp1 = @TH_MoveFloor then
+    begin
+      save_p[0] := Ord(tch_movefloor);
+      save_p := @save_p[1];
+      PADSAVEP;
+      floor := Pfloormove_t(save_p);
+      memcpy(floor, th, SizeOf(floormove_t));
+      incp(pointer(save_p), SizeOf(floormove_t));
+      floor.sector := _savesector(floor.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_PlatRaise then
+    begin
+      save_p[0] := Ord(tch_platraise);
+      save_p := @save_p[1];
+      PADSAVEP;
+      plat := Pplat_t(save_p);
+      memcpy(plat, th, SizeOf(plat_t));
+      incp(pointer(save_p), SizeOf(plat_t));
+      plat.sector := _savesector(plat.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_MoveCeiling then
+    begin
+      save_p[0] := Ord(tch_moveceiling);
+      save_p := @save_p[1];
+      PADSAVEP;
+      ceiling := Pceiling_t(save_p);
+      memcpy(ceiling, th, SizeOf(ceiling_t));
+      incp(pointer(save_p), SizeOf(ceiling_t));
+      ceiling.sector := _savesector(ceiling.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_Light then
+    begin
+      save_p[0] := Ord(tch_light);
+      save_p := @save_p[1];
+      PADSAVEP;
+      light := Plight_t(save_p);
+      memcpy(light, th, SizeOf(light_t));
+      incp(pointer(save_p), SizeOf(light_t));
+      light.sector := _savesector(light.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_VerticalDoor then
+    begin
+      save_p[0] := Ord(tch_verticaldoor);
+      save_p := @save_p[1];
+      PADSAVEP;
+      door := Pvldoor_t(save_p);
+      memcpy(door, th, SizeOf(vldoor_t));
+      incp(pointer(save_p), SizeOf(vldoor_t));
+      door.sector := _savesector(door.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_Phase then
+    begin
+      save_p[0] := Ord(tch_phase);
+      save_p := @save_p[1];
+      PADSAVEP;
+      phase := Pphase_t(save_p);
+      memcpy(phase, th, SizeOf(phase_t));
+      incp(pointer(save_p), SizeOf(phase_t));
+      phase.sector := _savesector(phase.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_InterpretACS then
+    begin
+      save_p[0] := Ord(tch_interpretacs);
+      save_p := @save_p[1];
+      PADSAVEP;
+      acs := Pacs_t(save_p);
+      memcpy(acs, th, SizeOf(acs_t));
+      incp(pointer(save_p), SizeOf(acs_t));
+      acs.ip := PInteger(LongWord(acs.ip) - LongWord(ActionCodeBase));
+      if acs.line <> nil then
+        acs.line := Pline_t(pDiff(acs.line, lines, SizeOf(line_t)))
+      else
+        acs.line := Pline_t(-1);
+      if acs.activator <> nil then
+        acs.activator := Pmobj_t(acs.activator.key);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_RotatePoly then
+    begin
+      save_p[0] := Ord(tch_rotatepoly);
+      save_p := @save_p[1];
+      PADSAVEP;
+      polyevent := Ppolyevent_t(save_p);
+      memcpy(polyevent, th, SizeOf(polyevent_t));
+      incp(pointer(save_p), SizeOf(polyevent_t));
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_BuildPillar then
+    begin
+      save_p[0] := Ord(tch_buildpillar);
+      save_p := @save_p[1];
+      PADSAVEP;
+      pillar := Ppillar_t(save_p);
+      memcpy(pillar, th, SizeOf(pillar_t));
+      incp(pointer(save_p), SizeOf(pillar_t));
+      pillar.sector := _savesector(pillar.sector);
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_MovePoly then
+    begin
+      save_p[0] := Ord(tch_movepoly);
+      save_p := @save_p[1];
+      PADSAVEP;
+      polyevent := Ppolyevent_t(save_p);
+      memcpy(polyevent, th, SizeOf(polyevent_t));
+      incp(pointer(save_p), SizeOf(polyevent_t));
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_PolyDoor then
+    begin
+      save_p[0] := Ord(tch_polydoor);
+      save_p := @save_p[1];
+      PADSAVEP;
+      polydoor := Ppolydoor_t(save_p);
+      memcpy(polydoor, th, SizeOf(polydoor_t));
+      incp(pointer(save_p), SizeOf(polydoor_t));
+      continue;
+    end;
+
+    if @th._function.acp1 = @TH_FloorWaggle then
+    begin
+      save_p[0] := Ord(tch_floorwaggle);
+      save_p := @save_p[1];
+      PADSAVEP;
+      floorwaggle := PfloorWaggle_t(save_p);
+      memcpy(floorwaggle, th, SizeOf(floorWaggle_t));
+      incp(pointer(save_p), SizeOf(floorWaggle_t));
+      floorwaggle.sector := _savesector(floorwaggle.sector);
+      continue;
+    end;
+
   end;
   // add a terminating marker
   save_p[0] := Ord(tc_endspecials);
   save_p := @save_p[1];
 end;
 
+//==============================================================================
 //
 // P_UnArchiveSpecials
 //
+//==============================================================================
 procedure P_UnArchiveSpecials;
 var
   tclass: byte;
@@ -1592,6 +1743,7 @@ var
   door: Pvldoor_t;
   sdoor: Pslidedoor_t;
   floor: Pfloormove_t;
+  floor206: Pfloormove_t206;
   plat: Pplat_t;
   flash: Plightflash_t;
   strobe: Pstrobe_t;
@@ -1601,6 +1753,22 @@ var
   pusher: Ppusher_t;
   flicker: Pfireflicker_t;
   elevator: Pelevator_t;
+  light: Plight_t;
+  phase: Pphase_t;
+  acs: Pacs_t;
+  polyevent: Ppolyevent_t;
+  pillar: Ppillar_t;
+  polydoor: Ppolydoor_t;
+  floorwaggle: PfloorWaggle_t;
+
+  function _restoresector(const sec: Psector_t): Psector_t;
+  begin
+    if sec = Psector_t(-1) then
+      result := nil
+    else
+      result := @sectors[integer(sec)];
+  end;
+
 begin
   // read in saved thinkers
   while true do
@@ -1610,6 +1778,8 @@ begin
     case tclass of
       Ord(tc_endspecials):
         exit; // end of list
+      Ord(tc_endspecials206):
+        exit; // end of list (VERSION <= 206)
 
       Ord(tc_ceiling):
         begin
@@ -1669,8 +1839,27 @@ begin
         begin
           PADSAVEP;
           floor := Z_Malloc(SizeOf(floormove_t), PU_LEVEL, nil);
-          memcpy(floor, save_p, SizeOf(floormove_t));
-          incp(pointer(save_p), SizeOf(floormove_t));
+          if savegameversion <= VERSION206 then // JVAL: tc_elevator = old value of tc_endspecials
+          begin
+            floor206 := Pfloormove_t206(save_p);
+            incp(pointer(save_p), SizeOf(floormove_t206));
+            ZeroMemory(floor, SizeOf(floormove_t));
+            floor.thinker := floor206.thinker;
+            floor._type := floor206._type;
+            floor.crush := floor206.crush;
+            floor.sector := floor206.sector;
+            floor.direction := floor206.direction;
+            floor.newspecial := floor206.newspecial;
+            floor.oldspecial := floor206.oldspecial;
+            floor.texture := floor206.texture;
+            floor.floordestheight := floor206.floordestheight;
+            floor.speed := floor206.speed;
+          end
+          else
+          begin
+            memcpy(floor, save_p, SizeOf(floormove_t));
+            incp(pointer(save_p), SizeOf(floormove_t));
+          end;
           floor.sector := @sectors[integer(floor.sector)];
           floor.sector.floordata := floor;
           @floor.thinker._function.acp1 := @T_MoveFloor;
@@ -1792,12 +1981,207 @@ begin
           P_AddThinker(@elevator.thinker);
         end;
 
+      // JVAL: 20220218 - Handle UDMF special effects
+      Ord(tch_moveceiling):
+        begin
+          PADSAVEP;
+          ceiling := Z_Malloc(SizeOf(ceiling_t), PU_LEVEL, nil);
+          memcpy(ceiling, save_p, SizeOf(ceiling_t));
+          incp(pointer(save_p), SizeOf(ceiling_t));
+          ceiling.sector := _restoresector(ceiling.sector);
+          if ceiling.sector <> nil then
+            ceiling.sector.specialdata := ceiling;
+
+          if Assigned(ceiling.thinker._function.acp1) then
+            @ceiling.thinker._function.acp1 := @TH_MoveCeiling;
+
+          P_AddThinker(@ceiling.thinker);
+          PH_AddActiveCeiling(ceiling);
+        end;
+
+      Ord(tch_movefloor):
+        begin
+          PADSAVEP;
+          floor := Z_Malloc(SizeOf(floormove_t), PU_LEVEL, nil);
+          memcpy(floor, save_p, SizeOf(floormove_t));
+          incp(pointer(save_p), SizeOf(floormove_t));
+          floor.sector := _restoresector(floor.sector);
+          if floor.sector <> nil then
+            floor.sector.specialdata := floor;
+
+          if Assigned(floor.thinker._function.acp1) then
+            @floor.thinker._function.acp1 := @TH_MoveFloor;
+
+          P_AddThinker(@floor.thinker);
+        end;
+
+      Ord(tch_platraise):
+        begin
+          PADSAVEP;
+          plat := Z_Malloc(SizeOf(plat_t), PU_LEVEL, nil);
+          memcpy(plat, save_p, SizeOf(plat_t));
+          incp(pointer(save_p), SizeOf(plat_t));
+          plat.sector := _restoresector(plat.sector);
+          if plat.sector <> nil then
+            plat.sector.specialdata := plat;
+
+          if Assigned(plat.thinker._function.acp1) then
+            @plat.thinker._function.acp1 := @TH_PlatRaise;
+
+          P_AddThinker(@plat.thinker);
+          PH_AddActivePlat(plat);
+        end;
+
+      Ord(tch_light):
+        begin
+          PADSAVEP;
+          light := Z_Malloc(SizeOf(light_t), PU_LEVEL, nil);
+          memcpy(light, save_p, SizeOf(light_t));
+          incp(pointer(save_p), SizeOf(light_t));
+          light.sector := _restoresector(light.sector);
+          {if light.sector <> nil then
+            light.sector.specialdata := light;}
+
+          if Assigned(light.thinker._function.acp1) then
+            @light.thinker._function.acp1 := @TH_Light;
+
+          P_AddThinker(@light.thinker);
+        end;
+
+      Ord(tch_verticaldoor):
+        begin
+          PADSAVEP;
+          door := Z_Malloc(SizeOf(vldoor_t), PU_LEVEL, nil);
+          memcpy(door, save_p, SizeOf(vldoor_t));
+          incp(pointer(save_p), SizeOf(vldoor_t));
+          door.sector := _restoresector(door.sector);
+          if door.sector <> nil then
+            door.sector.specialdata := door;
+
+          if Assigned(door.thinker._function.acp1) then
+            @door.thinker._function.acp1 := @TH_VerticalDoor;
+
+          P_AddThinker(@door.thinker);
+        end;
+
+      Ord(tch_phase):
+        begin
+          PADSAVEP;
+          phase := Z_Malloc(SizeOf(phase_t), PU_LEVEL, nil);
+          memcpy(phase, save_p, SizeOf(phase_t));
+          incp(pointer(save_p), SizeOf(phase_t));
+          phase.sector := _restoresector(phase.sector);
+          {if phase.sector <> nil then
+            phase.sector.specialdata := phase;}
+
+          if Assigned(phase.thinker._function.acp1) then
+            @phase.thinker._function.acp1 := @TH_Phase;
+
+          P_AddThinker(@phase.thinker);
+        end;
+
+      Ord(tch_interpretacs):
+        begin
+          PADSAVEP;
+          acs := Z_Malloc(SizeOf(acs_t), PU_LEVEL, nil);
+          memcpy(acs, save_p, SizeOf(acs_t));
+          incp(pointer(save_p), SizeOf(acs_t));
+          acs.ip := @ActionCodeBase[integer(acs.ip)];
+          if integer(acs.line) = -1 then
+            acs.line := nil
+          else
+            acs.line := @lines[integer(acs.line)];
+          if acs.activator <> nil then
+            acs.activator := P_FindMobjFromKey(integer(acs.activator));
+
+          if Assigned(acs.thinker._function.acp1) then
+            @acs.thinker._function.acp1 := @TH_InterpretACS;
+
+          P_AddThinker(@acs.thinker);
+        end;
+
+      Ord(tch_rotatepoly):
+        begin
+          PADSAVEP;
+          polyevent := Z_Malloc(SizeOf(polyevent_t), PU_LEVEL, nil);
+          memcpy(polyevent, save_p, SizeOf(polyevent_t));
+          incp(pointer(save_p), SizeOf(polyevent_t));
+
+          if Assigned(polyevent.thinker._function.acp1) then
+            @polyevent.thinker._function.acp1 := @TH_RotatePoly;
+
+          P_AddThinker(@polyevent.thinker);
+        end;
+
+      Ord(tch_buildpillar):
+        begin
+          PADSAVEP;
+          pillar := Z_Malloc(SizeOf(pillar_t), PU_LEVEL, nil);
+          memcpy(pillar, save_p, SizeOf(pillar_t));
+          incp(pointer(save_p), SizeOf(pillar_t));
+          pillar.sector := _restoresector(pillar.sector);
+          if pillar.sector <> nil then
+            pillar.sector.specialdata := pillar;
+
+          if Assigned(pillar.thinker._function.acp1) then
+            @pillar.thinker._function.acp1 := @TH_BuildPillar;
+
+          P_AddThinker(@pillar.thinker);
+        end;
+
+      Ord(tch_movepoly):
+        begin
+          PADSAVEP;
+          polyevent := Z_Malloc(SizeOf(polyevent_t), PU_LEVEL, nil);
+          memcpy(polyevent, save_p, SizeOf(polyevent_t));
+          incp(pointer(save_p), SizeOf(polyevent_t));
+
+          if Assigned(polyevent.thinker._function.acp1) then
+            @polyevent.thinker._function.acp1 := @TH_MovePoly;
+
+          P_AddThinker(@polyevent.thinker);
+        end;
+
+      Ord(tch_polydoor):
+        begin
+          PADSAVEP;
+          polydoor := Z_Malloc(SizeOf(polydoor_t), PU_LEVEL, nil);
+          memcpy(polydoor, save_p, SizeOf(polydoor_t));
+          incp(pointer(save_p), SizeOf(polydoor_t));
+
+          if Assigned(polydoor.thinker._function.acp1) then
+            @polydoor.thinker._function.acp1 := @TH_PolyDoor;
+
+          P_AddThinker(@polydoor.thinker);
+        end;
+
+      Ord(tch_floorwaggle):
+        begin
+          PADSAVEP;
+          floorwaggle := Z_Malloc(SizeOf(floorWaggle_t), PU_LEVEL, nil);
+          memcpy(floorwaggle, save_p, SizeOf(floorWaggle_t));
+          incp(pointer(save_p), SizeOf(floorWaggle_t));
+          floorwaggle.sector := _restoresector(floorwaggle.sector);
+          if floorwaggle.sector <> nil then
+            floorwaggle.sector.specialdata := floorwaggle;
+
+          if Assigned(floorwaggle.thinker._function.acp1) then
+            @floorwaggle.thinker._function.acp1 := @TH_FloorWaggle;
+
+          P_AddThinker(@floorwaggle.thinker);
+        end;
+
       else
         I_Error('P_UnarchiveSpecials(): Unknown tclass %d in savegame', [tclass]);
     end;
   end;
 end;
 
+//==============================================================================
+//
+// P_ArchiveGlobalVariables
+//
+//==============================================================================
 procedure P_ArchiveGlobalVariables(const vars: TGlobalVariablesList; var sp: PBytearray);
 var
   sz: integer;
@@ -1809,11 +2193,21 @@ begin
   incp(pointer(sp), sz);
 end;
 
+//==============================================================================
+//
+// P_ArchiveMapVariables
+//
+//==============================================================================
 procedure P_ArchiveMapVariables;
 begin
   P_ArchiveGlobalVariables(mapvars, save_p);
 end;
 
+//==============================================================================
+//
+// P_ArchiveWorldVariables
+//
+//==============================================================================
 procedure P_ArchiveWorldVariables(const fname: string);
 var
   len: integer;
@@ -1828,6 +2222,11 @@ begin
   memfree(pp, len);
 end;
 
+//==============================================================================
+//
+// P_UnArchiveGlobalVariables
+//
+//==============================================================================
 procedure P_UnArchiveGlobalVariables(const vars: TGlobalVariablesList; var sp: PBytearray);
 var
   sz: integer;
@@ -1841,11 +2240,21 @@ begin
   incp(pointer(sp), sz);
 end;
 
+//==============================================================================
+//
+// P_UnArchiveMapVariables
+//
+//==============================================================================
 procedure P_UnArchiveMapVariables;
 begin
   P_UnArchiveGlobalVariables(mapvars, save_p);
 end;
 
+//==============================================================================
+//
+// P_UnArchiveWorldVariables
+//
+//==============================================================================
 procedure P_UnArchiveWorldVariables(const fname: string);
 var
   pp: pointer;
@@ -1863,6 +2272,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_ArchivePSMapScript
+//
+//==============================================================================
 procedure P_ArchivePSMapScript;
 var
   fname: string;
@@ -1883,6 +2297,11 @@ begin
   incp(Pointer(save_p), sz);
 end;
 
+//==============================================================================
+//
+// P_UnArchivePSMapScript
+//
+//==============================================================================
 procedure P_UnArchivePSMapScript;
 var
   fname: string;
@@ -1906,11 +2325,21 @@ begin
   incp(Pointer(save_p), sz);
 end;
 
+//==============================================================================
+//
+// P_ArchiveOverlay
+//
+//==============================================================================
 procedure P_ArchiveOverlay;
 begin
   overlay.SaveToBuffer(Pointer(save_p));
 end;
 
+//==============================================================================
+//
+// P_UnArchiveOverlay
+//
+//==============================================================================
 procedure P_UnArchiveOverlay;
 begin
   if savegameversion <= VERSION121 then
@@ -1919,6 +2348,11 @@ begin
   overlay.LoadFromBuffer(Pointer(save_p));
 end;
 
+//==============================================================================
+//
+// P_ArchiveScreenShot
+//
+//==============================================================================
 procedure P_ArchiveScreenShot(const fname: string);
 begin
   M_WriteFile(fname, @mn_screenshotbuffer, SizeOf(menuscreenbuffer_t));

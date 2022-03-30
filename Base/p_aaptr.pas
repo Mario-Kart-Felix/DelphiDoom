@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  AAPTR
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -74,12 +74,32 @@ const
   PTROP_UNSAFEMASTER = 2;
   PTROP_NOSAFEGUARDS = PTROP_UNSAFETARGET or PTROP_UNSAFEMASTER;
 
+//==============================================================================
+//
+// COPY_AAPTR
+//
+//==============================================================================
 function COPY_AAPTR(const origin: Pmobj_t; const selector: integer): Pmobj_t;
 
+//==============================================================================
+//
+// ASSIGN_AAPTR
+//
+//==============================================================================
 procedure ASSIGN_AAPTR(const toActor: Pmobj_t; const toSlot: integer; const ptr: Pmobj_t; const flags: integer);
 
+//==============================================================================
+//
+// VerifyTargetChain
+//
+//==============================================================================
 procedure VerifyTargetChain(const self: Pmobj_t);
 
+//==============================================================================
+//
+// VerifyMasterChain
+//
+//==============================================================================
 procedure VerifyMasterChain(const self: Pmobj_t);
 
 implementation
@@ -87,15 +107,16 @@ implementation
 uses
   d_delphi,
   doomdef,
-  {$IFDEF HEXEN}
   p_common,
-  {$ELSE}
-  p_pspr,
-  {$ENDIF}
   d_player,
   g_game,
   p_map;
 
+//==============================================================================
+//
+// AAPTR_RESOLVE_PLAYERNUM
+//
+//==============================================================================
 function AAPTR_RESOLVE_PLAYERNUM(const playernum: integer): Pmobj_t;
 begin
   if not IsIntegerInRange(playernum, 0, MAXPLAYERS - 1) then
@@ -110,6 +131,11 @@ begin
     result := nil;
 end;
 
+//==============================================================================
+//
+// COPY_AAPTR
+//
+//==============================================================================
 function COPY_AAPTR(const origin: Pmobj_t; const selector: integer): Pmobj_t;
 var
   i: integer;
@@ -172,11 +198,9 @@ begin
                 exit;
               end;
 
-      {$IFDEF DOOM_OR_STRIFE}
       {$IFDEF STRIFE}
-      if origin.flags and MF_ALLY <> 0 then
-      {$ENDIF}
-      {$IFDEF DOOM}
+      if (origin.flags and MF_ALLY <> 0) or (origin.flags2_ex and MF2_EX_FRIEND <> 0) then
+      {$ELSE}
       if origin.flags2_ex and MF2_EX_FRIEND <> 0 then
       {$ENDIF}
         for i := 0 to MAXPLAYERS - 1 do
@@ -185,7 +209,6 @@ begin
             result := players[i].mo;
             exit;
           end;
-      {$ENDIF}
 
       result := nil;
       exit;
@@ -217,6 +240,11 @@ begin
   result := origin;
 end;
 
+//==============================================================================
+//
+// VerifyTargetChain
+//
+//==============================================================================
 procedure VerifyTargetChain(const self: Pmobj_t);
 var
   origin, next, compare: Pmobj_t;
@@ -254,6 +282,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// VerifyMasterChain
+//
+//==============================================================================
 procedure VerifyMasterChain(const self: Pmobj_t);
 var
   origin, next, compare: Pmobj_t;
@@ -283,6 +316,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// ASSIGN_AAPTR
+//
+//==============================================================================
 procedure ASSIGN_AAPTR(const toActor: Pmobj_t; const toSlot: integer; const ptr: Pmobj_t; const flags: integer);
 begin
   case toSlot of

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Floors, Ceilings, Doors, Locked Doors, Lifts, Stairs, Crushers
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -49,6 +49,16 @@ const
   PUSH_MASK      = $200;
   PUSH_SHIFT     = 9;
 
+// reserved by BOOM spec - not implemented?
+// bit 10: suppress all sounds within the sector
+// bit 11: disable any sounds due to floor or ceiling motion by the sector
+
+const
+// mbf21
+  DEATH_MASK = $1000; // bit 12
+  KILL_MONSTERS_MASK = $2000; // bit 13
+
+const
 //jff 02/04/98 Define masks, shifts, for fields in
 // generalized linedef types
 
@@ -267,18 +277,53 @@ type
     AllKeys
   );
 
+//==============================================================================
+//
+// EV_DoGenFloor
+//
+//==============================================================================
 function EV_DoGenFloor(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoGenCeiling
+//
+//==============================================================================
 function EV_DoGenCeiling(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoGenDoor
+//
+//==============================================================================
 function EV_DoGenDoor(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoGenLockedDoor
+//
+//==============================================================================
 function EV_DoGenLockedDoor(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoGenLift
+//
+//==============================================================================
 function EV_DoGenLift(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoGenStairs
+//
+//==============================================================================
 function EV_DoGenStairs(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoGenCrusher
+//
+//==============================================================================
 function EV_DoGenCrusher(line: Pline_t): integer;
 
 implementation
@@ -289,7 +334,6 @@ uses
   g_game,
   m_fixed,
   m_rnd,
-  p_mobj_h,
   p_ceilng,
   p_doors,
   p_floor,
@@ -297,7 +341,7 @@ uses
   p_setup,
   p_spec,
   p_tick,
-  sounds,
+  sounddata,
   s_sound,
   z_zone;
 
@@ -306,7 +350,6 @@ uses
 // Generalized Linedef Type handlers
 //
 //////////////////////////////////////////////////////////
-
 //
 // EV_DoGenFloor
 //
@@ -318,6 +361,7 @@ uses
 // jff 02/04/98 Added this routine (and file) to handle generalized
 // floor movers using bit fields in the line special type.
 //
+//==============================================================================
 function EV_DoGenFloor(line: Pline_t): integer;
 var
   secnum: integer;
@@ -501,7 +545,7 @@ manual_floor:
   end;
 end;
 
-
+//==============================================================================
 //
 // EV_DoGenCeiling
 //
@@ -513,6 +557,7 @@ end;
 // jff 02/04/98 Added this routine (and file) to handle generalized
 // floor movers using bit fields in the line special type.
 //
+//==============================================================================
 function EV_DoGenCeiling(line: Pline_t): integer;
 var
   secnum: integer;
@@ -705,6 +750,7 @@ manual_ceiling:
   end;
 end;
 
+//==============================================================================
 //
 // EV_DoGenLift
 //
@@ -713,6 +759,7 @@ end;
 // Passed the linedef activating the lift
 // Returns true if a thinker is created
 //
+//==============================================================================
 function EV_DoGenLift(line: Pline_t): integer;
 var
   secnum: integer;
@@ -838,7 +885,7 @@ manual_lift:
         plat.wait := 10 * TICRATE;
     end;
 
-    S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_pstart));
+    S_StartSound(@sec.soundorg, Ord(sfx_pstart));
     P_AddActivePlat(plat); // add this plat to the list of active plats
 
     if manual then
@@ -846,6 +893,7 @@ manual_lift:
   end;
 end;
 
+//==============================================================================
 //
 // EV_DoGenStairs
 //
@@ -854,6 +902,7 @@ end;
 // Passed the linedef activating the stairs
 // Returns true if a thinker is created
 //
+//==============================================================================
 function EV_DoGenStairs(line: Pline_t): integer;
 var
   secnum: integer;
@@ -1032,6 +1081,7 @@ manual_stair:
     line.special := line.special xor StairDirection; // alternate dir on succ activations
 end;
 
+//==============================================================================
 //
 // EV_DoGenCrusher
 //
@@ -1040,6 +1090,7 @@ end;
 // Passed the linedef activating the crusher
 // Returns true if a thinker created
 //
+//==============================================================================
 function EV_DoGenCrusher(line: Pline_t): integer;
 var
   secnum: integer;
@@ -1126,6 +1177,7 @@ manual_crusher:
   end;
 end;
 
+//==============================================================================
 //
 // EV_DoGenLockedDoor
 //
@@ -1134,6 +1186,7 @@ end;
 // Passed the linedef activating the generalized locked door
 // Returns true if a thinker created
 //
+//==============================================================================
 function EV_DoGenLockedDoor(line: Pline_t): integer;
 var
   secnum: integer;
@@ -1239,15 +1292,16 @@ manual_locked:
     // (previously they always had the blazing door close sound)
 
     if door.speed >= VDOORSPEED * 4 then
-      S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_bdopn))  // killough 4/15/98
+      S_StartSound(@door.sector.soundorg, Ord(sfx_bdopn))  // killough 4/15/98
     else
-      S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_doropn));
+      S_StartSound(@door.sector.soundorg, Ord(sfx_doropn));
 
     if manual then
       exit;
   end;
 end;
 
+//==============================================================================
 //
 // EV_DoGenDoor
 //
@@ -1256,6 +1310,7 @@ end;
 // Passed the linedef activating the generalized door
 // Returns true if a thinker created
 //
+//==============================================================================
 function EV_DoGenDoor(line: Pline_t): integer;
 var
   secnum: integer;
@@ -1345,7 +1400,7 @@ manual_door:
           door.direction := 1;
           door.topheight := P_FindLowestCeilingSurrounding(sec) - 4 * FRACUNIT;
           if door.topheight <> sec.ceilingheight then
-            S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_bdopn));
+            S_StartSound(@door.sector.soundorg, Ord(sfx_bdopn));
           if Sped >= Ord(SpeedFast) then
             door._type := genBlazeRaise
           else
@@ -1357,7 +1412,7 @@ manual_door:
           door.direction := 1;
           door.topheight := P_FindLowestCeilingSurrounding(sec) - 4 * FRACUNIT;
           if door.topheight <> sec.ceilingheight then
-            S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_bdopn));
+            S_StartSound(@door.sector.soundorg, Ord(sfx_bdopn));
           if Sped >= Ord(SpeedFast) then
             door._type := genBlazeOpen
           else
@@ -1368,7 +1423,7 @@ manual_door:
         begin
           door.topheight := sec.ceilingheight;
           door.direction := -1;
-          S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_dorcls));
+          S_StartSound(@door.sector.soundorg, Ord(sfx_dorcls));
           if Sped >= Ord(SpeedFast) then
             door._type := genBlazeCdO
           else
@@ -1379,7 +1434,7 @@ manual_door:
         begin
           door.topheight := P_FindLowestCeilingSurrounding(sec) - 4 * FRACUNIT;
           door.direction := -1;
-          S_StartSound(Pmobj_t(@door.sector.soundorg), Ord(sfx_dorcls));
+          S_StartSound(@door.sector.soundorg, Ord(sfx_dorcls));
           if Sped >= Ord(SpeedFast) then
             door._type := genBlazeClose
           else

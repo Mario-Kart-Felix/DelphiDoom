@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //    Thing frame/state LUT.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -323,6 +323,7 @@ type
     SPR_DD02, // Blue Blood
 
     SPR_TNT1,
+    SPR_NULL,
 
     DO_NUMSPRITES
   );
@@ -1897,11 +1898,26 @@ type
     S_BLUEBLOOD3,
 
     S_TNT1,
-
+    S_NONE,
 
     DO_NUMSTATES
   );
 
+const
+  STATEF_SKILL5FAST = 1;
+
+const
+  MAX_STATE_ARGS = 8;
+
+const
+  ARG1_DEFINED = 1;
+  ARG2_DEFINED = 2;
+  ARG3_DEFINED = 4;
+  ARG4_DEFINED = 8;
+  ARG5_DEFINED = $10;
+  ARG6_DEFINED = $20;
+  ARG7_DEFINED = $40;
+  ARG8_DEFINED = $80;
 
 type
   state_t = record
@@ -1931,6 +1947,9 @@ type
     voxelradius: integer;
 {$ENDIF}
     flags_ex: integer;
+    mbf21bits: integer;
+    args: array[0..MAX_STATE_ARGS - 1] of integer;
+    argsdefined: integer;
   end;
   Pstate_t = ^state_t;
 
@@ -2296,6 +2315,8 @@ type
     MT_PUSH,
     MT_PULL,
 
+    MT_NONE,
+    
     DO_NUMMOBJTYPES
   );
 
@@ -2345,6 +2366,7 @@ type
     alpha: integer;
     healstate: integer;
     crashstate: integer;
+    crushstate: integer;
     interactstate: integer;
     missileheight: integer;
     vspeed: integer;  // Initial vertical speed
@@ -2370,9 +2392,24 @@ type
     WeaveIndexZ: integer;
     spriteDX: integer;
     spriteDY: integer;
+    flags5_ex: integer;
+    flags6_ex: integer;
+    // MBF21
+    infighting_group: integer;
+    projectile_group: integer;
+    splash_group: integer;
+    mbf21bits: integer; // not actually flags, the bits will be converted to DelphiDoom flags
+    ripsound: integer;
+    bloodcolor: integer;
+    translationname: string[8];
+    meleethreshold: integer;
   end;
 
   Pmobjinfo_t = ^mobjinfo_t;
+
+var
+  MT_MAPSPOT: integer = -2;
+  MT_MAPSPOTGRAVITY: integer = -2;
 
 implementation
 

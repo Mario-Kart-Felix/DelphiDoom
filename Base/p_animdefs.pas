@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  ANIMDEFS lump
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,12 +36,32 @@ interface
 uses
   d_delphi;
 
+//==============================================================================
+//
+// P_InitFTAnims
+//
+//==============================================================================
 procedure P_InitFTAnims;
 
+//==============================================================================
+//
+// P_AnimateSurfaces
+//
+//==============================================================================
 procedure P_AnimateSurfaces;
 
+//==============================================================================
+//
+// P_InitAnimations
+//
+//==============================================================================
 procedure P_InitAnimations;
 
+//==============================================================================
+//
+// P_ShutDownAnimations
+//
+//==============================================================================
 procedure P_ShutDownAnimations;
 
 var
@@ -95,12 +115,14 @@ var
   AnimDefs: array[0..MAX_ANIM_DEFS - 1] of animDef_t;
   FrameDefs: array[0..MAX_FRAME_DEFS - 1] of frameDef_t;
   AnimDefCount: integer;
+
 //==========================================================================
 //
 // P_AnimateSurfaces
 //
 //==========================================================================
-
+//
+//==============================================================================
 procedure P_AnimateSurfaces;
 var
   i: integer;
@@ -142,7 +164,8 @@ end;
 // Initialize flat and texture animation lists.
 //
 //==========================================================================
-
+//
+//==============================================================================
 procedure P_InitFTAnims;
 var
   base: integer;
@@ -278,12 +301,22 @@ begin
   sc.Free;
 end;
 
+//==============================================================================
+//
+// P_InitAnimations
+//
+//==============================================================================
 procedure P_InitAnimations;
 begin
   animatedflatslist := TDNumberList.Create;
   animatedtextureslist := TDNumberList.Create;
 end;
 
+//==============================================================================
+//
+// P_ShutDownAnimations
+//
+//==============================================================================
 procedure P_ShutDownAnimations;
 begin
   FreeAndNil(animatedflatslist);

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Temporary files managment.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,12 +33,32 @@ unit i_tmp;
 
 interface
 
+//==============================================================================
+//
+// I_InitTempFiles
+//
+//==============================================================================
 procedure I_InitTempFiles;
 
+//==============================================================================
+//
+// I_ShutDownTempFiles
+//
+//==============================================================================
 procedure I_ShutDownTempFiles;
 
+//==============================================================================
+//
+// I_NewTempFile
+//
+//==============================================================================
 function I_NewTempFile(const name: string): string;
 
+//==============================================================================
+//
+// I_DeclareTempFile
+//
+//==============================================================================
 procedure I_DeclareTempFile(const name: string);
 
 implementation
@@ -51,11 +71,21 @@ uses
 var
   tempfiles: TDStringList;
 
+//==============================================================================
+//
+// I_InitTempFiles
+//
+//==============================================================================
 procedure I_InitTempFiles;
 begin
   tempfiles := TDStringList.Create;
 end;
 
+//==============================================================================
+//
+// I_ShutDownTempFiles
+//
+//==============================================================================
 procedure I_ShutDownTempFiles;
 var
   i: integer;
@@ -67,6 +97,11 @@ begin
   tempfiles.Free;
 end;
 
+//==============================================================================
+//
+// I_NewTempFile
+//
+//==============================================================================
 function I_NewTempFile(const name: string): string;
 var
   buf: array[0..1024] of char;
@@ -83,6 +118,11 @@ begin
   tempfiles.Add(result);
 end;
 
+//==============================================================================
+//
+// I_DeclareTempFile
+//
+//==============================================================================
 procedure I_DeclareTempFile(const name: string);
 begin
   tempfiles.Add(name);

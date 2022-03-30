@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Pascal Script RTL - Overlay Drawing
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -111,7 +111,6 @@ type
     procedure NotifyDrawSize(const astart, aend: Integer);
     function BufferPosition(const x, y: Integer): Integer;
     procedure CalcOverlayLookUp;
-    procedure DrawDrawers; virtual;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -145,6 +144,7 @@ type
     function GetOverlayHeight: Integer;
     {$ENDIF}
     procedure ReCalcOverlayLookUp;
+    procedure DrawDrawers; virtual;
     property Modified: Boolean read fmodified;
     property overlayscreen: PByteArray read foverlayscreen;
     property overlaylookup: overlaylookup_p read foverlaylookup;
@@ -154,80 +154,220 @@ type
     property numdrawers: Integer read fnumdrawers;
   end;
 
+//==============================================================================
+// PS_OverlayClear
+//
 // ----------------- OVERLAY FUNCTIONS -----------------------------------------
-
+//
+//==============================================================================
 procedure PS_OverlayClear;
 
+//==============================================================================
+//
+// PS_OverlayDrawPatch
+//
+//==============================================================================
 procedure PS_OverlayDrawPatch(const ticks: Integer; const patchname: string;
   const x, y: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawPatchStretched
+//
+//==============================================================================
 procedure PS_OverlayDrawPatchStretched(const ticks: Integer; const patchname: string;
   const x1, y1, x2, y2: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawPixel
+//
+//==============================================================================
 procedure PS_OverlayDrawPixel(const ticks: Integer; const red, green, blue: byte;
   const x, y: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawRect
+//
+//==============================================================================
 procedure PS_OverlayDrawRect(const ticks: Integer; const red, green, blue: byte;
   const x1, y1, x2, y2: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawLine
+//
+//==============================================================================
 procedure PS_OverlayDrawLine(const ticks: Integer; const red, green, blue: byte;
   const x1, y1, x2, y2: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawText
+//
+//==============================================================================
 procedure PS_OverlayDrawText(const ticks: Integer; const txt: string; const align: Integer;
   const x, y: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawLeftText
+//
+//==============================================================================
 procedure PS_OverlayDrawLeftText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawRightText
+//
+//==============================================================================
 procedure PS_OverlayDrawRightText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 
+//==============================================================================
+//
+// PS_OverlayDrawCenterText
+//
+//==============================================================================
 procedure PS_OverlayDrawCenterText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 
+//==============================================================================
+// PS_InitOverlay
+//
 // -------------------- INITIALIZATION -----------------------------------------
+//
+//==============================================================================
 procedure PS_InitOverlay;
 
+//==============================================================================
+// PS_ShutDownOverlay
+//
 // --------------------- FINALIZATION -----------------------------------------
+//
+//==============================================================================
 procedure PS_ShutDownOverlay;
 
+//==============================================================================
+//
+// OVR_Drawer
+//
+//==============================================================================
 procedure OVR_Drawer;
 
+//==============================================================================
+//
+// OVR_IsModified
+//
+//==============================================================================
 function OVR_IsModified: Boolean;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// OVR_OverlayHeight
+//
+//==============================================================================
 function OVR_OverlayHeight: Integer;
 {$ENDIF}
 
 var
   overlay: TOverlayDrawer;
 
+//==============================================================================
+// SIRegister_TOverlay
+//
 //------------ Register Overlay to PascalScript --------------------------------
+//
+//==============================================================================
 procedure SIRegister_TOverlay(CL: TPSPascalCompiler);
 
+//==============================================================================
+//
+// RIRegister_TOverlay
+//
+//==============================================================================
 procedure RIRegister_TOverlay(CL: TPSRuntimeClassImporter);
 
+//==============================================================================
+//
+// RIRegisterRTL_TOverlay
+//
+//==============================================================================
 procedure RIRegisterRTL_TOverlay(Exec: TPSExec);
 
+//==============================================================================
+// A_OverlayClear
+//
 //------------ Mobj Codepointers -----------------------------------------------
+//
+//==============================================================================
 procedure A_OverlayClear;
 
+//==============================================================================
+//
+// A_OverlayDrawPatch
+//
+//==============================================================================
 procedure A_OverlayDrawPatch(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawPatchStretched
+//
+//==============================================================================
 procedure A_OverlayDrawPatchStretched(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawPixel
+//
+//==============================================================================
 procedure A_OverlayDrawPixel(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawRect
+//
+//==============================================================================
 procedure A_OverlayDrawRect(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawLine
+//
+//==============================================================================
 procedure A_OverlayDrawLine(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawText
+//
+//==============================================================================
 procedure A_OverlayDrawText(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawLeftText
+//
+//==============================================================================
 procedure A_OverlayDrawLeftText(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawRightText
+//
+//==============================================================================
 procedure A_OverlayDrawRightText(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_OverlayDrawCenterText
+//
+//==============================================================================
 procedure A_OverlayDrawCenterText(actor: Pmobj_t);
 
 implementation
@@ -254,6 +394,11 @@ uses
 const
   OVR_GROWSTEP = 8;
 
+//==============================================================================
+//
+// TOverlayDrawer.Create
+//
+//==============================================================================
 constructor TOverlayDrawer.Create;
 begin
   inherited Create;
@@ -272,6 +417,11 @@ begin
   lastdrawcnt := 0;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.Destroy
+//
+//==============================================================================
 destructor TOverlayDrawer.Destroy;
 begin
   memfree(Pointer(fdrawers), frealnumdrawers * SizeOf(overlaydrawer_t));
@@ -281,6 +431,11 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.CalcOverlayLookUp
+//
+//==============================================================================
 procedure TOverlayDrawer.CalcOverlayLookUp;
 var
   x, y: Integer;
@@ -319,6 +474,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.ReCalcOverlayLookUp
+//
+//==============================================================================
 procedure TOverlayDrawer.ReCalcOverlayLookUp;
 begin
   memfree(Pointer(foverlaylookup), foverlaylookupsize);
@@ -327,6 +487,11 @@ begin
   CalcOverlayLookUp;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.SaveToBuffer
+//
+//==============================================================================
 procedure TOverlayDrawer.SaveToBuffer(var buff: pointer);
 var
   sz: Integer;
@@ -338,6 +503,11 @@ begin
   incp(buff, sz);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.LoadFromBuffer
+//
+//==============================================================================
 procedure TOverlayDrawer.LoadFromBuffer(var buff: pointer);
 var
   sz: Integer;
@@ -352,11 +522,21 @@ begin
   ClearScreen;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.SaveSize
+//
+//==============================================================================
 function TOverlayDrawer.SaveSize: Integer;
 begin
   Result := SizeOf(Integer) + fnumdrawers * SizeOf(overlaydrawer_t);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.Clear
+//
+//==============================================================================
 procedure TOverlayDrawer.Clear;
 begin
   fnumdrawers := 0;
@@ -365,6 +545,11 @@ begin
   ClearScreen;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.ClearScreen
+//
+//==============================================================================
 procedure TOverlayDrawer.ClearScreen;
 begin
   if fstart <= fend then
@@ -373,6 +558,11 @@ begin
   fend := -1;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.Grow
+//
+//==============================================================================
 procedure TOverlayDrawer.Grow;
 begin
   if fnumdrawers = frealnumdrawers then
@@ -383,6 +573,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawPatch
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawPatch(const x, y: Integer; const patchlump: Integer);
 var
   patch: Ppatch_t;
@@ -394,6 +589,11 @@ begin
   DrawPatch(x, y, patch);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawPatch
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawPatch(const x, y: Integer; const patch: Ppatch_t);
 var
   fx, fy: Integer;
@@ -468,6 +668,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawPatchStretched
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawPatchStretched(const x1, y1, x2, y2: Integer; const patchlump: Integer);
 var
   patch: Ppatch_t;
@@ -479,6 +684,11 @@ begin
   DrawPatchStretched(x1, y1, x2, y2, patch);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawPatchStretched
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawPatchStretched(const x1, y1, x2, y2: Integer; const patch: Ppatch_t);
 var
   desttop: PByteArray;
@@ -608,6 +818,11 @@ begin
   ZeroMemory(@fbackbuffer[minsize], maxsize - minsize + 1);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawPixel
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawPixel(const x, y: Integer; const red, green, blue: byte);
 var
   apos: Integer;
@@ -622,6 +837,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawRect
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawRect(const x1, y1, x2, y2: Integer; const red, green, blue: byte);
 var
   pos1: Integer;
@@ -652,6 +872,11 @@ begin
   NotifyDrawSize(pos1, pos2);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawLine
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawLine(const x1, y1, x2, y2: Integer; const red, green, blue: byte);
 // Bresenham's Line Algorithm.  Byte, March 1988, pp. 249-253.
 // Modified from http://www.efg2.com/Lab/Library/Delphi/Graphics/Bresenham.txt and tested.
@@ -775,6 +1000,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawText
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawText(const txt: string; const align: Integer;
   const x, y: Integer);
 var
@@ -846,6 +1076,11 @@ const
   OVR_DRAWLINE = 5;
   OVR_DRAWPATCHSTRETCHED = 6;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawDrawer
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawDrawer(const i: Integer);
 var
   dr: Poverlaydrawer_t;
@@ -872,6 +1107,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.NotifyDrawSize
+//
+//==============================================================================
 procedure TOverlayDrawer.NotifyDrawSize(const astart, aend: Integer);
 begin
   if astart < fstart then
@@ -892,11 +1132,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.BufferPosition
+//
+//==============================================================================
 function TOverlayDrawer.BufferPosition(const x, y: Integer): Integer;
 begin
   Result := x + y * OVERLAYWIDTH;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddPatch
+//
+//==============================================================================
 procedure TOverlayDrawer.AddPatch(const ticks: Integer; const patchname: string;
   const x, y: Integer);
 var
@@ -932,6 +1182,11 @@ begin
   pdrawer.sparam := patchname;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddPatchStretched
+//
+//==============================================================================
 procedure TOverlayDrawer.AddPatchStretched(const ticks: Integer; const patchname: string;
   const x1, y1, x2, y2: Integer);
 var
@@ -969,6 +1224,11 @@ begin
   pdrawer.sparam := patchname;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddPixel
+//
+//==============================================================================
 procedure TOverlayDrawer.AddPixel(const ticks: Integer; const red, green, blue: byte;
   const x, y: Integer);
 var
@@ -990,6 +1250,11 @@ begin
   pdrawer.iparam3 := blue;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddRect
+//
+//==============================================================================
 procedure TOverlayDrawer.AddRect(const ticks: Integer; const red, green, blue: byte;
   const x1, y1, x2, y2: Integer);
 var
@@ -1013,6 +1278,11 @@ begin
   pdrawer.iparam3 := blue;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddLine
+//
+//==============================================================================
 procedure TOverlayDrawer.AddLine(const ticks: Integer; const red, green, blue: byte;
   const x1, y1, x2, y2: Integer);
 var
@@ -1036,6 +1306,11 @@ begin
   pdrawer.iparam3 := blue;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddText
+//
+//==============================================================================
 procedure TOverlayDrawer.AddText(const ticks: Integer; const txt: string; const align: Integer;
   const x, y: Integer);
 var
@@ -1056,24 +1331,44 @@ begin
   pdrawer.iparam1 := align;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddLeftText
+//
+//==============================================================================
 procedure TOverlayDrawer.AddLeftText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 begin
   AddText(ticks, txt, OVR_ALIGN_LEFT, x, y);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddRightText
+//
+//==============================================================================
 procedure TOverlayDrawer.AddRightText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 begin
   AddText(ticks, txt, OVR_ALIGN_RIGHT, x, y);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.AddCenterText
+//
+//==============================================================================
 procedure TOverlayDrawer.AddCenterText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 begin
   AddText(ticks, txt, OVR_ALIGN_CENTER, x, y);
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.DrawDrawers
+//
+//==============================================================================
 procedure TOverlayDrawer.DrawDrawers;
 var
   i, j: Integer;
@@ -1119,6 +1414,12 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// TOverlayDrawer.GetOverlayHeight
+//
+//==============================================================================
 function TOverlayDrawer.GetOverlayHeight: Integer;
 var
   dend: Integer;
@@ -1142,6 +1443,12 @@ type
   ovrflash_p = ^ovrflash_t;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// _thr_ovr_flash8
+//
+//==============================================================================
 function _thr_ovr_flash8(p: ovrflash_p): integer; stdcall;
 var
   destb: PByte;
@@ -1176,6 +1483,11 @@ begin
   until dstart > dend;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.FlashToScreen8
+//
+//==============================================================================
 procedure TOverlayDrawer.FlashToScreen8;
 var
   parms: array[0..16] of ovrflash_t;
@@ -1444,6 +1756,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// _thr_ovr_flash32
+//
+//==============================================================================
 function _thr_ovr_flash32(p: ovrflash_p): integer; stdcall;
 var
   destl: PLongWord;
@@ -1478,6 +1795,11 @@ begin
   until dstart > dend;
 end;
 
+//==============================================================================
+//
+// TOverlayDrawer.FlashToScreen32
+//
+//==============================================================================
 procedure TOverlayDrawer.FlashToScreen32;
 var
   parms: array[0..16] of ovrflash_t;
@@ -1745,6 +2067,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawText
+//
+//==============================================================================
 procedure CmdOverlayDrawText(const s1, s2: string; const align: Integer);
 var
   ticks: Integer;
@@ -1779,14 +2106,19 @@ begin
     Exit;
   end;
 
-  splitstring(s2, sx, tmp1, ' ');
-  splitstring(tmp1, sy, msg, ' ');
+  splitstring_ch(s2, sx, tmp1, ' ');
+  splitstring_ch(tmp1, sy, msg, ' ');
   x := atoi(sx, -1);
   y := atoi(sy, -1);
 
   overlay.AddText(ticks, msg, align, x, y);
 end;
 
+//==============================================================================
+//
+// CmdOverlayPutPixel
+//
+//==============================================================================
 procedure CmdOverlayPutPixel(const s1, s2: string);
 var
   ticks: Integer;
@@ -1816,12 +2148,12 @@ begin
     Exit;
   end;
 
-  splitstring(s2, sx, tmp1, ' ');
-  splitstring(tmp1, sy, tmp2, ' ');
+  splitstring_ch(s2, sx, tmp1, ' ');
+  splitstring_ch(tmp1, sy, tmp2, ' ');
   x := atoi(sx, -1);
   y := atoi(sy, -1);
-  splitstring(tmp2, sred, tmp1, ' ');
-  splitstring(tmp1, sgreen, sblue, ' ');
+  splitstring_ch(tmp2, sred, tmp1, ' ');
+  splitstring_ch(tmp1, sgreen, sblue, ' ');
   red := atoi(sred, 0);
   green := atoi(sgreen, 0);
   blue := atoi(sblue, 0);
@@ -1829,21 +2161,41 @@ begin
   overlay.AddPixel(ticks, red, green, blue, x, y);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawTextLeft
+//
+//==============================================================================
 procedure CmdOverlayDrawTextLeft(const s1, s2: string);
 begin
   CmdOverlayDrawText(s1, s2, OVR_ALIGN_LEFT);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawTextRight
+//
+//==============================================================================
 procedure CmdOverlayDrawTextRight(const s1, s2: string);
 begin
   CmdOverlayDrawText(s1, s2, OVR_ALIGN_RIGHT);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawTextCenter
+//
+//==============================================================================
 procedure CmdOverlayDrawTextCenter(const s1, s2: string);
 begin
   CmdOverlayDrawText(s1, s2, OVR_ALIGN_CENTER);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawRect
+//
+//==============================================================================
 procedure CmdOverlayDrawRect(const s1, s2: string);
 var
   ticks: Integer;
@@ -1891,6 +2243,11 @@ begin
   overlay.AddRect(ticks, red, green, blue, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawLine
+//
+//==============================================================================
 procedure CmdOverlayDrawLine(const s1, s2: string);
 var
   ticks: Integer;
@@ -1938,6 +2295,11 @@ begin
   overlay.AddLine(ticks, red, green, blue, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawPatch
+//
+//==============================================================================
 procedure CmdOverlayDrawPatch(const s1, s2: string);
 var
   ticks: Integer;
@@ -1977,6 +2339,11 @@ begin
   overlay.AddPatch(ticks, patchname, x, y);
 end;
 
+//==============================================================================
+//
+// CmdOverlayDrawPatchStretched
+//
+//==============================================================================
 procedure CmdOverlayDrawPatchStretched(const s1, s2: string);
 var
   ticks: Integer;
@@ -2020,6 +2387,11 @@ begin
   overlay.AddPatchStretched(ticks, patchname, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// PS_InitOverlay
+//
+//==============================================================================
 procedure PS_InitOverlay;
 begin
   overlay := TOverlayDrawer.Create;
@@ -2034,11 +2406,21 @@ begin
   C_AddCmd('overlaydrawpatchstretched', @CmdOverlayDrawPatchStretched);
 end;
 
+//==============================================================================
+//
+// PS_ShutDownOverlay
+//
+//==============================================================================
 procedure PS_ShutDownOverlay;
 begin
   FreeAndNil(overlay);
 end;
 
+//==============================================================================
+//
+// OVR_Drawer
+//
+//==============================================================================
 procedure OVR_Drawer;
 begin
   if gamestate = GS_LEVEL then
@@ -2052,12 +2434,23 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// OVR_IsModified
+//
+//==============================================================================
 function OVR_IsModified: Boolean;
 begin
   Result := overlay.Modified;
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// OVR_OverlayHeight
+//
+//==============================================================================
 function OVR_OverlayHeight: Integer;
 begin
   if gamestate = GS_LEVEL then
@@ -2067,12 +2460,22 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// PS_OverlayClear
+//
+//==============================================================================
 procedure PS_OverlayClear;
 begin
   if overlay <> nil then
     overlay.Clear;
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawPatch
+//
+//==============================================================================
 procedure PS_OverlayDrawPatch(const ticks: Integer; const patchname: string;
   const x, y: Integer);
 begin
@@ -2080,6 +2483,11 @@ begin
     overlay.AddPatch(ticks, patchname, x, y);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawPatchStretched
+//
+//==============================================================================
 procedure PS_OverlayDrawPatchStretched(const ticks: Integer; const patchname: string;
   const x1, y1, x2, y2: Integer);
 begin
@@ -2087,6 +2495,11 @@ begin
     overlay.AddPatchStretched(ticks, patchname, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawPixel
+//
+//==============================================================================
 procedure PS_OverlayDrawPixel(const ticks: Integer; const red, green, blue: byte;
   const x, y: Integer);
 begin
@@ -2094,6 +2507,11 @@ begin
     overlay.AddPixel(ticks, red, green, blue, x, y);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawRect
+//
+//==============================================================================
 procedure PS_OverlayDrawRect(const ticks: Integer; const red, green, blue: byte;
   const x1, y1, x2, y2: Integer);
 begin
@@ -2101,6 +2519,11 @@ begin
     overlay.AddRect(ticks, red, green, blue, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawLine
+//
+//==============================================================================
 procedure PS_OverlayDrawLine(const ticks: Integer; const red, green, blue: byte;
   const x1, y1, x2, y2: Integer);
 begin
@@ -2108,6 +2531,11 @@ begin
     overlay.AddLine(ticks, red, green, blue, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawText
+//
+//==============================================================================
 procedure PS_OverlayDrawText(const ticks: Integer; const txt: string; const align: Integer;
   const x, y: Integer);
 begin
@@ -2115,6 +2543,11 @@ begin
     overlay.AddText(ticks, txt, align, x, y);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawLeftText
+//
+//==============================================================================
 procedure PS_OverlayDrawLeftText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 begin
@@ -2122,6 +2555,11 @@ begin
     overlay.AddLeftText(ticks, txt, x, y);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawRightText
+//
+//==============================================================================
 procedure PS_OverlayDrawRightText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 begin
@@ -2129,6 +2567,11 @@ begin
     overlay.AddRightText(ticks, txt, x, y);
 end;
 
+//==============================================================================
+//
+// PS_OverlayDrawCenterText
+//
+//==============================================================================
 procedure PS_OverlayDrawCenterText(const ticks: Integer; const txt: string;
   const x, y: Integer);
 begin
@@ -2136,27 +2579,36 @@ begin
     overlay.AddCenterText(ticks, txt, x, y);
 end;
 
+//==============================================================================
+// SIRegister_TOverlay
+//
 // ---------------------- REGISTRATION ----------------------------------------
-
+//
+//==============================================================================
 procedure SIRegister_TOverlay(CL: TPSPascalCompiler);
 begin
   with CL.AddClassN(CL.FindClass('!TOBJECT'),'!TOverlay') do
   begin
     RegisterMethod('Constructor Create');
     RegisterMethod('Procedure Clear');
-    RegisterMethod('Procedure DrawPatch( const ticks : Integer; const patchname : string; const x, y : Integer)');
-    RegisterMethod('Procedure DrawPatchStretched( const ticks : Integer; const patchname : string; const x1, y1, x2, y2 : Integer)');
-    RegisterMethod('Procedure DrawPixel( const ticks : Integer; const red, green, blue : byte; const x, y : Integer)');
-    RegisterMethod('Procedure DrawRect( const ticks : Integer; const red, green, blue : byte; const x1, y1, x2, y2 : Integer)');
-    RegisterMethod('Procedure DrawLine( const ticks : Integer; const red, green, blue : byte; const x1, y1, x2, y2 : Integer)');
-    RegisterMethod('Procedure DrawText( const ticks : Integer; const txt : string; const align : Integer; const x, y : Integer)');
-    RegisterMethod('Procedure DrawLeftText( const ticks : Integer; const txt : string; const x, y : Integer)');
-    RegisterMethod('Procedure DrawRightText( const ticks : Integer; const txt : string; const x, y : Integer)');
-    RegisterMethod('Procedure DrawCenterText( const ticks : Integer; const txt : string; const x, y : Integer)');
+    RegisterMethod('Procedure DrawPatch( const ticks: Integer; const patchname: string; const x, y: Integer)');
+    RegisterMethod('Procedure DrawPatchStretched( const ticks: Integer; const patchname: string; const x1, y1, x2, y2: Integer)');
+    RegisterMethod('Procedure DrawPixel( const ticks: Integer; const red, green, blue: byte; const x, y: Integer)');
+    RegisterMethod('Procedure DrawRect( const ticks: Integer; const red, green, blue: byte; const x1, y1, x2, y2: Integer)');
+    RegisterMethod('Procedure DrawLine( const ticks: Integer; const red, green, blue: byte; const x1, y1, x2, y2: Integer)');
+    RegisterMethod('Procedure DrawText( const ticks: Integer; const txt: string; const align: Integer; const x, y: Integer)');
+    RegisterMethod('Procedure DrawLeftText( const ticks: Integer; const txt: string; const x, y: Integer)');
+    RegisterMethod('Procedure DrawRightText( const ticks: Integer; const txt: string; const x, y: Integer)');
+    RegisterMethod('Procedure DrawCenterText( const ticks: Integer; const txt: string; const x, y: Integer)');
   end;
   AddImportedClassVariable(CL, 'Overlay', '!TOverlay');
 end;
 
+//==============================================================================
+//
+// RIRegister_TOverlay
+//
+//==============================================================================
 procedure RIRegister_TOverlay(CL: TPSRuntimeClassImporter);
 begin
   with CL.Add2(TOverlayDrawer, '!TOVERLAY') do
@@ -2175,18 +2627,33 @@ begin
   end;
 end;
 
+//==============================================================================
+// RIRegisterRTL_TOverlay
+//
 // JVAL: Must be called after Loading data.
+//
+//==============================================================================
 procedure RIRegisterRTL_TOverlay(Exec: TPSExec);
 begin
   SetVariantToClass(Exec.GetVarNo(Exec.GetVar('Overlay')), overlay);
 end;
 
+//==============================================================================
+// A_OverlayClear
+//
 //------------ Mobj Codepointers -----------------------------------------------
+//
+//==============================================================================
 procedure A_OverlayClear;
 begin
   PS_OverlayClear;
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawPatch
+//
+//==============================================================================
 procedure A_OverlayDrawPatch(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2204,6 +2671,11 @@ begin
   PS_OverlayDrawPatch(ticks, patchname, x, y);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawPatchStretched
+//
+//==============================================================================
 procedure A_OverlayDrawPatchStretched(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2223,6 +2695,11 @@ begin
   PS_OverlayDrawPatchStretched(ticks, patchname, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawPixel
+//
+//==============================================================================
 procedure A_OverlayDrawPixel(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2242,6 +2719,11 @@ begin
   PS_OverlayDrawPixel(ticks, red, green, blue, x, y);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawRect
+//
+//==============================================================================
 procedure A_OverlayDrawRect(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2263,6 +2745,11 @@ begin
   PS_OverlayDrawRect(ticks, red, green, blue, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawLine
+//
+//==============================================================================
 procedure A_OverlayDrawLine(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2284,6 +2771,11 @@ begin
   PS_OverlayDrawLine(ticks, red, green, blue, x1, y1, x2, y2);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawText
+//
+//==============================================================================
 procedure A_OverlayDrawText(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2303,6 +2795,11 @@ begin
   PS_OverlayDrawText(ticks, txt, align, x, y);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawLeftText
+//
+//==============================================================================
 procedure A_OverlayDrawLeftText(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2320,6 +2817,11 @@ begin
   PS_OverlayDrawLeftText(ticks, txt, x, y);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawRightText
+//
+//==============================================================================
 procedure A_OverlayDrawRightText(actor: Pmobj_t);
 var
   ticks: Integer;
@@ -2337,6 +2839,11 @@ begin
   PS_OverlayDrawRightText(ticks, txt, x, y);
 end;
 
+//==============================================================================
+//
+// A_OverlayDrawCenterText
+//
+//==============================================================================
 procedure A_OverlayDrawCenterText(actor: Pmobj_t);
 var
   ticks: Integer;

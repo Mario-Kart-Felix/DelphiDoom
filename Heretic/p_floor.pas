@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Floor animation: raising stairs.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -35,27 +35,41 @@ unit p_floor;
 interface
 
 uses
-  doomdef,
   z_zone,
   p_spec,
   m_fixed,
-  p_local,
   r_defs,
   s_sound,
-  doomstat,
-  sounds;
+  sounddata;
 
+//==============================================================================
+// T_MovePlane
 //
 // FLOORS
 //
-
+//==============================================================================
 function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t;
   crush: boolean; floorOrCeiling: integer; direction: integer): result_e;
 
+//==============================================================================
+//
+// T_MoveFloor
+//
+//==============================================================================
 procedure T_MoveFloor(floor: Pfloormove_t);
 
+//==============================================================================
+//
+// EV_DoFloor
+//
+//==============================================================================
 function EV_DoFloor(line: Pline_t; floortype: floor_e): integer;
 
+//==============================================================================
+//
+// EV_BuildStairs
+//
+//==============================================================================
 function EV_BuildStairs(line: Pline_t; step: fixed_t): integer;
 
 implementation
@@ -65,14 +79,16 @@ uses
   doomdata,
   p_map,
   p_tick,
-  p_mobj_h,
   p_setup,
   p_slopes,
   r_data;
 
+//==============================================================================
+// T_MovePlane
 //
 // Move a plane (floor or ceiling) and check for crushing
 //
+//==============================================================================
 function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t;
   crush: boolean; floorOrCeiling: integer; direction: integer): result_e;
 var
@@ -223,9 +239,12 @@ begin
   result := ok;
 end;
 
+//==============================================================================
+// T_MoveFloor
 //
 // MOVE A FLOOR TO IT'S DESTINATION (UP OR DOWN)
 //
+//==============================================================================
 procedure T_MoveFloor(floor: Pfloormove_t);
 var
   res: result_e;
@@ -234,14 +253,14 @@ begin
             floor.crush, 0, floor.direction);
 
   if leveltime and 7 = 0 then
-    S_StartSound(Pmobj_t(@floor.sector.soundorg), Ord(sfx_stnmov));
+    S_StartSound(@floor.sector.soundorg, Ord(sfx_stnmov));
 
   if res = pastdest then
   begin
     floor.sector.specialdata := nil;
 
     if floor._type = raiseBuildStep then
-      S_StartSound(Pmobj_t(@floor.sector.soundorg), Ord(sfx_pstop));
+      S_StartSound(@floor.sector.soundorg, Ord(sfx_pstop));
 
     if floor.direction = 1 then
     begin
@@ -264,9 +283,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// EV_DoFloor
 //
 // HANDLE FLOOR TYPES
 //
+//==============================================================================
 function EV_DoFloor(line: Pline_t; floortype: floor_e): integer;
 var
   secnum: integer;
@@ -318,8 +340,7 @@ begin
           floor.direction := -1;
           floor.sector := sec;
           floor.speed := FLOORSPEED * 4;
-          floor.floordestheight :=
-          P_FindHighestFloorSurrounding(sec);
+          floor.floordestheight := P_FindHighestFloorSurrounding(sec);
           if floor.floordestheight <> sec.floorheight then
             floor.floordestheight := floor.floordestheight + 8 * FRACUNIT;
         end;
@@ -368,7 +389,7 @@ begin
           floor.speed := FLOORSPEED;
           for i := 0 to sec.linecount - 1 do
           begin
-            if twoSided(secnum, i) <> 0 then
+            if twoSided(secnum, i) then
             begin
               side := getSide(secnum, i, 0);
               if side.bottomtexture >= 0 then
@@ -391,7 +412,7 @@ begin
           floor.texture := sec.floorpic;
           for i := 0 to sec.linecount - 1 do
           begin
-            if twoSided(secnum, i) <> 0 then
+            if twoSided(secnum, i) then
             begin
               side := getSide(secnum, i, 0);
               if pDiff(side.sector, @sectors[0], SizeOf(side.sector^)) = secnum then
@@ -422,9 +443,12 @@ begin
   until secnum < 0;
 end;
 
+//==============================================================================
+// EV_BuildStairs
 //
 // BUILD A STAIRCASE!
 //
+//==============================================================================
 function EV_BuildStairs(line: Pline_t; step: fixed_t): integer;
 var
   secnum: integer;
@@ -454,6 +478,7 @@ begin
     // new floor thinker
     result := 1;
     floor := Z_Malloc(SizeOf(floormove_t), PU_LEVSPEC, nil);
+    ZeroMemory(floor, SizeOf(floormove_t));
     P_AddThinker(@floor.thinker);
     sec.specialdata := floor;
     height := sec.floorheight + step;
@@ -498,7 +523,7 @@ begin
         sec := tsec;
         secnum := newsecnum;
         floor := Z_Malloc(SizeOf(floormove_t), PU_LEVSPEC, nil);
-
+        ZeroMemory(floor, SizeOf(floormove_t));
         P_AddThinker(@floor.thinker);
 
         sec.specialdata := floor;

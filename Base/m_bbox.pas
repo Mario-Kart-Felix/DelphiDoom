@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -40,9 +40,19 @@ const
   BOXLEFT = 2;
   BOXRIGHT = 3;
 
+//==============================================================================
+// M_ClearBox
+//
 // Bounding box functions.
+//
+//==============================================================================
 procedure M_ClearBox(box: Pfixed_tArray);
 
+//==============================================================================
+//
+// M_AddToBox
+//
+//==============================================================================
 procedure M_AddToBox(box: Pfixed_tArray; x: fixed_t; y: fixed_t);
 
 implementation
@@ -50,6 +60,11 @@ implementation
 uses
   doomtype;
 
+//==============================================================================
+//
+// M_ClearBox
+//
+//==============================================================================
 procedure M_ClearBox(box: Pfixed_tArray);
 begin
   box[BOXTOP] := MININT;
@@ -58,6 +73,11 @@ begin
   box[BOXLEFT] := MAXINT;
 end;
 
+//==============================================================================
+//
+// M_AddToBox
+//
+//==============================================================================
 procedure M_AddToBox(box: Pfixed_tArray; x: fixed_t; y: fixed_t);
 begin
   if x < box[BOXLEFT] then

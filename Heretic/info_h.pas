@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
 //  This one is the original DOOM version, preserved.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -71,6 +71,9 @@ type
     SPR_BKYY, SPR_CKYY, SPR_AMG2, SPR_AMM1, SPR_AMM2,
     SPR_AMC1, SPR_AMC2, SPR_AMS1, SPR_AMS2, SPR_AMP1,
     SPR_AMP2, SPR_AMB1, SPR_AMB2, SPR_TNT1,
+
+    SPR_NULL,
+
     DO_NUMSPRITES
   );
 
@@ -1280,9 +1283,26 @@ type
     S_AMB2_3,
     S_SND_WIND,
     S_SND_WATERFALL,
+    S_NONE,
+
     DO_NUMSTATES
   );
 
+const
+  STATEF_SKILL5FAST = 1;
+
+const
+  MAX_STATE_ARGS = 8;
+
+const
+  ARG1_DEFINED = 1;
+  ARG2_DEFINED = 2;
+  ARG3_DEFINED = 4;
+  ARG4_DEFINED = 8;
+  ARG5_DEFINED = $10;
+  ARG6_DEFINED = $20;
+  ARG7_DEFINED = $40;
+  ARG8_DEFINED = $80;
 
 type
   state_t = record
@@ -1312,6 +1332,9 @@ type
     voxelradius: integer;
 {$ENDIF}
     flags_ex: integer;
+    mbf21bits: integer;
+    args: array[0..MAX_STATE_ARGS - 1] of integer;
+    argsdefined: integer;
   end;
   Pstate_t = ^state_t;
 
@@ -1477,6 +1500,8 @@ type
     MT_AMBLSRHEFTY,
     MT_SOUNDWIND,
     MT_SOUNDWATERFALL,
+    MT_NONE,
+
     DO_NUMMOBJTYPES
   );
 
@@ -1526,7 +1551,9 @@ type
     alpha: integer;
     healstate: integer;
     crashstate: integer;
+    crushstate: integer;
     interactstate: integer;
+    missileheight: integer;
     vspeed: integer;  // Initial vertical speed
     pushfactor: integer; // How much can be pushed? 1..FRACUNIT
     friction: Integer; // Default is ORIG_FRICTION
@@ -1550,9 +1577,24 @@ type
     WeaveIndexZ: integer;
     spriteDX: integer;
     spriteDY: integer;
+    flags5_ex: integer;
+    flags6_ex: integer;
+    // MBF21
+    infighting_group: integer;
+    projectile_group: integer;
+    splash_group: integer;
+    mbf21bits: integer; // not actually flags, the bits will be converted to DelphiDoom flags
+    ripsound: integer;
+    bloodcolor: integer;
+    translationname: string[8];
+    meleethreshold: integer;
   end;
 
   Pmobjinfo_t = ^mobjinfo_t;
+
+var
+  MT_MAPSPOT: integer = -2;
+  MT_MAPSPOTGRAVITY: integer = -2;
 
 implementation
 

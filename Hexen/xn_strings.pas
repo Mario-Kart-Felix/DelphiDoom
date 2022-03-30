@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 // Globally defined strings.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -188,7 +188,6 @@ const
   TXT_ARTIPUZZMWEAPON: string = 'SIGIL OF THE MAGUS';
   TXT_ARTIPUZZGEAR: string = 'CLOCK GEAR';
   TXT_USEPUZZLEFAILED: string = 'YOU CANNOT USE THIS HERE';
-
 
 // Items
 
@@ -353,7 +352,6 @@ var
         '===========================================================================' + #13#10 +
         '                       Undetermined version! (Ouch)' + #13#10 +
         '===========================================================================' + #13#10;
-
 
 var
   startmsg: array[0..NUM_STARTUPMESSAGES - 1] of string;

@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,18 +37,39 @@ interface
 
 uses
   d_delphi,
-  d_think;
+  d_think,
+  info_h;
 
+//==============================================================================
+//
+// DEH_Parse
+//
+//==============================================================================
 procedure DEH_Parse(const s: TDStringList);
 
+//==============================================================================
+//
+// DEH_CurrentSettings
+//
+//==============================================================================
 function DEH_CurrentSettings: TDStringList;
 
+//==============================================================================
+//
+// DEH_Init
+//
+//==============================================================================
 procedure DEH_Init;
 
+//==============================================================================
+//
+// DEH_ShutDown
+//
+//==============================================================================
 procedure DEH_ShutDown;
 
 const
-  DEHMAXACTIONS = 500;
+  DEHMAXACTIONS = 600;
 
 var
   dehnumactions: integer = 0;
@@ -58,7 +79,11 @@ type
     action: actionf_t;
     originalname: string;
     name: string;
-    {$IFDEF DLL}decl: string;{$ENDIF}
+    argcount: integer;
+    default_args: array[0..MAX_STATE_ARGS - 1] of integer; // mbf21
+    {$IFDEF DLL}
+    decl: string;
+    {$ENDIF}
   end;
   Pdeh_action_t = ^deh_action_t;
 
@@ -85,18 +110,30 @@ var
   mobj_flags2_ex: TDTextList;
   mobj_flags3_ex: TDTextList;
   mobj_flags4_ex: TDTextList;
+  mobj_flags5_ex: TDTextList;
+  mobj_flags6_ex: TDTextList;
+  mobj_flags_mbf21: TDTextList; // MBF21
   state_tokens: TDTextList;
   state_flags_ex: TDTextList;
+  state_flags_mbf21: TDTextList;  // MBF21
   weapon_tokens: TDTextList;
+  weapon_flags_mbf21: TDTextList; // MBF21
   sound_tokens: TDTextList;
   renderstyle_tokens: TDTextList;
   misc_tokens: TDTextList;
   weapontype_tokens: TDTextList;
   ammotype_tokens: TDTextList;
   playerclass_tokens: TDTextList;
+  // MBF21
+  infighting_groups: TDTextList;
+  projectile_groups: TDTextList;
+  splash_groups: TDTextList;
 
   deh_actions: array[0..DEHMAXACTIONS - 1] of deh_action_t;
   deh_strings: deh_strings_t;
+
+var
+  ismbf21: boolean = false; // MBF21
 
 implementation
 
@@ -107,11 +144,8 @@ uses
   deh_base,
   d_main,
   xn_strings,
-  f_finale,
-  g_game,
   hu_stuff,
   i_system,
-  info_h,
   info,
   info_common,
   m_argv,
@@ -133,16 +167,14 @@ uses
   p_simpledialog,
   psi_overlay,
   r_renderstyle,
+  r_translations,
+  sounddata,
   sounds,
   sc_params,
   sc_engine,
   sc_states,
   v_data,
-  sv_save,
-  w_wad,
-  w_folders,
-  w_pak,
-  z_zone;
+  sv_save;
 
 var
   mobj_tokens_hash: TDEHStringsHashTable;
@@ -152,7 +184,15 @@ var
   mobj_flags2_ex_hash: TDEHStringsHashTable;
   mobj_flags3_ex_hash: TDEHStringsHashTable;
   mobj_flags4_ex_hash: TDEHStringsHashTable;
+  mobj_flags5_ex_hash: TDEHStringsHashTable;
+  mobj_flags6_ex_hash: TDEHStringsHashTable;
+  mobj_flags_mbf21_hash: TDEHStringsHashTable;
 
+//==============================================================================
+//
+// DEH_AddString
+//
+//==============================================================================
 procedure DEH_AddString(deh_strings: Pdeh_strings_t; pstr: PString; const name: string);
 begin
   if deh_strings.numstrings = deh_strings.realnumstrings then
@@ -172,6 +212,11 @@ end;
 var
   deh_initialized: boolean = false;
 
+//==============================================================================
+//
+// DEH_Parse
+//
+//==============================================================================
 procedure DEH_Parse(const s: TDStringList);
 var
   i, j, k: integer;
@@ -182,9 +227,16 @@ var
   token3: string;
   token4: string;
   token5: string;
+  group: integer; // MBF21
   fw: string;
   settext: string;
   mustnextline: boolean;
+
+  // Extra xlat
+  istransparent: boolean;
+  isfriend: boolean;
+  isbouncy: boolean;
+  istouchy: boolean;
 
   mobj_no: integer;
   mobj_idx: integer;
@@ -206,15 +258,19 @@ var
   ammo_val: integer;
 
   weapon_no: integer;
-  weapon_class: integer;
   weapon_idx: integer;
   weapon_val: integer;
+  weapon_class: integer;
+  weapon_flag: integer;
 
   sound_no: integer;
   sound_idx: integer;
   sound_val: integer;
 
   music_idx: integer;
+
+  sprite_idx: integer;
+  sprite_val: integer;
 
   misc_idx: integer;
   misc_val: integer;
@@ -250,7 +306,7 @@ begin
         break;
     mustnextline := true;
 
-    splitstring(str, token1, token2);
+    splitstring_ch(str, token1, token2);
 
     ////////////////////////////////////////////////////////////////////////////
     if (token1 = 'THING') or (token1 = 'NEWTHING') then
@@ -290,19 +346,24 @@ begin
         dec(mobj_no); // JVAL DEH patches start Think numbers from 1
       end;
 
+      istransparent := false;
+      isfriend := false;
+      isbouncy := false;
+      istouchy := false;
+
       while true do
       begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         token2 := RemoveQuotesFromString(token2);
         mobj_idx := mobj_tokens_hash.IndexOf(token1);
 
@@ -315,9 +376,9 @@ begin
 
         mobj_val := atoi(token2, -1);
 
-        if mobj_idx in [1, 3, 7, 10, 11, 12, 13, 23, 38, 64] then
+        if mobj_idx in [1, 3, 7, 10, 11, 12, 13, 23, 38, 40, 64, 72] then
         begin
-          stmp := firstword(token2);
+          stmp := firstword_ch(token2);
           if (stmp = 'NEWFRAME') or (stmp = 'NEWSTATE') then  // JVAL: a new defined state
           begin
             mobj_val := atoi(secondword(token2), -1);
@@ -356,27 +417,45 @@ begin
           13: mobjinfo[mobj_no].xdeathstate := mobj_val;
           14: mobjinfo[mobj_no].deathsound := S_GetSoundNumForName(token2);
           15: mobjinfo[mobj_no].speed := mobj_val;
-          16: mobjinfo[mobj_no].radius := mobj_val;
+          16,
+          74: mobjinfo[mobj_no].radius := mobj_val;
           17: mobjinfo[mobj_no].height := mobj_val;
           18: mobjinfo[mobj_no].mass := mobj_val;
           19: mobjinfo[mobj_no].damage := mobj_val;
-          20: mobjinfo[mobj_no].activesound := S_GetSoundNumForName(token2);
+          20,
+          73: mobjinfo[mobj_no].activesound := S_GetSoundNumForName(token2);
           21: begin
-                if mobj_val >= 0 then
-                  mobjinfo[mobj_no].flags := mobj_val
+                if itoa(mobj_val) = token2 then
+                begin
+                  mobjinfo[mobj_no].flags := mobj_val;
+                  if not istransparent then
+                    istransparent := mobj_val < 0;
+                  if not isfriend then
+                    isfriend := mobj_val and (1 shl 30) <> 0;
+                  if not isbouncy then
+                    isbouncy := mobj_val and (1 shl 29) <> 0;
+                  if not istouchy then
+                    istouchy := mobj_val and (1 shl 28) <> 0;
+                end
                 else
                 begin
                   mobj_setflag := -1;
                   repeat
                     splitstring(token2, token3, token4, [' ', '|', ',', '+']);
-                    token3 := strtrim(token3);
+                    trimproc(token3);
                     mobj_flag := mobj_flags_hash.IndexOf('MF_' + token3);
                     if mobj_flag = -1 then
                       mobj_flag := mobj_flags_hash.IndexOf(token3);
                     if mobj_flag >= 0 then
                     begin
                       if mobj_flag = 31 then
-                        mobjinfo[mobj_no].flags_ex := mobjinfo[mobj_no].flags_ex or MF_EX_TRANSPARENT
+                        istransparent := true
+                      else if mobj_flag = 30 then
+                        isfriend := true
+                      else if mobj_flag = 29 then
+                        isbouncy := true
+                      else if mobj_flag = 28 then
+                        istouchy := true
                       else
                       begin
                         if mobj_setflag = -1 then
@@ -388,19 +467,28 @@ begin
                     token2 := strtrim(token4);
                   until token2 = '';
                   if mobj_setflag <> -1 then
+                  begin
                     mobjinfo[mobj_no].flags := mobj_setflag;
-
+                    if not istransparent then
+                      istransparent := mobj_setflag < 0;
+                    if not isfriend then
+                      isfriend := mobj_setflag and (1 shl 30) <> 0;
+                    if not isbouncy then
+                      isbouncy := mobj_setflag and (1 shl 29) <> 0;
+                    if not istouchy then
+                      istouchy := mobj_setflag and (1 shl 28) <> 0;
+                  end;
                 end;
               end;
           22: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags2 := mobj_val
                 else
                 begin
                   mobj_setflag := -1;
                   repeat
                     splitstring(token2, token3, token4, [' ', '|', ',', '+']);
-                    token3 := strtrim(token3);
+                    trimproc(token3);
                     mobj_flag := mobj_flags2_hash.IndexOf('MF2_' + token3);
                     if mobj_flag = -1 then
                       mobj_flag := mobj_flags2_hash.IndexOf('MF_' + token3);
@@ -422,14 +510,14 @@ begin
               end;
           23: mobjinfo[mobj_no].raisestate := mobj_val;
           24: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags_ex := mobj_val  // DelphiHexen specific (lighting, transparency, etc)
                 else
                 begin
                   mobj_setflag := -1;
                   repeat
                     splitstring(token2, token3, token4, [' ', '|', ',', '+']);
-                    token3 := strtrim(token3);
+                    trimproc(token3);
                     mobj_flag := mobj_flags_ex_hash.IndexOf('MF_EX_' + token3);
                     if mobj_flag = -1 then
                       mobj_flag := mobj_flags_ex_hash.IndexOf('MF_' + token3);
@@ -480,11 +568,12 @@ begin
                 end;
               end;
           35: mobjinfo[mobj_no].alpha := mobj_val;
-          36: mobjinfo[mobj_no].dropitem := Info_GetMobjNumForName(token2);
+          36,
+          77: mobjinfo[mobj_no].dropitem := Info_GetMobjNumForName(token2);
           37: mobjinfo[mobj_no].missiletype := Info_GetMobjNumForName(token2);
           38: mobjinfo[mobj_no].healstate := mobj_val;
           39: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags2_ex := mobj_val  // DelphiHexen specific
                 else
                 begin
@@ -514,7 +603,7 @@ begin
           43: mobjinfo[mobj_no].scale := DEH_FixedOrFloat(token2, 64);
           44: mobjinfo[mobj_no].gravity := DEH_FixedOrFloat(token2, 64);
           45: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags3_ex := mobj_val  // DelphiDoom specific
                 else
                 begin
@@ -539,7 +628,7 @@ begin
                 end;
               end;
           46: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags4_ex := mobj_val  // DelphiDoom specific
                 else
                 begin
@@ -597,12 +686,119 @@ begin
           62: mobjinfo[mobj_no].spriteDX := DEH_FixedOrFloat(token2, 256);
           63: mobjinfo[mobj_no].spriteDY := DEH_FixedOrFloat(token2, 256);
           64: mobjinfo[mobj_no].interactstate := mobj_val;
+          65: begin
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].flags5_ex := mobj_val  // DelphiDoom specific
+                else
+                begin
+                  mobj_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    mobj_flag := mobj_flags5_ex_hash.IndexOf('MF5_EX_' + token3);
+                    if mobj_flag = -1 then
+                      mobj_flag := mobj_flags5_ex_hash.IndexOf(token3);
+                    if mobj_flag >= 0 then
+                    begin
+                      if mobj_setflag = -1 then
+                        mobj_setflag := 0;
+                      mobj_flag := _SHL(1, mobj_flag);
+                      mobj_setflag := mobj_setflag or mobj_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if mobj_setflag <> -1 then
+                    mobjinfo[mobj_no].flags5_ex := mobj_setflag;
+
+                end;
+              end;
+          66: begin
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].flags6_ex := mobj_val  // DelphiDoom specific
+                else
+                begin
+                  mobj_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    mobj_flag := mobj_flags6_ex_hash.IndexOf('MF6_EX_' + token3);
+                    if mobj_flag = -1 then
+                      mobj_flag := mobj_flags6_ex_hash.IndexOf(token3);
+                    if mobj_flag >= 0 then
+                    begin
+                      if mobj_setflag = -1 then
+                        mobj_setflag := 0;
+                      mobj_flag := _SHL(1, mobj_flag);
+                      mobj_setflag := mobj_setflag or mobj_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if mobj_setflag <> -1 then
+                    mobjinfo[mobj_no].flags6_ex := mobj_setflag;
+
+                end;
+              end;
+          67: begin // .mbf21flags
+                ismbf21 := true;
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].mbf21bits := mobj_val
+                else
+                begin
+                  mobj_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    if Pos('MF2_', token3) = 1 then
+                      Delete(token3, 1, 4);
+                    if Pos('MBM21_', token3) = 1 then
+                      Delete(token3, 1, 6);
+                    if token3 <> '' then
+                    begin
+                      mobj_flag := mobj_flags_mbf21_hash.IndexOf(token3);
+                      if mobj_flag >= 0 then
+                      begin
+                        if mobj_setflag = -1 then
+                          mobj_setflag := 0;
+                        mobj_flag := _SHL(1, mobj_flag);
+                        mobj_setflag := mobj_setflag or mobj_flag;
+                      end;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if mobj_setflag <> -1 then
+                    mobjinfo[mobj_no].mbf21bits := mobj_setflag;
+                end;
+              end;
+          68: begin // .infighting_group (MBF21)
+                group := Info_InfightingGroupToInt(token2);
+                if group <> IG_INVALID then
+                  mobjinfo[mobj_no].infighting_group := group;
+              end;
+          69: begin // .projectile_group (MBF21)
+                group := Info_ProjectileGroupToInt(token2);
+                if group <> PG_INVALID then
+                  mobjinfo[mobj_no].projectile_group := group;
+              end;
+          70: begin // .splash_group (MBF21)
+                group := Info_SplashGroupToInt(token2);
+                if group <> SG_INVALID then
+                  mobjinfo[mobj_no].splash_group := group;
+              end;
+          71: mobjinfo[mobj_no].ripsound := S_GetSoundNumForName(token2); // .ripsound (MBF21)
+          72: mobjinfo[mobj_no].crushstate := mobj_val;
+          75: mobjinfo[mobj_no].bloodcolor := R_GetBloodTranslationIdForName(token2);
+          76: mobjinfo[mobj_no].translationname := strupper(token2);
+          78: mobjinfo[mobj_no].missileheight := mobj_val;
+          79: mobjinfo[mobj_no].meleethreshold := mobj_val;
         end;
       end;
 
+      if istransparent then
+        mobjinfo[mobj_no].flags_ex := mobjinfo[mobj_no].flags_ex or MF_EX_TRANSPARENT;
+      if isfriend then
+        mobjinfo[mobj_no].flags2_ex := mobjinfo[mobj_no].flags2_ex or MF2_EX_FRIEND;
+      if isbouncy then
+        mobjinfo[mobj_no].flags3_ex := mobjinfo[mobj_no].flags3_ex or MF3_EX_BOUNCE;
+
+      P_ResolveMBF21Flags(@mobjinfo[mobj_no]);
     end
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = 'FRAME') or (token1 = 'STATE') then
@@ -610,7 +806,7 @@ begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse a frame ///////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
       begin
         I_Warning('DEH_Parse(): State number unspecified after %s keyword'#13#10, [token1]);
@@ -625,7 +821,7 @@ begin
         state_no := atoi(stmp, -1);
         if stmp = '' then
         begin
-          I_Warning('DEH_Parse(): New state number unspecified after %s keyword'#13#10, [firstword(token2)]);
+          I_Warning('DEH_Parse(): New state number unspecified after %s keyword'#13#10, [firstword_ch(token2)]);
           continue;
         end;
         if state_no < 0 then
@@ -659,13 +855,13 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         state_idx := state_tokens.IndexOf(token1);
 
         if state_idx = -1 then
@@ -681,7 +877,7 @@ begin
            0: states[state_no].sprite := Info_GetSpriteNumForName(token2);
            1:
             begin
-              if firstword(token2) = 'BRIGHT' then
+              if firstword_ch(token2) = 'BRIGHT' then
                 states[state_no].frame := FF_FULLBRIGHT + atoi(secondword(token2))
               else
                 states[state_no].frame := state_val;
@@ -689,7 +885,7 @@ begin
            2: states[state_no].tics := state_val;
            3:
             begin
-              fw := firstword(token2);
+              fw := firstword_ch(token2);
               if (fw = 'ORIGINALSTATE') or (fw = 'ORIGINALFRAME') or (fw = 'ORIGINAL') then
               begin
                 state_val := atoi(secondword(token2));
@@ -740,6 +936,8 @@ begin
 
                 if foundaction then
                 begin
+                  if states[state_no].params <> nil then
+                    states[state_no].params.Free;
                   if token4 <> '' then
                     states[state_no].params := TCustomParamList.Create(SC_FixParenthesisLevel(token4));
                 end
@@ -750,7 +948,7 @@ begin
            5: states[state_no].misc1 := state_val;
            6: states[state_no].misc2 := state_val;
            7: begin
-                if state_val >= 0 then
+                if itoa(state_val) = token2 then
                   states[state_no].flags_ex := state_val  // DelphiDoom specific (lighting, transparency, etc)
                 else
                 begin
@@ -778,12 +976,68 @@ begin
               end;
            8: Info_AddStateOwner(@states[state_no], Info_GetMobjNumForName(token2));
            9: states[state_no].tics2 := state_val;
+          10: begin
+                states[state_no].args[0] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG1_DEFINED;
+              end;
+          11: begin
+                states[state_no].args[1] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG2_DEFINED;
+              end;
+          12: begin
+                states[state_no].args[2] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG3_DEFINED;
+              end;
+          13: begin
+                states[state_no].args[3] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG4_DEFINED;
+              end;
+          14: begin
+                states[state_no].args[4] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG5_DEFINED;
+              end;
+          15: begin
+                states[state_no].args[5] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG6_DEFINED;
+              end;
+          16: begin
+                states[state_no].args[6] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG7_DEFINED;
+              end;
+          17: begin
+                states[state_no].args[7] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG8_DEFINED;
+              end;
+          18: begin // MBF21
+                if itoa(state_val) = token2 then
+                  states[state_no].mbf21bits := state_val
+                else
+                begin
+                  state_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    state_flag := state_flags_mbf21.IndexOf(token3);
+                    if state_flag >= 0 then
+                    begin
+                      if state_setflag = -1 then
+                        state_setflag := 0;
+                      state_flag := _SHL(1, state_flag);
+                      state_setflag := state_setflag or state_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if state_setflag <> -1 then
+                    states[state_no].mbf21bits := state_setflag;
+
+                end;
+              end;
         end;
       end;
+
+      // MBF21
+      if states[state_no].mbf21bits <> 0 then
+        ismbf21 := true;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'TEXT' then
@@ -792,7 +1046,7 @@ begin
     // Parse a text ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
       stmp := token2;
-      splitstring(stmp, token1, token2);
+      splitstring_ch(stmp, token1, token2);
 
       len1 := atoi(token1, -1);
       if len1 <= 0 then
@@ -868,10 +1122,10 @@ begin
                     Chr(sprnames[j] shr 24 and $FF);
             if stmp = token1 then
             begin
-              sprnames[j] := Ord(token2[1]) +
-                             Ord(token2[2]) shl 8 +
-                             Ord(token2[3]) shl 16 +
-                             Ord(token2[4]) shl 24;
+              sprnames[j] := Ord(toupper(token2[1])) +
+                             Ord(toupper(token2[2])) shl 8 +
+                             Ord(toupper(token2[3])) shl 16 +
+                             Ord(toupper(token2[4])) shl 24;
               foundtext := true;
               break;
             end;
@@ -883,9 +1137,6 @@ begin
         I_Warning('DEH_Parse(): Can not find setable text "%s" - should be changed to "%s"'#13#10, [settext, token2]);
 
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'POINTER' then
@@ -900,7 +1151,7 @@ begin
         continue;
 
       SetLength(stmp, length(stmp) - 1);
-      splitstring(stmp, token1, token2);
+      splitstring_ch(stmp, token1, token2);
       if token1 <> 'FRAME' then
         continue;
 
@@ -911,13 +1162,13 @@ begin
       if not DEH_NextLine(s, str, i) then
         break;
 
-      if Pos('=', str) = 0 then
+      if CharPos('=', str) = 0 then
       begin
         mustnextline := false; // Already got line
         continue;
       end;
 
-      splitstring(str, token1, token2, '=');
+      splitstring_ch(str, token1, token2, '=');
       if token1 <> 'CODEP FRAME' then
       begin
         mustnextline := false; // Already got line
@@ -937,16 +1188,13 @@ begin
         I_Warning('DEH_Parse(): Invalid state number "%s" while parsing CODEP FRAME'#13#10, [token2]);
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'SOUND' then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse a sound ///////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
         continue;
 
@@ -970,14 +1218,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         sound_idx := sound_tokens.IndexOf(token1);
 
         if sound_idx = -1 then
@@ -996,16 +1244,13 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'MAX MANA' then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse ammo //////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
         continue;
 
@@ -1014,16 +1259,13 @@ begin
         MAX_MANA := ammo_val;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'WEAPON' then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse weapon ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
         continue;
 
@@ -1050,14 +1292,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         weapon_idx := weapon_tokens.IndexOf(token1);
 
         if weapon_idx = -1 then
@@ -1080,7 +1322,7 @@ begin
         begin
           if weapon_idx in [1, 2, 3, 4, 5, 6] then
           begin
-            stmp := firstword(token2);
+            stmp := firstword_ch(token2);
             if (stmp = 'NEWFRAME') or (stmp = 'NEWSTATE') then  // JVAL: a new defined state
             begin
               weapon_val := atoi(secondword(token2), -1);
@@ -1101,14 +1343,12 @@ begin
               end;
             end;
           end
-          else
+          else if weapon_idx = 7 then
           begin
-            I_Warning('DEH_Parse(): Invalid state number (%s) (Weapon number = %d)'#13#10, [token2, weapon_no]);
+            I_Warning('DEH_Parse(): Positive number expected after keyword (%s) - (%s) (Weapon number = %d)'#13#10, [token1, token2, weapon_no]);
             continue;
           end;
-
         end;
-
 
         case weapon_idx of
            0: WeaponInfo[weapon_no, weapon_class].mana := manatype_t(weapon_val);
@@ -1118,24 +1358,121 @@ begin
            4: WeaponInfo[weapon_no, weapon_class].atkstate := weapon_val;
            6: WeaponInfo[weapon_no, weapon_class].holdatkstate := weapon_val;
            5: WeaponInfo[weapon_no, weapon_class].flashstate := weapon_val;
+           7: begin
+                WeaponManaUse[weapon_class, weapon_no] := weapon_val;  // MBF21
+                WeaponInfo[weapon_no, weapon_class].intflags := WeaponInfo[weapon_no, weapon_class].intflags or WIF_ENABLEAPS;
+              end;
+           8: begin // MBF21
+                if itoa(weapon_val) = token2 then
+                  WeaponInfo[weapon_no, weapon_class].mbf21bits := weapon_val
+                else
+                begin
+                  weapon_val := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    weapon_flag := weapon_flags_mbf21.IndexOf(token3);
+                    if weapon_flag >= 0 then
+                    begin
+                      if weapon_val = -1 then
+                        weapon_val := 0;
+                      weapon_flag := _SHL(1, weapon_flag);
+                      weapon_val := weapon_val or weapon_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if weapon_val <> -1 then
+                    WeaponInfo[weapon_no, weapon_class].mbf21bits := weapon_val;
+
+                end;
+              end;
+
         end;
       end;
 
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
-    else if token1 = 'SPRITE' then
+    else if (token1 = '[SPRITES]') or (token1 = 'SPRITES') then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse sprite ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
+      while true do
+      begin
+        if not DEH_NextLine(s, str, i) then
+          break;
+
+        if CharPos('=', str) = 0 then
+        begin
+          mustnextline := false; // Already got line
+          break;
+        end;
+
+        splitstring_ch(str, token1, token2, '=');
+
+        sprite_idx := -1;
+        sprite_val := atoi(token1, -1);
+        if IsIntegerInRange(sprite_val, 0, Ord(DO_NUMSPRITES) - 1) then
+        begin
+          sprite_idx := sprite_val;
+          token1 := DO_sprnames[sprite_idx];
+        end
+        else if (numsprites >= Ord(DO_NUMSPRITES)) and IsIntegerInRange(sprite_val, Ord(DO_NUMSPRITES), numsprites) then
+        begin
+          sprite_idx := sprite_val;
+          token1 := Chr(sprnames[sprite_idx] and $FF) +
+                    Chr(sprnames[sprite_idx] shr 8 and $FF) +
+                    Chr(sprnames[sprite_idx] shr 16 and $FF) +
+                    Chr(sprnames[sprite_idx] shr 24 and $FF);
+        end;
+
+        if length(token1) <> 4 then
+        begin
+          I_Warning('DEH_Parse(): Sprite name with %d characters = %s'#13#10, [length(token1), token1]);
+          Continue;
+        end;
+
+        if length(token2) <> 4 then
+        begin
+          I_Warning('DEH_Parse(): Sprite name with %d characters = %s'#13#10, [length(token2), token2]);
+          Continue;
+        end;
+
+        strupperproc(token1);
+        strupperproc(token2);
+
+        // JVAL: Check the original sprite names (https://eternity.youfailit.net/wiki/DeHackEd_/_BEX_Reference/Eternity_Extension:_SPRITES_Block)
+        if sprite_idx < 0 then
+        begin
+          for j := 0 to Ord(DO_NUMSPRITES) - 1 do
+            if DO_sprnames[j] = token1 then
+            begin
+              sprite_idx := j;
+              break;
+            end;
+          if sprite_idx < 0 then
+            for j := Ord(DO_NUMSPRITES) to numsprites - 1 do
+              if Chr(sprnames[j] and $FF) + Chr(sprnames[j] shr 8 and $FF) +
+                Chr(sprnames[j] shr 16 and $FF) + Chr(sprnames[j] shr 24 and $FF) = token1 then
+              begin
+                sprite_idx := j;
+                break;
+              end;
+        end;
+
+        if sprite_idx < 0 then
+        begin
+          I_Warning('DEH_Parse(): Can not find sprite = %s'#13#10, [token1]);
+          Continue;
+        end;
+
+        sprnames[sprite_idx] :=
+          Ord(token2[1]) +
+          Ord(token2[2]) shl 8 +
+          Ord(token2[3]) shl 16 +
+          Ord(token2[4]) shl 24;
+      end;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'CHEAT' then
@@ -1144,9 +1481,6 @@ begin
     // Parse cheat /////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'MISC' then
@@ -1159,14 +1493,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
 
         misc_idx := misc_tokens.IndexOf(token1);
 
@@ -1196,9 +1530,6 @@ begin
 
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[STRINGS]') or (token1 = 'STRINGS') then // BEX
     begin
@@ -1209,7 +1540,7 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
@@ -1223,7 +1554,7 @@ begin
           str := str + stmp;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
 
         for j := 0 to deh_strings.numstrings - 1 do
           if deh_strings._array[j].name = token1 then
@@ -1233,9 +1564,6 @@ begin
           end;
       end;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[CODEPTR]') or (token1 = 'CODEPTR') then // BEX
@@ -1247,14 +1575,14 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, stmp, token3, '=');
-        splitstring(stmp, token1, token2);
+        splitstring_ch(str, stmp, token3, '=');
+        splitstring_ch(stmp, token1, token2);
 
         if token1 <> 'FRAME' then
           continue;
@@ -1287,14 +1615,13 @@ begin
               end;
           end;
 
+          if states[state_no].params <> nil then
+            states[state_no].params.Free;
           if token5 <> '' then
             states[state_no].params := TCustomParamList.Create(SC_FixParenthesisLevel(token5));
         end;
       end;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[MUSIC]') or (token1 = 'MUSIC') then // BEX
@@ -1306,18 +1633,18 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         if (length(token2) > 0) and (token2[1] = '(') and (token2[length(token2)] = ')') then
           S_music[music_idx].name := ''
         else
         begin
-          token2 := firstword(token2);
+          token2 := firstword_ch(token2);
 
           music_idx := atoi(token1, -1);
           if (music_idx >= 1) and (music_idx < nummusic) then
@@ -1348,9 +1675,6 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[SOUND]') or (token1 = '[SOUNDS]') then // BEX
     begin
@@ -1361,13 +1685,13 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
 
         sound_idx := atoi(token1, -1);
         if (sound_idx >= 1) and (sound_idx < numsfx) then
@@ -1393,9 +1717,6 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = 'SUBMITNEWSTATES') or (token1 = 'SUBMITNEWFRAMES') then // DelphiDoom specific
     begin
@@ -1417,9 +1738,14 @@ begin
   memfree(pointer(code_ptrs), numstates * SizeOf(actionf_t));
 end;
 
+//==============================================================================
+//
+// DEH_CurrentSettings
+//
+//==============================================================================
 function DEH_CurrentSettings: TDStringList;
 var
-  i, j: integer;
+  i, j, k: integer;
   str: string;
   cmdln: string;
 begin
@@ -1613,9 +1939,51 @@ begin
     result.Add('%s = %d', [capitalizedstring(mobj_tokens[62]), mobjinfo[i].spriteDX]);
     result.Add('%s = %d', [capitalizedstring(mobj_tokens[63]), mobjinfo[i].spriteDY]);
     result.Add('%s = %d', [capitalizedstring(mobj_tokens[64]), mobjinfo[i].interactstate]);
+
+    str := '';
+    for j := 0 to mobj_flags5_ex.Count - 1 do
+    begin
+      if mobjinfo[i].flags5_ex and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + mobj_flags5_ex[j];
+      end;
+    end;
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(mobj_tokens[65])])
+    else
+      result.Add('%s = %s', [capitalizedstring(mobj_tokens[65]), str]);
+
+    str := '';
+    for j := 0 to mobj_flags6_ex.Count - 1 do
+    begin
+      if mobjinfo[i].flags6_ex and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + mobj_flags6_ex[j];
+      end;
+    end;
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(mobj_tokens[66])])
+    else
+      result.Add('%s = %s', [capitalizedstring(mobj_tokens[66]), str]);
+
+    // MBF21
+    // JVAL: 20220105 - Ignore mbf21bits since they are merged into flagsXX
+    result.Add('%s = %s', [capitalizedstring(mobj_tokens[68]), Info_InfightingGroupToString(mobjinfo[i].infighting_group)]);
+    result.Add('%s = %s', [capitalizedstring(mobj_tokens[60]), Info_ProjectileGroupToString(mobjinfo[i].projectile_group)]);
+    result.Add('%s = %s', [capitalizedstring(mobj_tokens[70]), Info_SplashGroupToString(mobjinfo[i].splash_group)]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[71]), mobjinfo[i].ripsound]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[72]), mobjinfo[i].crushstate]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[75]), mobjinfo[i].bloodcolor]);
+    result.Add('%s = "%s"', [capitalizedstring(mobj_tokens[76]), mobjinfo[i].translationname]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[78]), mobjinfo[i].missileheight]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[79]), mobjinfo[i].meleethreshold]);
+
     result.Add('');
   end;
-
 
   result.Add('');
   result.Add('# States');
@@ -1661,17 +2029,33 @@ begin
         str := str + state_flags_ex[j];
       end;
     end;
+
+    if i = 1 then
+      result.Add('# Flags_ex is DelphiHexen specific and declares transparency and light effects');
+
     if str = '' then
       result.Add('%s = 0', [capitalizedstring(state_tokens[7])])
     else
       result.Add('%s = %s', [capitalizedstring(state_tokens[7]), str]);
 
-    if i = 1 then
-      result.Add('# Flags_ex is DelphiHexen specific and declares transparency and light effects');
+    // MBF21
+    str := '';
+    for j := 0 to state_flags_mbf21.Count - 1 do
+    begin
+      if states[i].mbf21bits and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + state_flags_mbf21[j];
+      end;
+    end;
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(state_tokens[18])])
+    else
+      result.Add('%s = %s', [capitalizedstring(state_tokens[18]), str]);
 
     result.Add('');
   end;
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Add Weapons
@@ -1691,10 +2075,28 @@ begin
       result.Add('%s = %d', [capitalizedstring(weapon_tokens[4]), WeaponInfo[i, j].atkstate]);
       result.Add('%s = %d', [capitalizedstring(weapon_tokens[6]), WeaponInfo[i, j].holdatkstate]);
       result.Add('%s = %d', [capitalizedstring(weapon_tokens[5]), WeaponInfo[i, j].flashstate]);
+      result.Add('%s = %d', [capitalizedstring(weapon_tokens[7]), WeaponManaUse[j, i]]);
+
+      // MBF
+      str := '';
+      for k := 0 to weapon_flags_mbf21.Count - 1 do
+      begin
+        if WeaponInfo[i, j].mbf21bits and _SHL(1, k) <> 0 then
+        begin
+          if str <> '' then
+            str := str + ', ';
+          str := str + weapon_flags_mbf21[k];
+        end;
+      end;
+
+      // MBF
+      if str = '' then
+        result.Add('%s = 0', [capitalizedstring(weapon_tokens[8])])
+      else
+        result.Add('%s = %s', [capitalizedstring(weapon_tokens[8]), str]);
 
       result.Add('');
     end;
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Add Misc
@@ -1712,8 +2114,6 @@ begin
   result.Add('%s = %d', [capitalizedstring(misc_tokens[4]), MAX_MANA]);
 
   result.Add('');
-
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Add strings
@@ -1753,18 +2153,19 @@ begin
     result.Add('%d = %s', [i, S_sfx[i].name]);
   result.Add('');
 
-
   result.Add(StringOfChar('#', 80));
   result.Add('# End of file');
   result.Add(StringOfChar('#', 80));
 end;
 
+//==============================================================================
 //
 // DEH_Init
 //
 // JVAL
 // Initializing DEH tokens
 //
+//==============================================================================
 procedure DEH_Init;
 var
   i: integer;
@@ -1843,10 +2244,24 @@ begin
   mobj_tokens.Add('SPRITE DX');          // .spriteDX                 // 62
   mobj_tokens.Add('SPRITE DY');          // .spriteDY                 // 63
   mobj_tokens.Add('INTERACT FRAME');     // .interactstate (DelphiDoom) // 64
+  mobj_tokens.Add('FLAGS5_EX');          // .flags5_ex (DelphiDoom)   // 65
+  mobj_tokens.Add('FLAGS6_EX');          // .flags6_ex (DelphiDoom)   // 66
+  mobj_tokens.Add('MBF21 BITS');         // .mbf21flags               // 67
+  mobj_tokens.Add('INFIGHTING GROUP');   // .infighting_group         // 68
+  mobj_tokens.Add('PROJECTILE GROUP');   // .projectile_group         // 69
+  mobj_tokens.Add('SPLASH GROUP');       // .splash_group             // 70
+  mobj_tokens.Add('RIP SOUND');          // .ripsound                 // 71
+  mobj_tokens.Add('CRUSH FRAME');        // .crushstate               // 72
+  mobj_tokens.Add('ACTIVE SOUND');       // .activesound              // 73 - Alias for 20
+  mobj_tokens.Add('RADIUS');             // .radius                   // 74 - Alias for 16
+  mobj_tokens.Add('BLOOD COLOR');        // .bloodcolor               // 75
+  mobj_tokens.Add('TRANSLATION');        // .translationname          // 76
+  mobj_tokens.Add('DROPPED ITEM');       // .dropitem                 // 77 - Alias for 36
+  mobj_tokens.Add('MISSILEHEIGHT');      // .missileheight (DelphiDoom) // 78
+  mobj_tokens.Add('MELEE THRESHOLD');    // .meleethreshold           // 79
 
   mobj_tokens_hash := TDEHStringsHashTable.Create;
   mobj_tokens_hash.AssignList(mobj_tokens);
-
 
   mobj_flags := TDTextList.Create;
   mobj_flags.Add('MF_SPECIAL');
@@ -1875,16 +2290,15 @@ begin
   mobj_flags.Add('MF_ICECORPSE');
   mobj_flags.Add('MF_SKULLFLY');
   mobj_flags.Add('MF_NOTDMATCH');
-  mobj_flags.Add('MF_TRANSLATION');
-  mobj_flags.Add('MF_UNUSED1');
-  mobj_flags.Add('MF_UNUSED2');
+  mobj_flags.Add('MF_TRANSLATION1');
+  mobj_flags.Add('MF_TRANSLATION2');
+  mobj_flags.Add('MF_TRANSLATION3');
   mobj_flags.Add('MF_UNUSED3');
   mobj_flags.Add('MF_UNUSED4');
   mobj_flags.Add('MF_TRANSLUCENT');
 
   mobj_flags_hash := TDEHStringsHashTable.Create;
   mobj_flags_hash.AssignList(mobj_flags);
-
 
   mobj_flags2 := TDTextList.Create;
   mobj_flags2.Add('MF2_LOGRAV');
@@ -1922,7 +2336,6 @@ begin
   mobj_flags2_hash := TDEHStringsHashTable.Create;
   mobj_flags2_hash.AssignList(mobj_flags2);
 
-
   mobj_flags_ex := TDTextList.Create;
   mobj_flags_ex.Add('MF_EX_TRANSPARENT');
   mobj_flags_ex.Add('MF_EX_WHITELIGHT');
@@ -1959,7 +2372,6 @@ begin
   mobj_flags_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags_ex_hash.AssignList(mobj_flags_ex);
 
-
   mobj_flags2_ex := TDTextList.Create;
   mobj_flags2_ex.Add('MF2_EX_MEDIUMGRAVITY');
   mobj_flags2_ex.Add('MF2_EX_REFLECTIVE');
@@ -1983,17 +2395,19 @@ begin
   mobj_flags2_ex.Add('MF2_EX_JUMPUP');
   mobj_flags2_ex.Add('MF2_EX_DONTBLOCKPLAYER');
   mobj_flags2_ex.Add('MF2_EX_INTERACTIVE'); // JVAL: VERSION 207
+  mobj_flags2_ex.Add('MF2_EX_JUSTAPPEARED');
+  mobj_flags2_ex.Add('MF2_EX_DONTINFIGHTMONSTERS'); // JVAL: VERSION 207
+  mobj_flags2_ex.Add('MF2_EX_FRIEND'); // JVAL: VERSION 207
 
   mobj_flags2_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags2_ex_hash.AssignList(mobj_flags2_ex);
-
 
   mobj_flags3_ex := TDTextList.Create;
   mobj_flags3_ex.Add('MF3_EX_FLOORBOUNCE');
   mobj_flags3_ex.Add('MF3_EX_CEILINGBOUNCE');
   mobj_flags3_ex.Add('MF3_EX_WALLBOUNCE');
   mobj_flags3_ex.Add('MF3_EX_NOMAXMOVE');
-  mobj_flags3_ex.Add('MF3_EX_NOCRASH');
+  mobj_flags3_ex.Add('MF3_EX_NOCRUSH');
   // JVAL: VERSION 206
   mobj_flags3_ex.Add('MF3_EX_NORENDERINTERPOLATION');
   mobj_flags3_ex.Add('MF3_EX_LINEDONE');
@@ -2009,6 +2423,7 @@ begin
   mobj_flags3_ex.Add('MF3_EX_NOBLOCKMONST');
   mobj_flags3_ex.Add('MF3_EX_NOTAUTOAIMED');
   mobj_flags3_ex.Add('MF3_EX_SLIDING');
+  // JVAL: VERSION 207
   mobj_flags3_ex.Add('MF3_EX_ABSOLUTEDAMAGE');
   mobj_flags3_ex.Add('MF3_EX_NOGRAVITYDEATH');
   mobj_flags3_ex.Add('MF3_EX_FREEZEDAMAGE');
@@ -2020,15 +2435,77 @@ begin
   mobj_flags3_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags3_ex_hash.AssignList(mobj_flags3_ex);
 
-
   mobj_flags4_ex := TDTextList.Create;
   mobj_flags4_ex.Add('MF4_EX_FLAMEDAMAGERESIST');
   mobj_flags4_ex.Add('MF4_EX_THRUMONSTERS');
   mobj_flags4_ex.Add('MF4_EX_ABSOLUTEDROPITEMPOS');
+  mobj_flags4_ex.Add('MF4_EX_CANNOTSTEP');
+  mobj_flags4_ex.Add('MF4_EX_CANNOTDROPOFF');
+  mobj_flags4_ex.Add('MF4_EX_FORCERADIUSDMG');
+  mobj_flags4_ex.Add('MF4_EX_SHORTMRANGE');
+  mobj_flags4_ex.Add('MF4_EX_DMGIGNORED');
+  mobj_flags4_ex.Add('MF4_EX_HIGHERMPROB');
+  mobj_flags4_ex.Add('MF4_EX_RANGEHALF');
+  mobj_flags4_ex.Add('MF4_EX_NOTHRESHOLD');
+  mobj_flags4_ex.Add('MF4_EX_LONGMELEERANGE');
+  mobj_flags4_ex.Add('MF4_EX_TRACEDEFINED');
+  mobj_flags4_ex.Add('MF4_EX_MAP07BOSS1');
+  mobj_flags4_ex.Add('MF4_EX_MAP07BOSS2');
+  mobj_flags4_ex.Add('MF4_EX_SELFAPPLYINGLIGHT');
+  mobj_flags4_ex.Add('MF4_EX_FULLVOLRIP');
+  mobj_flags4_ex.Add('MF4_EX_RANDOMRIPSOUND');
+  mobj_flags4_ex.Add('MF4_EX_ALWAYSFINISHSOUND');
+  mobj_flags4_ex.Add('MF4_EX_NEVERFINISHSOUND');
+  mobj_flags4_ex.Add('MF4_EX_DONTGIB');
+  mobj_flags4_ex.Add('MF4_EX_BACKINGMELEE');
 
   mobj_flags4_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags4_ex_hash.AssignList(mobj_flags4_ex);
 
+  mobj_flags5_ex := TDTextList.Create;
+
+  mobj_flags5_ex_hash := TDEHStringsHashTable.Create;
+  mobj_flags5_ex_hash.AssignList(mobj_flags5_ex);
+
+  mobj_flags6_ex := TDTextList.Create;
+
+  mobj_flags6_ex_hash := TDEHStringsHashTable.Create;
+  mobj_flags6_ex_hash.AssignList(mobj_flags6_ex);
+
+  // MBF21
+  mobj_flags_mbf21 := TDTextList.Create;
+  mobj_flags_mbf21.Add('LOGRAV');
+  mobj_flags_mbf21.Add('SHORTMRANGE');
+  mobj_flags_mbf21.Add('DMGIGNORED');
+  mobj_flags_mbf21.Add('NORADIUSDMG');
+  mobj_flags_mbf21.Add('FORCERADIUSDMG');
+  mobj_flags_mbf21.Add('HIGHERMPROB');
+  mobj_flags_mbf21.Add('RANGEHALF');
+  mobj_flags_mbf21.Add('NOTHRESHOLD');
+  mobj_flags_mbf21.Add('LONGMELEE');
+  mobj_flags_mbf21.Add('BOSS');
+  mobj_flags_mbf21.Add('MAP07BOSS1');
+  mobj_flags_mbf21.Add('MAP07BOSS2');
+  mobj_flags_mbf21.Add('E1M8BOSS');
+  mobj_flags_mbf21.Add('E2M8BOSS');
+  mobj_flags_mbf21.Add('E3M8BOSS');
+  mobj_flags_mbf21.Add('E4M6BOSS');
+  mobj_flags_mbf21.Add('E4M8BOSS');
+  mobj_flags_mbf21.Add('RIP');
+  mobj_flags_mbf21.Add('FULLVOLSOUNDS');
+
+  mobj_flags_mbf21_hash := TDEHStringsHashTable.Create;
+  mobj_flags_mbf21_hash.AssignList(mobj_flags_mbf21);
+
+  infighting_groups := TDTextList.Create;
+  infighting_groups.Add('IG_DEFAULT');
+
+  projectile_groups := TDTextList.Create;
+  projectile_groups.Add('PG_DEFAULT');
+  projectile_groups.Add('PG_BARON');
+
+  splash_groups := TDTextList.Create;
+  splash_groups.Add('SG_DEFAULT');
 
   // JVAL: 20200330 - State flags
   state_flags_ex := TDTextList.Create;
@@ -2041,6 +2518,9 @@ begin
   state_flags_ex.Add('MF_EX_STATE_RANDOM_SELECT');
   state_flags_ex.Add('MF_EX_STATE_RANDOM_RANGE');
 
+  state_flags_mbf21 := TDTextList.Create; // MBF21
+  state_flags_mbf21.Add('STATEF_SKILL5FAST'); // MBF21
+
   state_tokens := TDTextList.Create;
   state_tokens.Add('SPRITE NUMBER');    // 0 //.sprite
   state_tokens.Add('SPRITE SUBNUMBER'); // 1 //.frame
@@ -2052,6 +2532,15 @@ begin
   state_tokens.Add('FLAGS_EX');         // 7 //.flags_ex (DelphiDoom)
   state_tokens.Add('OWNER');            // 8 //.Add an owner (DelphiDoom)
   state_tokens.Add('DURATION 2');       // 9 //.tics2
+  state_tokens.Add('ARGS1');            // 10 // .args[0]
+  state_tokens.Add('ARGS2');            // 11 // .args[1]
+  state_tokens.Add('ARGS3');            // 12 // .args[2]
+  state_tokens.Add('ARGS4');            // 13 // .args[3]
+  state_tokens.Add('ARGS5');            // 14 // .args[4]
+  state_tokens.Add('ARGS6');            // 15 // .args[5]
+  state_tokens.Add('ARGS7');            // 16 // .args[6]
+  state_tokens.Add('ARGS8');            // 17 // .args[7]
+  state_tokens.Add('MBF21 BITS');       // 18 // .mbf21bits
 
   deh_actions[0].action.acp1 := nil;
   deh_actions[0].name := 'NULL';
@@ -2089,7 +2578,7 @@ begin
   DEH_AddAction(@A_CFlameRotate, 'A_CFlameRotate()'); // 27
   DEH_AddAction(@A_Chase, 'A_Chase()'); // 28
   DEH_AddAction(@A_CheckBurnGone, 'A_CheckBurnGone()'); // 29
-  DEH_AddAction(@A_CheckFloor, 'A_CheckFloor()'); // 30
+  DEH_AddAction(@A_CheckFloor, 'A_CheckFloor(offset: integer)'); // 30
   DEH_AddAction(@A_CheckSkullDone, 'A_CheckSkullDone()'); // 31
   DEH_AddAction(@A_CheckSkullFloor, 'A_CheckSkullFloor()'); // 32
   DEH_AddAction(@A_CheckTeleRing, 'A_CheckTeleRing()'); // 33
@@ -2310,249 +2799,305 @@ begin
   DEH_AddAction(@A_MeleeAttack, 'A_MeleeAttack([mindamage: integer], [maxdamage: integer])'); // 248
   DEH_AddAction(@A_SpawnItem, 'A_SpawnItem(type: string, [distance: float], [zheight: float], [angle: angle])'); // 249
   DEH_AddAction(@A_SeekerMissile, 'A_SeekerMissile(threshold_angle: angle, [turnMax_angle: angle])'); // 250
-  DEH_AddAction(@A_CStaffMissileSlither, 'A_CStaffMissileSlither()'); // 251
-  DEH_AddAction(@A_SetTranslucent, 'A_SetTranslucent(alpha: float, [style: integer])'); // 252
-  DEH_AddAction(@A_Die, 'A_Die()'); // 253
-  DEH_AddAction(@A_CustomBulletAttack, 'A_CustomBulletAttack(spread_xy: angle, numbullets: integer, damageperbullet: integer, [range: integer])'); // 254
-  DEH_AddAction(@A_FadeOut, 'A_FadeOut(fade: float)'); // 255
-  DEH_AddAction(@A_FadeIn, 'A_FadeIn(fade: float)'); // 256
-  DEH_AddAction(@A_MissileAttack, 'A_MissileAttack([missiletype: string])'); // 257
-  DEH_AddAction(@A_AdjustSideSpot, 'A_AdjustSideSpot(sideoffset: float)'); // 258
-  DEH_AddAction(@A_Countdown, 'A_Countdown()'); // 259
-  DEH_AddAction(@A_FastChase, 'A_FastChase()'); // 260
-  DEH_AddAction(@A_LowGravity, 'A_LowGravity()'); // 261
-  DEH_AddAction(@A_ThrustZ, 'A_ThrustZ(momz: float, ang: angle)'); // 262
-  DEH_AddAction(@A_ThrustXY, 'A_ThrustXY(mom: float, ang: angle)'); // 263
-  DEH_AddAction(@A_Turn, 'A_Turn(value: angle)'); // 264
-  DEH_AddAction(@A_JumpIfCloser, 'A_JumpIfCloser(distancetotarget: float, offset: integer)'); // 265
-  DEH_AddAction(@A_JumpIfHealthLower, 'A_JumpIfHealthLower(health: integer, offset: integer)'); // 266
-  DEH_AddAction(@A_ScreamAndUnblock, 'A_ScreamAndUnblock()'); // 267
-  DEH_AddAction(@A_PlayWeaponsound, 'A_PlayWeaponsound(sound: string)'); // 268
-  DEH_AddAction(@A_SetInvulnerable, 'A_SetInvulnerable()'); // 269
-  DEH_AddAction(@A_UnSetInvulnerable, 'A_UnSetInvulnerable()'); // 270
-  DEH_AddAction(@A_RandomMeleeSound, 'A_RandomMeleeSound()'); // 271
-  DEH_AddAction(@A_FloatBob, 'A_FloatBob()'); // 272
-  DEH_AddAction(@A_NoFloatBob, 'A_NoFloatBob()'); // 273
-  DEH_AddAction(@A_Missile, 'A_Missile()'); // 274
-  DEH_AddAction(@A_NoMissile, 'A_NoMissile()'); // 275
-  DEH_AddAction(@A_ComboAttack, 'A_ComboAttack()'); // 276
-  DEH_AddAction(@A_BulletAttack, 'A_BulletAttack([numbullets: integer])'); // 277
-  DEH_AddAction(@A_MediumGravity, 'A_MediumGravity()'); // 278
-  DEH_AddAction(@A_FadeOut10, 'A_FadeOut10()'); // 279
-  DEH_AddAction(@A_FadeOut20, 'A_FadeOut20()'); // 280
-  DEH_AddAction(@A_FadeOut30, 'A_FadeOut30()'); // 281
-  DEH_AddAction(@A_FadeIn10, 'A_FadeIn10()'); // 282
-  DEH_AddAction(@A_FadeIn20, 'A_FadeIn20()'); // 283
-  DEH_AddAction(@A_FadeIn30, 'A_FadeIn30()'); // 284
-  DEH_AddAction(@A_SpawnItemEx, 'A_SpawnItemEx(itemtype: string, [xofs: float], [yofs: float], [zofs: float], [momx: float], [momy: float], [momz: float], [ang: angle], [flags: integer], [chance: integer])'); // 285
-  DEH_AddAction(@A_RandomMissile, 'A_RandomMissile(missile1: string, [missile2: string], ...)'); // 286
-  DEH_AddAction(@P_RemoveMobj, 'A_RemoveSelf()'); // 287
-  DEH_AddAction(@A_GoTo, 'A_GoTo(propability: random_t, state: state_t)'); // 288
-  DEH_AddAction(@A_GoToIfCloser, 'A_GoToIfCloser(distancetotarget: float, state: state_t)'); // 289
-  DEH_AddAction(@A_GoToIfHealthLower, 'A_GoToIfHealthLower(health: integer, state: state_t)'); // 290
-  DEH_AddAction(@A_ConsoleCommand, 'A_ConsoleCommand(cmd: string, [parm1: string], [parm2: string], ...)'); // 291
-  DEH_AddAction(@A_SetFrightened, 'A_SetFrightened()'); // 292
-  DEH_AddAction(@A_UnSetFrightened, 'A_UnSetFrightened()'); // 293
-  DEH_AddAction(@A_SetCustomParam, 'A_SetCustomParam(param: string, value: integer)'); // 294
-  DEH_AddAction(@A_AddCustomParam, 'A_AddCustomParam(param: string, value: integer)'); // 295
-  DEH_AddAction(@A_SubtractCustomParam, 'A_SubtractCustomParam(param: string, value: integer)'); // 296
-  DEH_AddAction(@A_SetTargetCustomParam, 'A_SetTargetCustomParam(param: string, value: integer)'); // 297
-  DEH_AddAction(@A_AddTargetCustomParam, 'A_AddTargetCustomParam(param: string, value: integer)'); // 298
-  DEH_AddAction(@A_SubtractTargetCustomParam, 'A_SubtractTargetCustomParam(param: string, value: integer)'); // 299
-  DEH_AddAction(@A_JumpIfCustomParam, 'A_JumpIfCustomParam(param: string, value: integer, offset: integer)'); // 300
-  DEH_AddAction(@A_JumpIfCustomParamLess, 'A_JumpIfCustomParamLess(param: string, value: integer, offset: integer)'); // 301
-  DEH_AddAction(@A_JumpIfCustomParamGreater, 'A_JumpIfCustomParamGreater(param: string, value: integer, offset: integer)'); // 302
-  DEH_AddAction(@A_JumpIfTargetCustomParam, 'A_JumpIfTargetCustomParam(param: string, value: integer, offset: integer)'); // 303
-  DEH_AddAction(@A_JumpIfTargetCustomParamLess, 'A_JumpIfTargetCustomParamLess(param: string, value: integer, offset: integer)'); // 304
-  DEH_AddAction(@A_JumpIfTargetCustomParamGreater, 'A_JumpIfTargetCustomParamGreater(param: string, value: integer, offset: integer)'); // 305
-  DEH_AddAction(@A_GoToIfCustomParam, 'A_GoToIfCustomParam(param: string, value: integer, state: state_t)'); // 306
-  DEH_AddAction(@A_GoToIfCustomParamLess, 'A_GoToIfCustomParamLess(param: string, value: integer, state: state_t)'); // 307
-  DEH_AddAction(@A_GoToIfCustomParamGreater, 'A_GoToIfCustomParamGreater(param: string, value: integer, state: state_t)'); // 308
-  DEH_AddAction(@A_GoToIfTargetCustomParam, 'A_GoToIfTargetCustomParam(param: string, value: integer, state: state_t)'); // 309
-  DEH_AddAction(@A_GoToIfTargetCustomParamLess, 'A_GoToIfTargetCustomParamLess(param: string, value: integer, state: state_t)'); // 310
-  DEH_AddAction(@A_GoToIfTargetCustomParamGreater, 'A_GoToIfTargetCustomParamGreater(param: string, value: integer, state: state_t)'); // 311
-  DEH_AddAction(@A_SetNoDamage, 'A_SetNoDamage()'); // 312
-  DEH_AddAction(@A_UnSetNoDamage, 'A_UnSetNoDamage()'); // 313
-  DEH_AddAction(@A_RunScript, 'A_RunScript(script1: string, [script2: string], ...)'); // 314
-  DEH_AddAction(@A_GhostOn, 'A_GhostOn()'); // 315
-  DEH_AddAction(@A_GhostOff, 'A_GhostOff()'); // 316
-  DEH_AddAction(@A_Turn5, 'A_Turn5()'); // 317
-  DEH_AddAction(@A_Turn10, 'A_Turn10()'); // 318
-  DEH_AddAction(@A_Blocking, 'A_Blocking()'); // 319
-  DEH_AddAction(@A_DoNotRunScripts, 'A_DoNotRunScripts()'); // 320
-  DEH_AddAction(@A_DoRunScripts, 'A_DoRunScripts()'); // 321
-  DEH_AddAction(@A_TargetDropItem, 'A_TargetDropItem(dropitemtype: string)'); // 322
-  DEH_AddAction(@A_DefaultTargetDropItem, 'A_DefaultTargetDropItem()'); // 323
-  DEH_AddAction(@A_SetDropItem, 'A_SetDropItem(dropitemtype: string)'); // 324
-  DEH_AddAction(@A_SetDefaultDropItem, 'A_SetDefaultDropItem()'); // 325
-  DEH_AddAction(@A_GlobalEarthQuake, 'A_GlobalEarthQuake(tics: integer)'); // 326
-  DEH_AddAction(@A_JumpIfMapStringEqual, 'A_JumpIfMapStringEqual(parm: string, value: string, offset; integer)'); // 327
-  DEH_AddAction(@A_JumpIfMapStringLess, 'A_JumpIfMapStringLess(parm: string, value: string, offset; integer)'); // 328
-  DEH_AddAction(@A_JumpIfMapStringGreater, 'A_JumpIfMapStringGreater(parm: string, value: string, offset; integer)'); // 329
-  DEH_AddAction(@A_JumpIfMapIntegerEqual, 'A_JumpIfMapIntegerEqual(parm: string, value: integer, offset: integer)'); // 330
-  DEH_AddAction(@A_JumpIfMapIntegerLess, 'A_JumpIfMapIntegerLess(parm: string, value: integer, offset: integer)'); // 331
-  DEH_AddAction(@A_JumpIfMapIntegerGreater, 'A_JumpIfMapIntegerGreater(parm: string, value: integer, offset: integer)'); // 332
-  DEH_AddAction(@A_JumpIfMapFloatEqual, 'A_JumpIfMapFloatEqual(parm: string, value: float, offset: integer)'); // 333
-  DEH_AddAction(@A_JumpIfMapFloatLess, 'A_JumpIfMapFloatLess(parm: string, value: float, offset: integer)'); // 334
-  DEH_AddAction(@A_JumpIfMapFloatGreater, 'A_JumpIfMapFloatGreater(parm: string, value: float, offset: integer)'); // 335
-  DEH_AddAction(@A_JumpIfWorldStringEqual, 'A_JumpIfWorldStringEqual(parm: string, value: string, offset: integer)'); // 336
-  DEH_AddAction(@A_JumpIfWorldStringLess, 'A_JumpIfWorldStringLess(parm: string, value: string, offset: integer)'); // 337
-  DEH_AddAction(@A_JumpIfWorldStringGreater, 'A_JumpIfWorldStringGreater(parm: string, value: string, offset: integer)'); // 338
-  DEH_AddAction(@A_JumpIfWorldIntegerEqual, 'A_JumpIfWorldIntegerEqual(parm: string, value: integer, offset: integer)'); // 339
-  DEH_AddAction(@A_JumpIfWorldIntegerLess, 'A_JumpIfWorldIntegerLess(parm: string, value: integer, offset: integer)'); // 340
-  DEH_AddAction(@A_JumpIfWorldIntegerGreater, 'A_JumpIfWorldIntegerGreater(parm: string, value: integer, offset: integer)'); // 341
-  DEH_AddAction(@A_JumpIfWorldFloatEqual, 'A_JumpIfWorldFloatEqual(parm: string, value: float, offset: integer)'); // 342
-  DEH_AddAction(@A_JumpIfWorldFloatLess, 'A_JumpIfWorldFloatLess(parm: string, value: float, offset: integer)'); // 343
-  DEH_AddAction(@A_JumpIfWorldFloatGreater, 'A_JumpIfWorldFloatGreater(parm: string, value: float, offset: integer)'); // 344
-  DEH_AddAction(@A_GoToIfMapStringEqual, 'A_GoToIfMapStringEqual(parm: string, value: string, state: state_t)'); // 345
-  DEH_AddAction(@A_GoToIfMapStringLess, 'A_GoToIfMapStringLess(parm: string, value: string, state: state_t)'); // 346
-  DEH_AddAction(@A_GoToIfMapStringGreater, 'A_GoToIfMapStringGreater(parm: string, value: string, state: state_t)'); // 347
-  DEH_AddAction(@A_GoToIfMapIntegerEqual, 'A_GoToIfMapIntegerEqual(parm: string, value: integer, state: state_t)'); // 348
-  DEH_AddAction(@A_GoToIfMapIntegerLess, 'A_GoToIfMapIntegerLess(parm: string, value: integer, state: state_t)'); // 349
-  DEH_AddAction(@A_GoToIfMapIntegerGreater, 'A_GoToIfMapIntegerGreater(parm: string, value: integer, state: state_t)'); // 350
-  DEH_AddAction(@A_GoToIfMapFloatEqual, 'A_GoToIfMapFloatEqual(parm: string, value: float, state: state_t)'); // 351
-  DEH_AddAction(@A_GoToIfMapFloatLess, 'A_GoToIfMapFloatLess(parm: string, value: float, state: state_t)'); // 352
-  DEH_AddAction(@A_GoToIfMapFloatGreater, 'A_GoToIfMapFloatGreater(parm: string, value: float, state: state_t)'); // 353
-  DEH_AddAction(@A_GoToIfWorldStringEqual, 'A_GoToIfWorldStringEqual(parm: string, value: string, state: state_t)'); // 354
-  DEH_AddAction(@A_GoToIfWorldStringLess, 'A_GoToIfWorldStringLess(parm: string, value: string, state: state_t)'); // 355
-  DEH_AddAction(@A_GoToIfWorldStringGreater, 'A_GoToIfWorldStringGreater(parm: string, value: string, state: state_t)'); // 356
-  DEH_AddAction(@A_GoToIfWorldIntegerEqual, 'A_GoToIfWorldIntegerEqual(parm: string, value: integer, state: state_t)'); // 357
-  DEH_AddAction(@A_GoToIfWorldIntegerLess, 'A_GoToIfWorldIntegerLess(parm: string, value: integer, state: state_t)'); // 358
-  DEH_AddAction(@A_GoToIfWorldIntegerGreater, 'A_GoToIfWorldIntegerGreater(parm: string, value: integer, state: state_t)'); // 359
-  DEH_AddAction(@A_GoToIfWorldFloatEqual, 'A_GoToIfWorldFloatEqual(parm: string, value: float, state: state_t)'); // 360
-  DEH_AddAction(@A_GoToIfWorldFloatLess, 'A_GoToIfWorldFloatLess(parm: string, value: float, state: state_t)'); // 361
-  DEH_AddAction(@A_GoToIfWorldFloatGreater, 'A_GoToIfWorldFloatGreater(parm: string, value: float, state: state_t)'); // 362
-  DEH_AddAction(@A_SetMapStr, 'A_SetMapStr(mvar: string; value1: string; [value2: string],...)'); // 363
-  DEH_AddAction(@A_SetWorldStr, 'A_SetWorldStr(wvar: string; value1: string; [value2: string],...)'); // 364
-  DEH_AddAction(@A_SetMapInt, 'A_SetMapInt(mvar: string; value: integer)'); // 365
-  DEH_AddAction(@A_SetWorldInt, 'A_SetWorldInt(wvar: string; value: integer)'); // 366
-  DEH_AddAction(@A_SetMapFloat, 'A_SetMapFloat(mvar: string; value: float)'); // 367
-  DEH_AddAction(@A_SetWorldFloat, 'A_SetWorldFloat(wvar: string; value: float)'); // 368
-  DEH_AddAction(@A_RandomGoto, 'A_RandomGoto(state1: state_t; [state2: state_t],...)'); // 369
-  DEH_AddAction(@A_ResetHealth, 'A_ResetHealth()'); // 370
-  DEH_AddAction(@A_Recoil, 'A_Recoil(xymom: float)'); // 371
-  DEH_AddAction(@A_SetSolid, 'A_SetSolid()'); // 372
-  DEH_AddAction(@A_UnSetSolid, 'A_UnSetSolid()'); // 373
-  DEH_AddAction(@A_SetFloat, 'A_SetFloat()'); // 374
-  DEH_AddAction(@A_UnSetFloat, 'A_UnSetFloat()'); // 375
-  DEH_AddAction(@A_SetHealth, 'A_SetHealth(h: integer)'); // 376
-  DEH_AddAction(@A_ResetTargetHealth, 'A_ResetTargetHealth()'); // 377
-  DEH_AddAction(@A_SetTargetHealth, 'A_SetTargetHealth(h: integer)'); // 378
-  DEH_AddAction(@A_ScaleVelocity, 'A_ScaleVelocity(scale: float)'); // 379
-  DEH_AddAction(@A_ChangeVelocity, 'A_ChangeVelocity(velx: float, vely: float, velz: float, flags: float)'); // 380
-  DEH_AddAction(@A_JumpIf, 'A_JumpIf(propability: boolean, offset1: integer, [offset2: integer], ...)'); // 381
-  DEH_AddAction(@A_MusicChanger, 'A_MusicChanger()'); // 382
-  DEH_AddAction(@A_SetPushFactor, 'A_SetPushFactor(f: float)'); // 383
-  DEH_AddAction(@A_SetScale, 'A_SetScale(s: float)'); // 384
-  DEH_AddAction(@A_SetGravity, 'A_SetGravity(g: float)'); // 385
-  DEH_AddAction(@A_SetFloorBounce, 'A_SetFloorBounce()'); // 386
-  DEH_AddAction(@A_UnSetFloorBounce, 'A_UnSetFloorBounce()'); // 387
-  DEH_AddAction(@A_SetCeilingBounce, 'A_SetCeilingBounce()'); // 388
-  DEH_AddAction(@A_UnSetCeilingBounce, 'A_UnSetCeilingBounce()'); // 389
-  DEH_AddAction(@A_SetWallBounce, 'A_SetWallBounce()'); // 390
-  DEH_AddAction(@A_UnSetWallBounce, 'A_UnSetWallBounce()'); // 391
-  DEH_AddAction(@A_GlowLight, 'A_GlowLight(color: string)'); // 392
-  DEH_AddAction(@A_TraceNearestPlayer, 'A_TraceNearestPlayer(pct: integer, [maxturn: angle_t])'); // 393
-  DEH_AddAction(@A_ChangeFlag, 'A_ChangeFlag(flag: string, onoff: boolean)'); // 394
-  DEH_AddAction(@A_CheckFloor, 'A_CheckFloor(offset: integer)'); // 395
-  DEH_AddAction(@A_CheckCeiling, 'A_CheckCeiling(offset: integer)'); // 396
-  DEH_AddAction(@A_StopSound, 'A_StopSound()'); // 397
-  DEH_AddAction(@A_JumpIfTargetOutsideMeleeRange, 'A_JumpIfTargetOutsideMeleeRange(offset: integer)'); // 398
-  DEH_AddAction(@A_JumpIfTargetInsideMeleeRange, 'A_JumpIfTargetInsideMeleeRange(offset: integer)'); // 399
-  DEH_AddAction(@A_JumpIfTracerCloser, 'A_JumpIfTracerCloser(distancetotarget: float, offset: integer)'); // 400
-  DEH_AddAction(@A_SetMass, 'A_SetMass(mass: integer)'); // 401
-  DEH_AddAction(@A_SetTargetMass, 'A_SetTargetMass(mass: integer)'); // 402
-  DEH_AddAction(@A_SetTracerMass, 'A_SetTracerMass(mass: integer)'); // 403
-  DEH_AddAction(@A_CheckSight, 'A_CheckSight(offset: integer)'); // 404
-  DEH_AddAction(@A_CheckSightOrRange, 'A_CheckSightOrRange(distance: float, offset: integer, [twodi: boolean=false])'); // 405
-  DEH_AddAction(@A_CheckRange, 'A_CheckRange(distance: float, offset: integer, [twodi: boolean=false])'); // 406
-  DEH_AddAction(@A_CountdownArg, 'A_CountdownArg(arg: integer, offset: integer)'); // 407
-  DEH_AddAction(@A_SetArg, 'A_SetArg(arg: integer, value: integer)'); // 408
-  DEH_AddAction(@A_SetSpecial, 'A_SetSpecial(special: integer, [arg1, arg2, arg3, arg4, arg5: integer])'); // 409
-  DEH_AddAction(@A_CheckFlag, 'A_CheckFlag(flag: string, offset: integer, [aaprt: AAPTR])'); // 410
-  DEH_AddAction(@A_SetAngle, 'A_SetAngle(angle: integer, [flags: integer], [aaprt: AAPTR])'); // 411
-  DEH_AddAction(@A_SetUserVar, 'A_SetUserVar(varname: string, value: integer)'); // 412
-  DEH_AddAction(@A_SetUserArray, 'A_SetUserArray(varname: string, index: integer, value: integer)'); // 413
-  DEH_AddAction(@A_SetTics, 'A_SetTics(tics: integer)'); // 414
-  DEH_AddAction(@A_DropItem, 'A_DropItem(spawntype: string, amount: integer, chance: integer)'); // 415
-  DEH_AddAction(@A_DamageSelf, 'A_DamageSelf(actor: Pmobj_t)'); // 416
-  DEH_AddAction(@A_DamageTarget, 'A_DamageTarget(const damage: integer)'); // 417
-  DEH_AddAction(@A_DamageTracer, 'A_DamageTracer(const damage: integer)'); // 418
-  DEH_AddAction(@A_KillTarget, 'A_KillTarget()'); // 419
-  DEH_AddAction(@A_KillTracer, 'A_KillTracer()'); // 420
-  DEH_AddAction(@A_RemoveTarget, 'A_RemoveTarget([flags: integer])'); // 421
-  DEH_AddAction(@A_RemoveTracer, 'A_RemoveTracer([flags: integer])'); // 422
-  DEH_AddAction(@A_Remove, 'A_Remove(aaprt: AAPTR, [flags: integer])'); // 423
-  DEH_AddAction(@A_SetFloatBobPhase, 'A_SetFloatBobPhase(bob: integer)'); // 424
-  DEH_AddAction(@A_Detonate, 'A_Detonate()'); // 425
-  DEH_AddAction(@A_Spawn, 'A_Spawn()'); // 426
-  DEH_AddAction(@A_Face, 'A_Face()'); // 427
-  DEH_AddAction(@A_Scratch, 'A_Scratch()'); // 428
-  DEH_AddAction(@A_RandomJump, 'A_RandomJump()'); // 429
-  DEH_AddAction(@A_FlipSprite, 'A_FlipSprite()'); // 430
-  DEH_AddAction(@A_NoFlipSprite, 'A_NoFlipSprite()'); // 431
-  DEH_AddAction(@A_RandomFlipSprite, 'A_RandomFlipSprite(chance: integer)'); // 432
-  DEH_AddAction(@A_RandomNoFlipSprite, 'A_RandomNoFlipSprite(chance: integer)'); // 433
-  DEH_AddAction(@A_CustomMeleeAttack, 'A_CustomMeleeAttack(damage: integer, meleesound: string, misssound: string)'); // 434
-  DEH_AddAction(@A_CustomComboAttack, 'A_CustomComboAttack(missiletype: string, spawnheight: integer, damage: integer, meleesound: string)'); // 435
-  DEH_AddAction(@A_SetRenderStyle, 'A_SetRenderStyle(style: renderstyle_t, alpha: float)'); // 436
-  DEH_AddAction(@A_FadeTo, 'A_FadeTo(targ: integer, ammount: integer, flags: integer)'); // 437
-  DEH_AddAction(@A_SetSize, 'A_SetSize(newradius: integer, newheight: integer, testpos: boolean)'); // 438
-  DEH_AddAction(@A_RaiseMaster, 'A_RaiseMaster(copyfriendliness: boolean)'); // 439
-  DEH_AddAction(@A_RaiseChildren, 'A_RaiseChildren(copyfriendliness: boolean)'); // 440
-  DEH_AddAction(@A_RaiseSiblings, 'A_RaiseSiblings(copyfriendliness: boolean)'); // 441
-  DEH_AddAction(@A_SetMasterMass, 'A_SetMasterMass(mass: integer)'); // 442
-  DEH_AddAction(@A_KillMaster, 'A_KillMaster()'); // 443
-  DEH_AddAction(@A_DamageMaster, 'A_DamageMaster(const damage: integer)'); // 444
-  DEH_AddAction(@A_HealThing, 'A_HealThing(amount: integer, max: integer)'); // 445
-  DEH_AddAction(@A_RemoveMaster, 'A_RemoveMaster([flags: integer])'); // 446
-  DEH_AddAction(@A_BasicAttack, 'A_BasicAttack(MeleeDamage: integer, MeleeSound: integer, MissileType: integer, MissileHeight: float)'); // 447
-  DEH_AddAction(@A_SetMasterArg, 'A_SetMasterArg(arg: integer; value: integer)'); // 448
-  DEH_AddAction(@A_SetTargetArg, 'A_SetTargetArg(arg: integer; value: integer)'); // 449
-  DEH_AddAction(@A_SetTracerArg, 'A_SetTracerArg(arg: integer; value: integer)'); // 450
-  DEH_AddAction(@A_Tracer2, 'A_Tracer()'); // 451
-  DEH_AddAction(@A_Tracer2, 'A_Tracer2()'); // 452
-  DEH_AddAction(@A_MonsterRefire, 'A_MonsterRefire(prob: integer, offset: state_t)'); // 453
-  DEH_AddAction(@A_RearrangePointers, 'A_RearrangePointers(ptr_target: integer, ptr_master: integer, ptr_tracer: integer, flags: integer)'); // 454
-  DEH_AddAction(@A_TransferPointer, 'A_TransferPointer(ptr_source: integer, ptr_recipient: integer, ptr_sourcefield: integer, [ptr_recipientfield: integer], [flags: integer])'); // 455
-  DEH_AddAction(@A_AlertMonsters, 'A_AlertMonsters(maxdist: integer, flags: integer)'); // 456
-  DEH_AddAction(@A_LocalEarthQuake, 'A_LocalEarthQuake(tics: integer; [intensity: float = 1.0]; [maxdist: float = MAXINT] ;)'); // 457
-  DEH_AddAction(@A_RemoveChildren, 'A_RemoveChildren([flags: integer])'); // 458
-  DEH_AddAction(@A_RemoveSiblings, 'A_RemoveSiblings([flags: integer])'); // 459
-  DEH_AddAction(@A_KillChildren, 'A_KillChildren()'); // 460
-  DEH_AddAction(@A_KillSiblings, 'A_KillSiblings()'); // 461
-  DEH_AddAction(@A_Weave, 'A_Weave(xyspeed: integer = 2, zspeed: integer = 2, xydist: float = 2.0, zdist: float = 1.0)'); // 462
-  DEH_AddAction(@A_SetWeaveIndexXY, 'A_SetWeaveIndexXY(weavexy: integer)'); // 463
-  DEH_AddAction(@A_SetWeaveIndexZ, 'A_SetWeaveIndexZ(weavez: integer)'); // 464
-  DEH_AddAction(@A_SetWeaveIndexes, 'A_SetWeaveIndexes(weavexy: integer, weavez: integer)'); // 465
-  DEH_AddAction(@A_SetHeight, 'A_SetHeight(newheight: float)'); // 466
-  DEH_AddAction(@A_OverlayClear, 'A_OverlayClear()'); // 467
-  DEH_AddAction(@A_OverlayDrawPatch, 'A_OverlayDrawPatch(ticks: Integer; patchname: string; x, y: Integer ;)'); // 468
-  DEH_AddAction(@A_OverlayDrawPatchStretched, 'A_OverlayDrawPatchStretched(ticks: Integer; patchname: string; x1, y1, x2, y2: Integer ;)'); // 469
-  DEH_AddAction(@A_OverlayDrawPixel, 'A_OverlayDrawPixel(ticks: Integer; red, green, blue: byte; x, y: Integer ;)'); // 470
-  DEH_AddAction(@A_OverlayDrawRect, 'A_OverlayDrawRect(ticks: Integer; red, green, blue: byte; x1, y1, x2, y2: Integer ;)'); // 471
-  DEH_AddAction(@A_OverlayDrawLine, 'A_OverlayDrawLine(ticks: Integer; red, green, blue: byte; x1, y1, x2, y2: Integer ;)'); // 472
-  DEH_AddAction(@A_OverlayDrawText, 'A_OverlayDrawText(ticks: Integer; txt: string; align: Integer; x, y: Integer ;)'); // 473
-  DEH_AddAction(@A_OverlayDrawLeftText, 'A_OverlayDrawLeftText(ticks: Integer; txt: string; x, y: Integer ;)'); // 474
-  DEH_AddAction(@A_OverlayDrawRightText, 'A_OverlayDrawRightText(ticks: Integer; txt: string; x, y: Integer ;)'); // 475
-  DEH_AddAction(@A_OverlayDrawCenterText, 'A_OverlayDrawCenterText(ticks: Integer; txt: string; x, y: Integer ;)'); // 476
-  DEH_AddAction(@A_SetFriction, 'A_SetFriction(newfriction: float)'); // 477
-  DEH_AddAction(@A_PlayerHurtExplode, 'A_PlayerHurtExplode(damage: integer, radius: integer)'); // 478
-  DEH_AddAction(@A_SetPushable, 'A_SetPushable()'); // 479
-  DEH_AddAction(@A_UnSetPushable, 'A_UnSetPushable()'); // 480
-  DEH_AddAction(@A_SetPainChance, 'A_SetPainChance(newchance: integer)'); // 481
-  DEH_AddAction(@A_SetSpriteDX, 'A_SetSpriteDX(dx: float)'); // 482
-  DEH_AddAction(@A_SetSpriteDY, 'A_SetSpriteDY(dy: float)'); // 483
-  DEH_AddAction(@A_SeeSound1, 'A_SeeSound()'); // 484
-  DEH_AddAction(@A_PainSound1, 'A_PainSound()'); // 485
-  DEH_AddAction(@A_AttackSound1, 'A_AttackSound()'); // 486
-  DEH_AddAction(@A_MeleeSound1, 'A_MeleeSound()'); // 487
-  DEH_AddAction(@A_DeathSound1, 'A_DeathSound()'); // 488
-  DEH_AddAction(@A_ActiveSound1, 'A_ActiveSound()'); // 489
-  DEH_AddAction(@A_MatchTargetZ, 'A_MatchTargetZ(zspeed: integer; threshold: integer; maxmomz: integer)'); // 490
-  DEH_AddAction(@A_SetInteractive, 'A_SetInteractive()'); // 491
-  DEH_AddAction(@A_UnSetInteractive, 'A_UnSetInteractive()'); // 492
-  DEH_AddAction(@A_SimpleDialog, 'A_SimpleDialog(dialog1: string; [dialog2...])'); // 493
+  DEH_AddAction(@A_SetTranslucent, 'A_SetTranslucent(alpha: float, [style: integer])'); // 251
+  DEH_AddAction(@A_Die, 'A_Die()'); // 252
+  DEH_AddAction(@A_CustomBulletAttack, 'A_CustomBulletAttack(spread_xy: angle, numbullets: integer, damageperbullet: integer, [range: integer])'); // 253
+  DEH_AddAction(@A_FadeOut, 'A_FadeOut(fade: float)'); // 254
+  DEH_AddAction(@A_FadeIn, 'A_FadeIn(fade: float)'); // 255
+  DEH_AddAction(@A_MissileAttack, 'A_MissileAttack([missiletype: string])'); // 256
+  DEH_AddAction(@A_AdjustSideSpot, 'A_AdjustSideSpot(sideoffset: float)'); // 257
+  DEH_AddAction(@A_Countdown, 'A_Countdown()'); // 258
+  DEH_AddAction(@A_FastChase, 'A_FastChase()'); // 259
+  DEH_AddAction(@A_LowGravity, 'A_LowGravity()'); // 260
+  DEH_AddAction(@A_ThrustZ, 'A_ThrustZ(momz: float, ang: angle)'); // 261
+  DEH_AddAction(@A_ThrustXY, 'A_ThrustXY(mom: float, ang: angle)'); // 262
+  DEH_AddAction(@A_Turn, 'A_Turn(value: angle)'); // 263
+  DEH_AddAction(@A_JumpIfCloser, 'A_JumpIfCloser(distancetotarget: float, offset: integer)'); // 264
+  DEH_AddAction(@A_JumpIfHealthLower, 'A_JumpIfHealthLower(health: integer, offset: integer)'); // 265
+  DEH_AddAction(@A_ScreamAndUnblock, 'A_ScreamAndUnblock()'); // 266
+  DEH_AddAction(@A_PlayWeaponsound, 'A_PlayWeaponsound(sound: string)'); // 267
+  DEH_AddAction(@A_SetInvulnerable, 'A_SetInvulnerable()'); // 268
+  DEH_AddAction(@A_UnSetInvulnerable, 'A_UnSetInvulnerable()'); // 269
+  DEH_AddAction(@A_RandomMeleeSound, 'A_RandomMeleeSound()'); // 270
+  DEH_AddAction(@A_FloatBob, 'A_FloatBob()'); // 271
+  DEH_AddAction(@A_NoFloatBob, 'A_NoFloatBob()'); // 272
+  DEH_AddAction(@A_Missile, 'A_Missile()'); // 273
+  DEH_AddAction(@A_NoMissile, 'A_NoMissile()'); // 274
+  DEH_AddAction(@A_ComboAttack, 'A_ComboAttack()'); // 275
+  DEH_AddAction(@A_BulletAttack, 'A_BulletAttack([numbullets: integer])'); // 276
+  DEH_AddAction(@A_MediumGravity, 'A_MediumGravity()'); // 277
+  DEH_AddAction(@A_FadeOut10, 'A_FadeOut10()'); // 278
+  DEH_AddAction(@A_FadeOut20, 'A_FadeOut20()'); // 279
+  DEH_AddAction(@A_FadeOut30, 'A_FadeOut30()'); // 280
+  DEH_AddAction(@A_FadeIn10, 'A_FadeIn10()'); // 281
+  DEH_AddAction(@A_FadeIn20, 'A_FadeIn20()'); // 282
+  DEH_AddAction(@A_FadeIn30, 'A_FadeIn30()'); // 283
+  DEH_AddAction(@A_SpawnItemEx, 'A_SpawnItemEx(itemtype: string, [xofs: float], [yofs: float], [zofs: float], [momx: float], [momy: float], [momz: float], [ang: angle], [flags: integer], [chance: integer])'); // 284
+  DEH_AddAction(@A_RandomMissile, 'A_RandomMissile(missile1: string, [missile2: string], ...)'); // 285
+  DEH_AddAction(@P_RemoveMobj, 'A_RemoveSelf()'); // 286
+  DEH_AddAction(@A_GoTo, 'A_GoTo(propability: random_t, state: state_t)'); // 287
+  DEH_AddAction(@A_GoToIfCloser, 'A_GoToIfCloser(distancetotarget: float, state: state_t)'); // 288
+  DEH_AddAction(@A_GoToIfHealthLower, 'A_GoToIfHealthLower(health: integer, state: state_t)'); // 289
+  DEH_AddAction(@A_ConsoleCommand, 'A_ConsoleCommand(cmd: string, [parm1: string], [parm2: string], ...)'); // 290
+  DEH_AddAction(@A_SetFrightened, 'A_SetFrightened()'); // 291
+  DEH_AddAction(@A_UnSetFrightened, 'A_UnSetFrightened()'); // 292
+  DEH_AddAction(@A_SetCustomParam, 'A_SetCustomParam(param: string, value: integer)'); // 293
+  DEH_AddAction(@A_AddCustomParam, 'A_AddCustomParam(param: string, value: integer)'); // 294
+  DEH_AddAction(@A_SubtractCustomParam, 'A_SubtractCustomParam(param: string, value: integer)'); // 295
+  DEH_AddAction(@A_SetTargetCustomParam, 'A_SetTargetCustomParam(param: string, value: integer)'); // 296
+  DEH_AddAction(@A_AddTargetCustomParam, 'A_AddTargetCustomParam(param: string, value: integer)'); // 297
+  DEH_AddAction(@A_SubtractTargetCustomParam, 'A_SubtractTargetCustomParam(param: string, value: integer)'); // 298
+  DEH_AddAction(@A_JumpIfCustomParam, 'A_JumpIfCustomParam(param: string, value: integer, offset: integer)'); // 299
+  DEH_AddAction(@A_JumpIfCustomParamLess, 'A_JumpIfCustomParamLess(param: string, value: integer, offset: integer)'); // 300
+  DEH_AddAction(@A_JumpIfCustomParamGreater, 'A_JumpIfCustomParamGreater(param: string, value: integer, offset: integer)'); // 301
+  DEH_AddAction(@A_JumpIfTargetCustomParam, 'A_JumpIfTargetCustomParam(param: string, value: integer, offset: integer)'); // 302
+  DEH_AddAction(@A_JumpIfTargetCustomParamLess, 'A_JumpIfTargetCustomParamLess(param: string, value: integer, offset: integer)'); // 303
+  DEH_AddAction(@A_JumpIfTargetCustomParamGreater, 'A_JumpIfTargetCustomParamGreater(param: string, value: integer, offset: integer)'); // 304
+  DEH_AddAction(@A_GoToIfCustomParam, 'A_GoToIfCustomParam(param: string, value: integer, state: state_t)'); // 305
+  DEH_AddAction(@A_GoToIfCustomParamLess, 'A_GoToIfCustomParamLess(param: string, value: integer, state: state_t)'); // 306
+  DEH_AddAction(@A_GoToIfCustomParamGreater, 'A_GoToIfCustomParamGreater(param: string, value: integer, state: state_t)'); // 307
+  DEH_AddAction(@A_GoToIfTargetCustomParam, 'A_GoToIfTargetCustomParam(param: string, value: integer, state: state_t)'); // 308
+  DEH_AddAction(@A_GoToIfTargetCustomParamLess, 'A_GoToIfTargetCustomParamLess(param: string, value: integer, state: state_t)'); // 309
+  DEH_AddAction(@A_GoToIfTargetCustomParamGreater, 'A_GoToIfTargetCustomParamGreater(param: string, value: integer, state: state_t)'); // 310
+  DEH_AddAction(@A_SetNoDamage, 'A_SetNoDamage()'); // 311
+  DEH_AddAction(@A_UnSetNoDamage, 'A_UnSetNoDamage()'); // 312
+  DEH_AddAction(@A_RunScript, 'A_RunScript(script1: string, [script2: string], ...)'); // 313
+  DEH_AddAction(@A_GhostOn, 'A_GhostOn()'); // 314
+  DEH_AddAction(@A_GhostOff, 'A_GhostOff()'); // 315
+  DEH_AddAction(@A_Turn5, 'A_Turn5()'); // 316
+  DEH_AddAction(@A_Turn10, 'A_Turn10()'); // 317
+  DEH_AddAction(@A_Blocking, 'A_Blocking()'); // 318
+  DEH_AddAction(@A_DoNotRunScripts, 'A_DoNotRunScripts()'); // 319
+  DEH_AddAction(@A_DoRunScripts, 'A_DoRunScripts()'); // 320
+  DEH_AddAction(@A_TargetDropItem, 'A_TargetDropItem(dropitemtype: string)'); // 321
+  DEH_AddAction(@A_DefaultTargetDropItem, 'A_DefaultTargetDropItem()'); // 322
+  DEH_AddAction(@A_SetDropItem, 'A_SetDropItem(dropitemtype: string)'); // 323
+  DEH_AddAction(@A_SetDefaultDropItem, 'A_SetDefaultDropItem()'); // 324
+  DEH_AddAction(@A_GlobalEarthQuake, 'A_GlobalEarthQuake(tics: integer)'); // 325
+  DEH_AddAction(@A_JumpIfMapStringEqual, 'A_JumpIfMapStringEqual(parm: string, value: string, offset; integer)'); // 326
+  DEH_AddAction(@A_JumpIfMapStringLess, 'A_JumpIfMapStringLess(parm: string, value: string, offset; integer)'); // 327
+  DEH_AddAction(@A_JumpIfMapStringGreater, 'A_JumpIfMapStringGreater(parm: string, value: string, offset; integer)'); // 328
+  DEH_AddAction(@A_JumpIfMapIntegerEqual, 'A_JumpIfMapIntegerEqual(parm: string, value: integer, offset: integer)'); // 329
+  DEH_AddAction(@A_JumpIfMapIntegerLess, 'A_JumpIfMapIntegerLess(parm: string, value: integer, offset: integer)'); // 330
+  DEH_AddAction(@A_JumpIfMapIntegerGreater, 'A_JumpIfMapIntegerGreater(parm: string, value: integer, offset: integer)'); // 331
+  DEH_AddAction(@A_JumpIfMapFloatEqual, 'A_JumpIfMapFloatEqual(parm: string, value: float, offset: integer)'); // 332
+  DEH_AddAction(@A_JumpIfMapFloatLess, 'A_JumpIfMapFloatLess(parm: string, value: float, offset: integer)'); // 333
+  DEH_AddAction(@A_JumpIfMapFloatGreater, 'A_JumpIfMapFloatGreater(parm: string, value: float, offset: integer)'); // 334
+  DEH_AddAction(@A_JumpIfWorldStringEqual, 'A_JumpIfWorldStringEqual(parm: string, value: string, offset: integer)'); // 335
+  DEH_AddAction(@A_JumpIfWorldStringLess, 'A_JumpIfWorldStringLess(parm: string, value: string, offset: integer)'); // 336
+  DEH_AddAction(@A_JumpIfWorldStringGreater, 'A_JumpIfWorldStringGreater(parm: string, value: string, offset: integer)'); // 337
+  DEH_AddAction(@A_JumpIfWorldIntegerEqual, 'A_JumpIfWorldIntegerEqual(parm: string, value: integer, offset: integer)'); // 338
+  DEH_AddAction(@A_JumpIfWorldIntegerLess, 'A_JumpIfWorldIntegerLess(parm: string, value: integer, offset: integer)'); // 339
+  DEH_AddAction(@A_JumpIfWorldIntegerGreater, 'A_JumpIfWorldIntegerGreater(parm: string, value: integer, offset: integer)'); // 340
+  DEH_AddAction(@A_JumpIfWorldFloatEqual, 'A_JumpIfWorldFloatEqual(parm: string, value: float, offset: integer)'); // 341
+  DEH_AddAction(@A_JumpIfWorldFloatLess, 'A_JumpIfWorldFloatLess(parm: string, value: float, offset: integer)'); // 342
+  DEH_AddAction(@A_JumpIfWorldFloatGreater, 'A_JumpIfWorldFloatGreater(parm: string, value: float, offset: integer)'); // 343
+  DEH_AddAction(@A_GoToIfMapStringEqual, 'A_GoToIfMapStringEqual(parm: string, value: string, state: state_t)'); // 344
+  DEH_AddAction(@A_GoToIfMapStringLess, 'A_GoToIfMapStringLess(parm: string, value: string, state: state_t)'); // 345
+  DEH_AddAction(@A_GoToIfMapStringGreater, 'A_GoToIfMapStringGreater(parm: string, value: string, state: state_t)'); // 346
+  DEH_AddAction(@A_GoToIfMapIntegerEqual, 'A_GoToIfMapIntegerEqual(parm: string, value: integer, state: state_t)'); // 347
+  DEH_AddAction(@A_GoToIfMapIntegerLess, 'A_GoToIfMapIntegerLess(parm: string, value: integer, state: state_t)'); // 348
+  DEH_AddAction(@A_GoToIfMapIntegerGreater, 'A_GoToIfMapIntegerGreater(parm: string, value: integer, state: state_t)'); // 349
+  DEH_AddAction(@A_GoToIfMapFloatEqual, 'A_GoToIfMapFloatEqual(parm: string, value: float, state: state_t)'); // 350
+  DEH_AddAction(@A_GoToIfMapFloatLess, 'A_GoToIfMapFloatLess(parm: string, value: float, state: state_t)'); // 351
+  DEH_AddAction(@A_GoToIfMapFloatGreater, 'A_GoToIfMapFloatGreater(parm: string, value: float, state: state_t)'); // 352
+  DEH_AddAction(@A_GoToIfWorldStringEqual, 'A_GoToIfWorldStringEqual(parm: string, value: string, state: state_t)'); // 353
+  DEH_AddAction(@A_GoToIfWorldStringLess, 'A_GoToIfWorldStringLess(parm: string, value: string, state: state_t)'); // 354
+  DEH_AddAction(@A_GoToIfWorldStringGreater, 'A_GoToIfWorldStringGreater(parm: string, value: string, state: state_t)'); // 355
+  DEH_AddAction(@A_GoToIfWorldIntegerEqual, 'A_GoToIfWorldIntegerEqual(parm: string, value: integer, state: state_t)'); // 356
+  DEH_AddAction(@A_GoToIfWorldIntegerLess, 'A_GoToIfWorldIntegerLess(parm: string, value: integer, state: state_t)'); // 357
+  DEH_AddAction(@A_GoToIfWorldIntegerGreater, 'A_GoToIfWorldIntegerGreater(parm: string, value: integer, state: state_t)'); // 358
+  DEH_AddAction(@A_GoToIfWorldFloatEqual, 'A_GoToIfWorldFloatEqual(parm: string, value: float, state: state_t)'); // 359
+  DEH_AddAction(@A_GoToIfWorldFloatLess, 'A_GoToIfWorldFloatLess(parm: string, value: float, state: state_t)'); // 360
+  DEH_AddAction(@A_GoToIfWorldFloatGreater, 'A_GoToIfWorldFloatGreater(parm: string, value: float, state: state_t)'); // 361
+  DEH_AddAction(@A_SetMapStr, 'A_SetMapStr(mvar: string; value1: string; [value2: string],...)'); // 362
+  DEH_AddAction(@A_SetWorldStr, 'A_SetWorldStr(wvar: string; value1: string; [value2: string],...)'); // 363
+  DEH_AddAction(@A_SetMapInt, 'A_SetMapInt(mvar: string; value: integer)'); // 364
+  DEH_AddAction(@A_SetWorldInt, 'A_SetWorldInt(wvar: string; value: integer)'); // 365
+  DEH_AddAction(@A_SetMapFloat, 'A_SetMapFloat(mvar: string; value: float)'); // 366
+  DEH_AddAction(@A_SetWorldFloat, 'A_SetWorldFloat(wvar: string; value: float)'); // 367
+  DEH_AddAction(@A_RandomGoto, 'A_RandomGoto(state1: state_t; [state2: state_t],...)'); // 368
+  DEH_AddAction(@A_ResetHealth, 'A_ResetHealth()'); // 369
+  DEH_AddAction(@A_Recoil, 'A_Recoil(xymom: float)'); // 370
+  DEH_AddAction(@A_SetSolid, 'A_SetSolid()'); // 371
+  DEH_AddAction(@A_UnSetSolid, 'A_UnSetSolid()'); // 372
+  DEH_AddAction(@A_SetFloat, 'A_SetFloat()'); // 373
+  DEH_AddAction(@A_UnSetFloat, 'A_UnSetFloat()'); // 374
+  DEH_AddAction(@A_SetHealth, 'A_SetHealth(h: integer)'); // 375
+  DEH_AddAction(@A_ResetTargetHealth, 'A_ResetTargetHealth()'); // 376
+  DEH_AddAction(@A_SetTargetHealth, 'A_SetTargetHealth(h: integer)'); // 377
+  DEH_AddAction(@A_ScaleVelocity, 'A_ScaleVelocity(scale: float)'); // 378
+  DEH_AddAction(@A_ChangeVelocity, 'A_ChangeVelocity(velx: float, vely: float, velz: float, flags: float)'); // 379
+  DEH_AddAction(@A_JumpIf, 'A_JumpIf(propability: boolean, offset1: integer, [offset2: integer], ...)'); // 380
+  DEH_AddAction(@A_MusicChanger, 'A_MusicChanger()'); // 381
+  DEH_AddAction(@A_SetPushFactor, 'A_SetPushFactor(f: float)'); // 382
+  DEH_AddAction(@A_SetScale, 'A_SetScale(s: float)'); // 383
+  DEH_AddAction(@A_SetGravity, 'A_SetGravity(g: float)'); // 384
+  DEH_AddAction(@A_SetFloorBounce, 'A_SetFloorBounce()'); // 385
+  DEH_AddAction(@A_UnSetFloorBounce, 'A_UnSetFloorBounce()'); // 386
+  DEH_AddAction(@A_SetCeilingBounce, 'A_SetCeilingBounce()'); // 387
+  DEH_AddAction(@A_UnSetCeilingBounce, 'A_UnSetCeilingBounce()'); // 388
+  DEH_AddAction(@A_SetWallBounce, 'A_SetWallBounce()'); // 389
+  DEH_AddAction(@A_UnSetWallBounce, 'A_UnSetWallBounce()'); // 390
+  DEH_AddAction(@A_GlowLight, 'A_GlowLight(color: string)'); // 391
+  DEH_AddAction(@A_TraceNearestPlayer, 'A_TraceNearestPlayer(pct: integer, [maxturn: angle_t])'); // 392
+  DEH_AddAction(@A_ChangeFlag, 'A_ChangeFlag(flag: string, onoff: boolean)'); // 393
+  DEH_AddAction(@A_CheckCeiling, 'A_CheckCeiling(offset: integer)'); // 394
+  DEH_AddAction(@A_StopSound, 'A_StopSound()'); // 395
+  DEH_AddAction(@A_JumpIfTargetOutsideMeleeRange, 'A_JumpIfTargetOutsideMeleeRange(offset: integer)'); // 396
+  DEH_AddAction(@A_JumpIfTargetInsideMeleeRange, 'A_JumpIfTargetInsideMeleeRange(offset: integer)'); // 397
+  DEH_AddAction(@A_JumpIfTracerCloser, 'A_JumpIfTracerCloser(distancetotarget: float, offset: integer)'); // 398
+  DEH_AddAction(@A_SetMass, 'A_SetMass(mass: integer)'); // 399
+  DEH_AddAction(@A_SetTargetMass, 'A_SetTargetMass(mass: integer)'); // 400
+  DEH_AddAction(@A_SetTracerMass, 'A_SetTracerMass(mass: integer)'); // 401
+  DEH_AddAction(@A_CheckSight, 'A_CheckSight(offset: integer)'); // 402
+  DEH_AddAction(@A_CheckSightOrRange, 'A_CheckSightOrRange(distance: float, offset: integer, [twodi: boolean=false])'); // 403
+  DEH_AddAction(@A_CheckRange, 'A_CheckRange(distance: float, offset: integer, [twodi: boolean=false])'); // 404
+  DEH_AddAction(@A_CountdownArg, 'A_CountdownArg(arg: integer, offset: integer)'); // 405
+  DEH_AddAction(@A_SetArg, 'A_SetArg(arg: integer, value: integer)'); // 406
+  DEH_AddAction(@A_SetSpecial, 'A_SetSpecial(special: integer, [arg1, arg2, arg3, arg4, arg5: integer])'); // 407
+  DEH_AddAction(@A_CheckFlag, 'A_CheckFlag(flag: string, offset: integer, [aaprt: AAPTR])'); // 408
+  DEH_AddAction(@A_SetAngle, 'A_SetAngle(angle: integer, [flags: integer], [aaprt: AAPTR])'); // 409
+  DEH_AddAction(@A_SetUserVar, 'A_SetUserVar(varname: string, value: integer)'); // 410
+  DEH_AddAction(@A_SetUserArray, 'A_SetUserArray(varname: string, index: integer, value: integer)'); // 411
+  DEH_AddAction(@A_SetTics, 'A_SetTics(tics: integer)'); // 412
+  DEH_AddAction(@A_DropItem, 'A_DropItem(spawntype: string, amount: integer, chance: integer)'); // 413
+  DEH_AddAction(@A_DamageSelf, 'A_DamageSelf(actor: Pmobj_t)'); // 414
+  DEH_AddAction(@A_DamageTarget, 'A_DamageTarget(const damage: integer)'); // 415
+  DEH_AddAction(@A_DamageTracer, 'A_DamageTracer(const damage: integer)'); // 416
+  DEH_AddAction(@A_KillTarget, 'A_KillTarget()'); // 417
+  DEH_AddAction(@A_KillTracer, 'A_KillTracer()'); // 418
+  DEH_AddAction(@A_RemoveTarget, 'A_RemoveTarget([flags: integer])'); // 419
+  DEH_AddAction(@A_RemoveTracer, 'A_RemoveTracer([flags: integer])'); // 420
+  DEH_AddAction(@A_Remove, 'A_Remove(aaprt: AAPTR, [flags: integer])'); // 421
+  DEH_AddAction(@A_SetFloatBobPhase, 'A_SetFloatBobPhase(bob: integer)'); // 422
+  DEH_AddAction(@A_Detonate, 'A_Detonate()'); // 423
+  DEH_AddAction(@A_Spawn, 'A_Spawn()'); // 424
+  DEH_AddAction(@A_Face, 'A_Face()'); // 425
+  DEH_AddAction(@A_Scratch, 'A_Scratch()'); // 426
+  DEH_AddAction(@A_RandomJump, 'A_RandomJump()'); // 427
+  DEH_AddAction(@A_FlipSprite, 'A_FlipSprite()'); // 428
+  DEH_AddAction(@A_NoFlipSprite, 'A_NoFlipSprite()'); // 429
+  DEH_AddAction(@A_RandomFlipSprite, 'A_RandomFlipSprite(chance: integer)'); // 430
+  DEH_AddAction(@A_RandomNoFlipSprite, 'A_RandomNoFlipSprite(chance: integer)'); // 431
+  DEH_AddAction(@A_CustomMeleeAttack, 'A_CustomMeleeAttack(damage: integer, meleesound: string, misssound: string)'); // 432
+  DEH_AddAction(@A_CustomComboAttack, 'A_CustomComboAttack(missiletype: string, spawnheight: integer, damage: integer, meleesound: string)'); // 433
+  DEH_AddAction(@A_SetRenderStyle, 'A_SetRenderStyle(style: renderstyle_t, alpha: float)'); // 434
+  DEH_AddAction(@A_FadeTo, 'A_FadeTo(targ: integer, ammount: integer, flags: integer)'); // 435
+  DEH_AddAction(@A_SetSize, 'A_SetSize(newradius: integer, newheight: integer, testpos: boolean)'); // 436
+  DEH_AddAction(@A_RaiseMaster, 'A_RaiseMaster(copyfriendliness: boolean)'); // 437
+  DEH_AddAction(@A_RaiseChildren, 'A_RaiseChildren(copyfriendliness: boolean)'); // 438
+  DEH_AddAction(@A_RaiseSiblings, 'A_RaiseSiblings(copyfriendliness: boolean)'); // 439
+  DEH_AddAction(@A_SetMasterMass, 'A_SetMasterMass(mass: integer)'); // 440
+  DEH_AddAction(@A_KillMaster, 'A_KillMaster()'); // 441
+  DEH_AddAction(@A_DamageMaster, 'A_DamageMaster(const damage: integer)'); // 442
+  DEH_AddAction(@A_HealThing, 'A_HealThing(amount: integer, max: integer)'); // 443
+  DEH_AddAction(@A_RemoveMaster, 'A_RemoveMaster([flags: integer])'); // 444
+  DEH_AddAction(@A_BasicAttack, 'A_BasicAttack(MeleeDamage: integer, MeleeSound: integer, MissileType: integer, MissileHeight: float)'); // 445
+  DEH_AddAction(@A_SetMasterArg, 'A_SetMasterArg(arg: integer; value: integer)'); // 446
+  DEH_AddAction(@A_SetTargetArg, 'A_SetTargetArg(arg: integer; value: integer)'); // 447
+  DEH_AddAction(@A_SetTracerArg, 'A_SetTracerArg(arg: integer; value: integer)'); // 448
+  DEH_AddAction(@A_Tracer2, 'A_Tracer()'); // 449
+  DEH_AddAction(@A_Tracer2, 'A_Tracer2()'); // 450
+  DEH_AddAction(@A_MonsterRefire, 'A_MonsterRefire(prob: integer, offset: state_t)'); // 451
+  DEH_AddAction(@A_RearrangePointers, 'A_RearrangePointers(ptr_target: integer, ptr_master: integer, ptr_tracer: integer, flags: integer)'); // 452
+  DEH_AddAction(@A_TransferPointer, 'A_TransferPointer(ptr_source: integer, ptr_recipient: integer, ptr_sourcefield: integer, [ptr_recipientfield: integer], [flags: integer])'); // 453
+  DEH_AddAction(@A_AlertMonsters, 'A_AlertMonsters(maxdist: integer, flags: integer)'); // 454
+  DEH_AddAction(@A_LocalEarthQuake, 'A_LocalEarthQuake(tics: integer; [intensity: float = 1.0]; [maxdist: float = MAXINT] ;)'); // 455
+  DEH_AddAction(@A_RemoveChildren, 'A_RemoveChildren([flags: integer])'); // 456
+  DEH_AddAction(@A_RemoveSiblings, 'A_RemoveSiblings([flags: integer])'); // 457
+  DEH_AddAction(@A_KillChildren, 'A_KillChildren()'); // 458
+  DEH_AddAction(@A_KillSiblings, 'A_KillSiblings()'); // 459
+  DEH_AddAction(@A_Weave, 'A_Weave(xyspeed: integer = 2, zspeed: integer = 2, xydist: float = 2.0, zdist: float = 1.0)'); // 460
+  DEH_AddAction(@A_SetWeaveIndexXY, 'A_SetWeaveIndexXY(weavexy: integer)'); // 461
+  DEH_AddAction(@A_SetWeaveIndexZ, 'A_SetWeaveIndexZ(weavez: integer)'); // 462
+  DEH_AddAction(@A_SetWeaveIndexes, 'A_SetWeaveIndexes(weavexy: integer, weavez: integer)'); // 463
+  DEH_AddAction(@A_SetHeight, 'A_SetHeight(newheight: float)'); // 464
+  DEH_AddAction(@A_OverlayClear, 'A_OverlayClear()'); // 465
+  DEH_AddAction(@A_OverlayDrawPatch, 'A_OverlayDrawPatch(ticks: Integer; patchname: string; x, y: Integer ;)'); // 466
+  DEH_AddAction(@A_OverlayDrawPatchStretched, 'A_OverlayDrawPatchStretched(ticks: Integer; patchname: string; x1, y1, x2, y2: Integer ;)'); // 467
+  DEH_AddAction(@A_OverlayDrawPixel, 'A_OverlayDrawPixel(ticks: Integer; red, green, blue: byte; x, y: Integer ;)'); // 468
+  DEH_AddAction(@A_OverlayDrawRect, 'A_OverlayDrawRect(ticks: Integer; red, green, blue: byte; x1, y1, x2, y2: Integer ;)'); // 469
+  DEH_AddAction(@A_OverlayDrawLine, 'A_OverlayDrawLine(ticks: Integer; red, green, blue: byte; x1, y1, x2, y2: Integer ;)'); // 470
+  DEH_AddAction(@A_OverlayDrawText, 'A_OverlayDrawText(ticks: Integer; txt: string; align: Integer; x, y: Integer ;)'); // 471
+  DEH_AddAction(@A_OverlayDrawLeftText, 'A_OverlayDrawLeftText(ticks: Integer; txt: string; x, y: Integer ;)'); // 472
+  DEH_AddAction(@A_OverlayDrawRightText, 'A_OverlayDrawRightText(ticks: Integer; txt: string; x, y: Integer ;)'); // 473
+  DEH_AddAction(@A_OverlayDrawCenterText, 'A_OverlayDrawCenterText(ticks: Integer; txt: string; x, y: Integer ;)'); // 474
+  DEH_AddAction(@A_SetFriction, 'A_SetFriction(newfriction: float)'); // 475
+  DEH_AddAction(@A_PlayerHurtExplode, 'A_PlayerHurtExplode(damage: integer, radius: integer)'); // 476
+  DEH_AddAction(@A_SetPushable, 'A_SetPushable()'); // 477
+  DEH_AddAction(@A_UnSetPushable, 'A_UnSetPushable()'); // 478
+  DEH_AddAction(@A_SetPainChance, 'A_SetPainChance(newchance: integer)'); // 479
+  DEH_AddAction(@A_SetSpriteDX, 'A_SetSpriteDX(dx: float)'); // 480
+  DEH_AddAction(@A_SetSpriteDY, 'A_SetSpriteDY(dy: float)'); // 481
+  DEH_AddAction(@A_SeeSound1, 'A_SeeSound()'); // 482
+  DEH_AddAction(@A_PainSound1, 'A_PainSound()'); // 483
+  DEH_AddAction(@A_AttackSound1, 'A_AttackSound()'); // 484
+  DEH_AddAction(@A_MeleeSound1, 'A_MeleeSound()'); // 485
+  DEH_AddAction(@A_DeathSound1, 'A_DeathSound()'); // 486
+  DEH_AddAction(@A_ActiveSound1, 'A_ActiveSound()'); // 487
+  DEH_AddAction(@A_MatchTargetZ, 'A_MatchTargetZ(zspeed: integer; threshold: integer; maxmomz: integer)'); // 488
+  DEH_AddAction(@A_SetInteractive, 'A_SetInteractive()'); // 489
+  DEH_AddAction(@A_UnSetInteractive, 'A_UnSetInteractive()'); // 490
+  DEH_AddAction(@A_SimpleDialog, 'A_SimpleDialog(dialog1: string; [dialog2...])'); // 491
+  DEH_AddAction(@A_SetMasterCustomParam, 'A_SetMasterCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_AddMasterCustomParam, 'A_AddMasterCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_SubtractMasterCustomParam, 'A_SubtractMasterCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_JumpIfMasterCustomParam, 'A_JumpIfMasterCustomParam(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfMasterCustomParamLess, 'A_JumpIfMasterCustomParamLess(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfMasterCustomParamGreater, 'A_JumpIfMasterCustomParamGreater(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_GoToIfMasterCustomParam, 'A_GoToIfMasterCustomParam(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfMasterCustomParamLess, 'A_GoToIfMasterCustomParamLess(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfMasterCustomParamGreater, 'A_GoToIfMasterCustomParamGreater(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_SetTracerCustomParam, 'A_SetTracerCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_AddTracerCustomParam, 'A_AddTracerCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_SubtractTracerCustomParam, 'A_SubtractTracerCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_JumpIfTracerCustomParam, 'A_JumpIfTracerCustomParam(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfTracerCustomParamLess, 'A_JumpIfTracerCustomParamLess(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfTracerCustomParamGreater, 'A_JumpIfTracerCustomParamGreater(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_GoToIfTracerCustomParam, 'A_GoToIfTracerCustomParam(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfTracerCustomParamLess, 'A_GoToIfTracerCustomParamLess(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfTracerCustomParamGreater, 'A_GoToIfTracerCustomParamGreater(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_SetMonsterInfight, 'A_SetMonsterInfight()');
+  DEH_AddAction(@A_UnSetMonsterInfight, 'A_UnSetMonsterInfight()');
+  DEH_AddAction(@A_BossDeath, 'A_BossDeath()');
+  DEH_AddAction(@A_RipSound1, 'A_RipSound()');
+  DEH_AddAction(@A_ChangeSpriteFlip, 'A_ChangeSpriteFlip(propability: integer)');
+  DEH_AddAction(@A_SpawnObject, 'A_SpawnObject(dehackedtyp: integer; anglefixeddeg: integer; xoffs, yoffs, zoffs: integer; xvel, yvel, zvel: integer)', [0, 0, 0, 0, 0, 0, 0, 0]);
+  DEH_AddAction(@A_MonsterProjectile, 'A_MonsterProjectile(dehackedtyp: integer; anglefixeddeg: integer; pitchfixeddeg: integer; xyoffs, zoffs: integer)', [0, 0, 0, 0, 0]);
+  DEH_AddAction(@A_MonsterBulletAttack, 'A_MonsterBulletAttack(anglefixed_hspread, anglefixed_vspread: integer; nbullets: integer; basedamage: integer; damagemod: integer)', [0, 0, 1, 3, 5]);
+  DEH_AddAction(@A_MonsterMeleeAttack, 'A_MonsterMeleeAttack(basedamage: integer; damagemod: integer; soundid: integer; fixxedrange: integer);', [3, 8, 0, 0]);
+  DEH_AddAction(@A_RadiusDamage, 'A_RadiusDamage(damage: integer; radius: integer);', [0, 0]);
+  DEH_AddAction(@A_NoiseAlert, 'A_NoiseAlert()');
+  DEH_AddAction(@A_HealChase, 'A_HealChase(state: state_t; sound: sound_t);', [0, 0]);
+  DEH_AddAction(@A_SeekTracer, 'A_SeekTracer(anglefixed_threshold: integer; anglefixed_maxturn: integer)', [0, 0]);
+  DEH_AddAction(@A_FindTracer, 'A_FindTracer(anglefixed_fov: integer; mapblocks: integer);', [0, 10]);
+  DEH_AddAction(@A_ClearTracer, 'A_ClearTracer();');
+  DEH_AddAction(@A_JumpIfHealthBelow, 'A_JumpIfHealthBelow(state: state_t; health_threshold: integer)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTargetInSight, 'A_JumpIfTargetInSight(state: state_t; anglefixed_fov: integer)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTargetCloser, 'A_JumpIfTargetCloser(state: state_t; distance: fixed_t)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTracerInSight, 'A_JumpIfTracerInSight(state: state_t; anglefixed_fov: integer)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTracerCloserMBF21, 'A_JumpIfTracerCloserMBF21(state: state_t; distance: fixed_t)', [0, 0]);
+  DEH_AddAction(@A_RandomRipSound, 'A_RandomRipSound();');
+  DEH_AddAction(@A_JumpIfFlagsSet, 'A_JumpIfFlagsSet(state: state_t; bits, mbf21bits: integer);', [0, 0, 0]);
+  DEH_AddAction(@A_AddFlags, 'A_AddFlags(bits, mbf21bits: integer);', [0, 0]);
+  DEH_AddAction(@A_RemoveFlags, 'A_RemoveFlags(bits, mbf21bits: integer);', [0, 0]);
+  DEH_AddAction(@A_WeaponProjectile, 'A_WeaponProjectile(typ: integer; anglefixed_ang: integer; anglefixed_pitch: integer; offs_xy: fixed_t; offs_z: fixed_t);', [0, 0, 0, 0, 0]);
+  DEH_AddAction(@A_WeaponBulletAttack, 'A_WeaponBulletAttack(anglefixed_hspread, anglefixed_vspread: integer; numbullets: integer; attackdamage, attackmod: integer);', [0, 0, 1, 5, 3]);
+  DEH_AddAction(@A_WeaponMeleeAttack, 'A_WeaponMeleeAttack(attackdamage, attackmod: integer; bersekdamagemul: fixed_t; sound: sound_t; range: fixed_t);', [2, 10, 1 * FRACUNIT, 0, 0]);
+  DEH_AddAction(@A_WeaponSound, 'A_WeaponSound(sound: sound_t; fullvolume: integer);', [0, 0]);
+  DEH_AddAction(@A_WeaponAlert, 'A_WeaponAlert();');
+  DEH_AddAction(@A_WeaponJump, 'A_WeaponJump(statenum: integer; chance: integer);', [0, 0]);
+  DEH_AddAction(@A_ConsumeAmmo, 'A_ConsumeAmmo(ammo: integer);', [0]);
+  DEH_AddAction(@A_CheckAmmo, 'A_CheckAmmo(state: integer; minammo: integer);', [0, 0]);
+  DEH_AddAction(@A_RefireTo, 'A_RefireTo(state: integer; skipammo: integer);', [0, 0]);
+  DEH_AddAction(@A_GunFlashTo, 'A_GunFlashTo(state: integer; noplayerstatechange: integer);', [0, 0]);
+  DEH_AddAction(@A_SetProjectileGroup, 'A_SetProjectileGroup(group: string);');
+  DEH_AddAction(@A_SetInfightingGroup, 'A_SetInfightingGroup(group: string);');
+  DEH_AddAction(@A_SetSplashGroup, 'A_SetSplashGroup(group: string);');
+  DEH_AddAction(@A_Delayfire, 'A_Delayfire(tics: integer = TICRATE);');
+  DEH_AddAction(@A_SetTranslation, 'A_SetTranslation(trans: string);');
+  DEH_AddAction(@A_SetBloodColor, 'A_SetBloodColor(color: string);');
 
   for i := 0 to dehnumactions - 1 do
     DEH_AddActionToHash(deh_actions[i].name, i);
@@ -2632,7 +3177,6 @@ begin
   DEH_AddString(@deh_strings, @STSTR_CLEV, 'STSTR_CLEV');
   DEH_AddString(@deh_strings, @STSTR_LGON, 'STSTR_LGON');
   DEH_AddString(@deh_strings, @STSTR_LGOFF, 'STSTR_LGOFF');
-
 
   for i := 0 to Ord(NUMKEYCARDS) - 1 do
       DEH_AddString(@deh_strings, @TextKeyMessages[i], 'TXT_GOTKEY_' + itoa(i));
@@ -2782,7 +3326,6 @@ begin
   DEH_AddString(@deh_strings, @SAVEGAMEMAPDD, 'SAVEGAMEMAPDD');
   DEH_AddString(@deh_strings, @SAVEPATH, 'SAVEPATH');
 
-
   weapon_tokens := TDTextList.Create;
 
   weapon_tokens.Add('MANA TYPE');           // .mana
@@ -2792,13 +3335,22 @@ begin
   weapon_tokens.Add('SHOOTING FRAME');      // .atkstate
   weapon_tokens.Add('FIRING FRAME');        // .flashstate
   weapon_tokens.Add('HOLD SHOOTING FRAME'); // .holdatkstate
+  weapon_tokens.Add('AMMO PER SHOT'); // .ammopershot (MBF21)
+  weapon_tokens.Add('MBF21 BITS');    // .mbf21bits (MBF21)
 
+  // MBF21
+  weapon_flags_mbf21 := TDTextList.Create;
+  weapon_flags_mbf21.Add('NOTHRUST');
+  weapon_flags_mbf21.Add('SILENT');
+  weapon_flags_mbf21.Add('NOAUTOFIRE');
+  weapon_flags_mbf21.Add('FLEEMELEE');
+  weapon_flags_mbf21.Add('AUTOSWITCHFROM');
+  weapon_flags_mbf21.Add('NOAUTOSWITCHTO');
 
   sound_tokens := TDTextList.Create;
 
   sound_tokens.Add('VALUE');
   sound_tokens.Add('NAME'); // DelphiDoom specific
-
 
   renderstyle_tokens := TDTextList.Create;
 
@@ -2807,7 +3359,6 @@ begin
   renderstyle_tokens.Add('ADD');
   renderstyle_tokens.Add('SUBTRACT');
 
-
   misc_tokens := TDTextList.Create;
 
   misc_tokens.Add('MAX MORPH HEALTH');    // p_maxmorphhealth
@@ -2815,7 +3366,6 @@ begin
   misc_tokens.Add('QUARTZ FLASK HEALTH'); // p_quartzflaskhealth
   misc_tokens.Add('MYSTIC URN HEALTH');   // p_mysticurnhealth
   misc_tokens.Add('MAX MANA');            // MAX_MANA
-
 
   C_AddCmd('DEH_ParseFile, BEX_ParseFile', @DEH_ParseFile);
   C_AddCmd('DEH_ParseLump, BEX_ParseLump', @DEH_ParseLumpName);
@@ -2827,6 +3377,11 @@ begin
   C_AddCmd('DEH_PrintActions, DEH_ShowActions, BEX_PrintActions, BEX_ShowActions', @DEH_PrintActions);
 end;
 
+//==============================================================================
+//
+// DEH_ShutDown
+//
+//==============================================================================
 procedure DEH_ShutDown;
 begin
   if not deh_initialized then
@@ -2839,15 +3394,24 @@ begin
   FreeAndNil(mobj_flags2_ex);
   FreeAndNil(mobj_flags3_ex);
   FreeAndNil(mobj_flags4_ex);
+  FreeAndNil(mobj_flags5_ex);
+  FreeAndNil(mobj_flags6_ex);
+  FreeAndNil(mobj_flags_mbf21); // MBF21
   FreeAndNil(state_flags_ex);
+  FreeAndNil(state_flags_mbf21);  // MBF21
   FreeAndNil(state_tokens);
   FreeAndNil(weapon_tokens);
+  FreeAndNil(weapon_flags_mbf21); // MBF21
   FreeAndNil(sound_tokens);
   FreeAndNil(renderstyle_tokens);
   FreeAndNil(misc_tokens);
   FreeAndNil(weapontype_tokens);
   FreeAndNil(ammotype_tokens);
   FreeAndNil(playerclass_tokens);
+  // MBF21
+  FreeAndNil(infighting_groups);
+  FreeAndNil(projectile_groups);
+  FreeAndNil(splash_groups);
 
   FreeAndNil(mobj_tokens_hash);
   FreeAndNil(mobj_flags_hash);
@@ -2856,6 +3420,9 @@ begin
   FreeAndNil(mobj_flags2_ex_hash);
   FreeAndNil(mobj_flags3_ex_hash);
   FreeAndNil(mobj_flags4_ex_hash);
+  FreeAndNil(mobj_flags5_ex_hash);
+  FreeAndNil(mobj_flags6_ex_hash);
+  FreeAndNil(mobj_flags_mbf21_hash); // MBF21
 
   DEH_ShutDownActionsHash;
 

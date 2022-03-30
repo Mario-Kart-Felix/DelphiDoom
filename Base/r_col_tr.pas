@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,10 +30,21 @@ unit r_col_tr;
 
 interface
 
+//==============================================================================
+// R_DrawTranslatedColumn
+//
 // Draw with color translation tables,
 //  for player sprite rendering,
 //  Green/Red/Blue/Indigo shirts.
+//
+//==============================================================================
 procedure R_DrawTranslatedColumn;
+
+//==============================================================================
+//
+// R_DrawTranslatedColumnHi
+//
+//==============================================================================
 procedure R_DrawTranslatedColumnHi;
 
 implementation
@@ -44,10 +55,9 @@ uses
   m_fixed,
   r_draw,
   r_main,
-  r_column,
-  r_hires,
-  v_video;
+  r_column;
 
+//==============================================================================
 //
 // R_DrawTranslatedColumn
 // Used to draw player sprites
@@ -57,7 +67,7 @@ uses
 //  of the BaronOfHell, the HellKnight, uses
 //  identical sprites, kinda brightened up.
 //
-
+//==============================================================================
 procedure R_DrawTranslatedColumn;
 var
   count: integer;
@@ -93,6 +103,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawTranslatedColumnHi
+//
+//==============================================================================
 procedure R_DrawTranslatedColumnHi;
 var
   count: integer;

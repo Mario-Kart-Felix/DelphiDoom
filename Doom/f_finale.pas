@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Game completion, final screen animation.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,16 +37,37 @@ uses
   d_event,
   info_h;
 
+//==============================================================================
+//
+// F_Responder
+//
+//==============================================================================
 function F_Responder(ev: Pevent_t): boolean;
 
 { Called by main loop. }
+
+//==============================================================================
+//
+// F_Ticker
+//
+//==============================================================================
 procedure F_Ticker;
 
 { Called by main loop. }
+
+//==============================================================================
+//
+// F_Drawer
+//
+//==============================================================================
 procedure F_Drawer;
 
+//==============================================================================
+//
+// F_StartFinale
+//
+//==============================================================================
 procedure F_StartFinale;
-
 
 //
 // Final DOOM 2 animation
@@ -88,6 +109,7 @@ uses
   g_game,
   info,
   p_pspr,
+  p_umapinfo,
   r_data,
   r_defs,
   r_things,
@@ -97,10 +119,8 @@ uses
   v_video,
   w_wad,
   s_sound,
-// Data.
-  dstrings,
   d_englsh,
-  sounds,
+  sounddata,
   doomdef,
   doomstat,
   hu_stuff;
@@ -119,21 +139,59 @@ const
 var
   finaletext: string;
   finaleflat: string;
+  using_FMI: boolean;
 
+//==============================================================================
+//
+// F_StartCast
+//
+//==============================================================================
 procedure F_StartCast; forward;
 
+//==============================================================================
+//
+// F_CastTicker
+//
+//==============================================================================
 procedure F_CastTicker; forward;
 
+//==============================================================================
+//
+// F_CastResponder
+//
+//==============================================================================
 function F_CastResponder(ev: Pevent_t): boolean; forward;
 
+//==============================================================================
+//
+// F_CastDrawer
+//
+//==============================================================================
 procedure F_CastDrawer; forward;
 
+//==============================================================================
+//
+// F_StartFinale
+//
+//==============================================================================
 procedure F_StartFinale;
+var
+  mus_changed: boolean;
 begin
   gameaction := ga_nothing;
   gamestate := GS_FINALE;
   viewactive := false;
   amstate := am_inactive;
+  mus_changed := false;
+
+  finaletext := '';
+  finaleflat := '';
+
+  if (gamemapinfo <> nil) and (gamemapinfo.intermusicnum > 0) then
+  begin
+    S_ChangeMusic(gamemapinfo.intermusicnum, true);
+    mus_changed := true;
+  end;
 
   // Okay - IWAD dependend stuff.
   // This has been changed severly, and
@@ -144,7 +202,8 @@ begin
     registered,
     retail:
       begin
-        S_ChangeMusic(Ord(mus_victor), true);
+        if not mus_changed then
+          S_ChangeMusic(Ord(mus_victor), true);
         case gameepisode of
           1:
             begin
@@ -173,7 +232,8 @@ begin
     // DOOM II and missions packs with E1, M34
     commercial:
       begin
-        S_ChangeMusic(Ord(mus_read_m), true);
+        if not mus_changed then
+          S_ChangeMusic(Ord(mus_read_m), true);
         case gamemap of
           6:
             begin
@@ -241,15 +301,43 @@ begin
       end;
   else
     begin
-      S_ChangeMusic(Ord(mus_read_m), true);
+      if not mus_changed then
+        S_ChangeMusic(Ord(mus_read_m), true);
       finaleflat := 'F_SKY1'; // Not used anywhere else.
       finaletext := C1TEXT;   // FIXME - other text, music?
     end;
   end;
+
+  using_FMI := false;
+
+  if gamemapinfo <> nil then
+  begin
+    if (gamemapinfo.intertextsecret[0] <> #0) and secretexit and (gamemapinfo.intertextsecret[0] <> '-') then // '-' means that any default intermission was cleared.
+      finaletext := ubigstringtostring(gamemapinfo.intertextsecret)
+    else if (gamemapinfo.intertext[0] <> #0) and  not secretexit and (gamemapinfo.intertext[0] <> '-') then // '-' means that any default intermission was cleared.
+      finaletext := ubigstringtostring(gamemapinfo.intertext);
+
+    if finaletext = '' then
+      finaletext := 'The End';  // this is to avoid a crash on a missing text in the last map.
+
+    if gamemapinfo.interbackdrop <> '' then
+      finaleflat := gamemapinfo.interbackdrop;
+
+    if finaleflat = '' then
+      finaleflat := 'FLOOR4_8'; // use a single fallback for all maps.
+
+    using_FMI := true;
+  end;
+
   finalestage := 0;
   finalecount := 0;
 end;
 
+//==============================================================================
+//
+// F_Responder
+//
+//==============================================================================
 function F_Responder(ev: Pevent_t): boolean;
 begin
   if finalestage = 2 then
@@ -258,9 +346,40 @@ begin
     result := false;
 end;
 
+//==============================================================================
+//
+// FMI_Ticker
+//
+//==============================================================================
+procedure FMI_Ticker;
+begin
+  if (gamemapinfo.endpic <> '') and (gamemapinfo.endpic <> '-') then
+  begin
+    if gamemapinfo.endpic = '$CAST' then
+    begin
+      F_StartCast;
+      using_FMI := false;
+    end
+    else
+    begin
+      finalecount := 0;
+      finalestage := 1;
+      wipegamestate := -1;  // force a wipe
+      if gamemapinfo.endpic = '$BUNNY' then
+        S_StartMusic(Ord(mus_bunny))
+      else if gamemapinfo.endpic = '!' then
+        using_FMI := false;
+    end;
+  end
+  else
+    gameaction := ga_worlddone; // next level, e.g. MAP07
+end;
+
+//==============================================================================
 //
 // F_Ticker
 //
+//==============================================================================
 procedure F_Ticker;
 var
   i: integer;
@@ -276,9 +395,12 @@ begin
         break;
       inc(i);
     end;
+
     if i < MAXPLAYERS then
     begin
-      if gamemap = 30 then
+      if using_FMI then
+        FMI_Ticker
+      else if gamemap = 30 then
         F_StartCast
       else
         gameaction := ga_worlddone;
@@ -294,24 +416,30 @@ begin
     exit;
   end;
 
-  if gamemode = commercial then
-    exit;
-
   if (finalestage = 0) and (finalecount > Length(finaletext) * TEXTSPEED + TEXTWAIT) then
   begin
-    finalecount := 0;
-    finalestage := 1;
-    wipegamestate := -1;    // force a wipe
-    if gameepisode = 3 then
-      S_StartMusic(Ord(mus_bunny));
+    if using_FMI then
+      FMI_Ticker
+    else if gamemode <> commercial then
+    begin
+      finalecount := 0;
+      finalestage := 1;
+      wipegamestate := -1;    // force a wipe
+      if gameepisode = 3 then
+        S_StartMusic(Ord(mus_bunny));
+    end;
   end;
 end;
 
+//==============================================================================
+//
+// F_TextWrite
+//
+//==============================================================================
 procedure F_TextWrite;
 var
-  src: PByteArray;
-  dest: integer;
-  x, y, w: integer;
+  bkok: boolean;
+  w: integer;
   count: integer;
   ch: string;
   c: char;
@@ -322,25 +450,10 @@ var
   cy: integer;
 begin
   // erase the entire screen to a tiled background
+  bkok := V_TileScreen8(finaleflat, SCN_TMP);
 
-  src := W_CacheLumpNum(R_GetLumpForFlat(R_FlatNumForName(finaleflat)), PU_STATIC);
-  dest := 0;
-
-  for y := 0 to 200 - 1 do
-  begin
-    for x := 0 to (320 div 64) - 1 do
-    begin
-      memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 64);
-      dest := dest + 64;
-    end;
-
-    if 320 and 63 <> 0 then
-    begin
-      memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 320 and 63);
-      dest := dest + (320 and 63);
-    end;
-  end;
-  Z_ChangeTag(src, PU_CACHE);
+  if not bkok then
+    ZeroMemory(@screens[SCN_TMP, 0], V_ScreensSize(SCN_TMP));
 
   // draw some of the text onto the screen
   cx := 10;
@@ -400,9 +513,11 @@ var
   castonmelee: integer;
   castattacking: boolean;
 
+//==============================================================================
 //
 // F_StartCast
 //
+//==============================================================================
 procedure F_StartCast;
 begin
   if finalestage = 2 then
@@ -419,9 +534,11 @@ begin
   S_ChangeMusic(Ord(mus_evil), true);
 end;
 
+//==============================================================================
 //
 // F_CastTicker
 //
+//==============================================================================
 procedure F_CastTicker;
 var
   st: integer;
@@ -529,9 +646,11 @@ begin
     casttics := 15;
 end;
 
+//==============================================================================
 //
 // F_CastResponder
 //
+//==============================================================================
 function F_CastResponder(ev: Pevent_t): boolean;
 begin
   if ev._type <> ev_keydown then
@@ -558,6 +677,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// F_CastPrint
+//
+//==============================================================================
 procedure F_CastPrint(const text: string);
 var
   ch: string;
@@ -608,9 +732,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // F_CastDrawer
 //
+//==============================================================================
 procedure F_CastDrawer;
 var
   sprdef: Pspritedef_t;
@@ -642,9 +768,11 @@ begin
   V_FullScreenStretch;
 end;
 
+//==============================================================================
 //
 // F_DrawPatchCol
 //
+//==============================================================================
 procedure F_DrawPatchCol(x: integer; patch: Ppatch_t; col: integer);
 var
   column: Pcolumn_t;
@@ -694,6 +822,11 @@ end;
 var
   laststage: integer;
 
+//==============================================================================
+//
+// F_BunnyScroll
+//
+//==============================================================================
 procedure F_BunnyScroll;
 var
   scrolled: integer;
@@ -707,22 +840,22 @@ begin
   p2 := W_CacheLumpName('PFUB1', PU_LEVEL);
 
   scrolled := 320 - (finalecount - 230) div 2;
-  if scrolled > 320 then
-    scrolled := 320
+  if scrolled > p1.width then
+    scrolled := p1.width
   else if scrolled < 0 then
     scrolled := 0;
 
   for x := 0 to 320 - 1 do
   begin
-    if x + scrolled < 320 then
+    if x + scrolled < p1.width then
       F_DrawPatchCol(x, p1, x + scrolled)
     else
-      F_DrawPatchCol(x, p2, x + scrolled - 320);
+      F_DrawPatchCol(x, p2, x + scrolled - p1.width);
   end;
 
-  if finalecount >= 1130 then
+  if finalecount >= 1130 + p1.width - 320 then
   begin
-    if finalecount < 1180 then
+    if finalecount < 1180 + p1.width - 320 then
     begin
       V_DrawPatch((320 - 13 * 8) div 2,
                   (200 - 8 * 8) div 2,
@@ -731,7 +864,7 @@ begin
     end
     else
     begin
-      stage := (finalecount - 1180) div 5;
+      stage := (finalecount - (1180 + p1.width - 320)) div 5;
       if stage > 6 then
         stage := 6;
       if stage > laststage then
@@ -752,11 +885,28 @@ begin
   V_FullScreenStretch;
 end;
 
+//==============================================================================
 //
 // F_Drawer
 //
+//==============================================================================
 procedure F_Drawer;
 begin
+  if using_FMI then
+  begin
+    if finalestage = 0 then
+    begin
+      F_TextWrite;
+      if gamemapinfo.endpic = '' then
+        using_FMI := false;
+    end
+    else if gamemapinfo.endpic = '$BUNNY' then
+      F_BunnyScroll
+    else
+      V_PageDrawer(gamemapinfo.endpic);
+    exit;
+  end;
+
   if finalestage = 2 then
   begin
     F_CastDrawer;
@@ -847,7 +997,6 @@ initialization
 
   castorder[17].name := '';
   castorder[17]._type := mobjtype_t(0);
-
 
   laststage := 0;
 

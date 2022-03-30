@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,10 +28,10 @@
 //  02111-1307, USA.
 //
 // DESCRIPTION:
-//      Refresh/rendering module, shared data struct definitions.
+//   Refresh/rendering module, shared data struct definitions.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -42,7 +42,6 @@ interface
 
 uses
   d_delphi,
-  doomdef,
   tables,
 {$IFNDEF OPENGL}
   t_main,
@@ -55,6 +54,7 @@ uses
   d_think,
 // SECTORS do store MObjs anyway.
   p_mobj_h,
+  p_udmf,
 {$IFNDEF OPENGL}
   r_range,  // JVAL: 3d Floors
   r_visplanes, // JVAL: 3d Floors
@@ -77,7 +77,6 @@ var
 const
   NUMCOLORMAPS = 32;
 
-
 type
 //
 // INTERNAL MAP TYPES
@@ -93,6 +92,7 @@ type
     x: fixed_t;
     y: fixed_t;
     amvalidcount: integer;
+    interpvalidcount: integer;
   end;
   Pvertex_t = ^vertex_t;
   vertex_tArray = packed array[0..$FFFF] of vertex_t;
@@ -111,6 +111,8 @@ type
     z: fixed_t;
   end;
   Pdegenmobj_t = ^degenmobj_t;
+  degenmobj_tArray = array[0..$FFF] of degenmobj_t;
+  Pdegenmobj_tArray = ^degenmobj_tArray;
 
   Pline_t = ^line_t;
   Pline_tArray = ^line_tArray;
@@ -224,6 +226,14 @@ type
     floorvisslope: integer;
     ceilingvisslope: integer;
 {$ENDIF}
+    moreids: moreids_t;
+    specialdata: Pointer;
+    seqType: integer;
+    lightninglightlevel: integer;
+    rendervalidcount: integer;
+    windthrust: integer;
+    windangle: angle_t;
+    interpolate_group: integer; // JVAL: 20220327 - Interpolation group
   end;
   sector_tArray = packed array[0..$FFFF] of sector_t;
   Psector_tArray = ^sector_tArray;
@@ -237,16 +247,24 @@ type
     m_snext: Pmsecnode_t; // next msecnode_t for this sector
     visited: boolean;     // killough 4/4/98, 4/7/98: used in search algorithms
   end;
+
 //
 // The SideDef.
 //
-
   side_t = packed record
     // add this to the calculated texture column
     textureoffset: fixed_t;
+    // JVAL: 20220211 - UDMF support
+    toptextureoffset: fixed_t;
+    bottomtextureoffset: fixed_t;
+    midtextureoffset: fixed_t;
 
     // add this to the calculated texture top
     rowoffset: fixed_t;
+    // JVAL: 20220211 - UDMF support
+    toprowoffset: fixed_t;
+    bottomrowoffset: fixed_t;
+    midrowoffset: fixed_t;
 
     // Texture indices.
     // We do not maintain names here.
@@ -256,6 +274,9 @@ type
 
     // Sector the SideDef is facing.
     sector: Psector_t;
+
+    // Flags
+    flags: integer;
   end;
   Pside_t = ^side_t;
   side_tArray = packed array[0..$FFFF] of side_t;
@@ -310,6 +331,19 @@ type
 
     clslopestep: array[0..1] of float; // JVAL: Slopes
     flslopestep: array[0..1] of float; // JVAL: Slopes
+
+    // JVAL: 20220209 - UDMF support
+    arg1: integer;
+    arg2: integer;
+    arg3: integer;
+    arg4: integer;
+    arg5: integer;
+    activators: integer;
+    moreids: moreids_t;
+
+    {$IFNDEF OPENGL}
+    rendervalidcount: integer;  // JVAL: 20220309 - Speed optimization
+    {$ENDIF}
   end;
   PPline_t = ^Pline_t;
   line_tArray = packed array[0..$FFFF] of line_t;
@@ -320,6 +354,11 @@ const
   LRF_ISOLATED = 1;
   LRF_TRANSPARENT = 2;
   LRF_SLOPED = 4; // JVAL: Slopes
+  LRF_IGNOREPASS = 8; // JVAL: 20220309 - Speed optimization
+
+const
+  // Sidedef flags
+  SDF_NOFAKECONTRAST = 1;
 
 const
   // Sector rendering flags
@@ -336,10 +375,12 @@ const
   SRF_INTERPOLATE_FLOORSLOPE = 1024;
   SRF_INTERPOLATE_CEILINGSLOPE = 2048;
   SRF_FOG = 4096;
+  SRF_HIDDEN = 8192;  // Hidden in textured automap
 
 const
   // Vissprite render flags
   VSF_TRANSPARENCY = 1;
+  VSF_VOXEL = 2;
 
 //
 // A SubSector.
@@ -357,6 +398,7 @@ type
     sector: Psector_t;
     numlines: LongWord; // JVAL glbsp (was word)
     firstline: LongWord;// JVAL glbsp (was word)
+    poly: pointer;
     x, y: fixed_t; // JVAL 3d Floors (Subsector Centroid)
     flags: LongWord;
   end;
@@ -389,12 +431,63 @@ type
 {$ELSE}
     map_length: integer;
     inv_length: double;
+    specialoffsets: boolean;
 {$ENDIF}
+    fakecontrastlight: integer;
     miniseg: boolean;
   end;
   Pseg_t = ^seg_t;
+  PPseg_t = ^Pseg_t;
   seg_tArray = packed array[0..$FFFF] of seg_t;
   Pseg_tArray = ^seg_tArray;
+  seg_tPArray = packed array[0..$FFFF] of Pseg_t;
+  Pseg_tPArray = ^seg_tPArray;
+
+type
+  saveseg_t = record
+    v1: vertex_t;
+    angle: angle_t;
+  end;
+  Psaveseg_t = ^saveseg_t;
+  saveseg_tArray = packed array[0..$FFFF] of saveseg_t;
+  Psaveseg_tArray = ^saveseg_tArray;
+
+// ===== Polyobj data =====
+type
+  polyobj_t = record
+    numsegs: integer;
+    segs: PPseg_t;
+    startSpot: degenmobj_t;
+    x, y: fixed_t;
+    prevx, prevy: fixed_t;
+    nextx, nexty: fixed_t;
+    originalPts: Pvertex_tArray;  // used as the base for the rotations
+    prevPts: Pvertex_tArray;      // use to restore the old point values
+    saveSegs: Psaveseg_tArray;    // use to restore the interpolation values
+    angle: angle_t;
+    prevangle: angle_t;
+    nextangle: angle_t;
+    tag: integer;                 // reference tag assigned in HereticEd
+    bbox: packed array[0..3] of fixed_t;
+    validcount: integer;
+    crush: boolean;               // should the polyobj attempt to crush mobjs?
+    seqType: integer;
+    size: fixed_t;                // polyobj size (area of POLY_AREAUNIT == size of FRACUNIT)
+    specialdata: pointer;         // pointer a thinker, if the poly is moving
+  end;
+  Ppolyobj_t = ^polyobj_t;
+  polyobj_tArray = array[0..$FFFF] of polyobj_t;
+  Ppolyobj_tArray = ^polyobj_tArray;
+
+type
+  Ppolyblock_t = ^polyblock_t;
+  polyblock_t = record
+    polyobj: Ppolyobj_t;
+    prev, next: Ppolyblock_t;
+  end;
+  polyblock_tPArray = array[0..$FFFF] of Ppolyblock_t;
+  Ppolyblock_tPArray = ^polyblock_tPArray;
+  PPpolyblock_t = ^Ppolyblock_t;
 
 //
 // BSP node.
@@ -466,6 +559,8 @@ type
 {$IFNDEF OPENGL}
     midvis: Pvisplane3d_t;
     midsiderange: midsiderange_t;
+    // JVAL: 20220306 - New field, precalculates (::silhouette = 0) and (::maskedtexturecol = nil) and (::thicksidecol = nil)
+    maskedquery: boolean;
 {$ENDIF}
   end;
   Pdrawseg_t = ^drawseg_t;
@@ -523,10 +618,10 @@ type
     {$IFNDEF OPENGL}
     texturemid2: fixed_t; // JVAL For light boost
     heightsec: integer;   // killough 3/27/98: height sector for underwater/fake ceiling support
-    voxelflag: integer;   // JVAL voxel support (1 for sprites, 0 for skipped spites (only light), 1.... for voxels
-    vx1, vx2: integer;
-    drawn: Boolean;       // JVAL 3d Floors
+    vx1, vx2: integer;    // JVAL voxel support
     ceilingz: fixed_t;    // JVAL 3d Floors
+    cache: Pointer;
+    lightcache: Pointer;
     {$ENDIF}
     patch: integer;
 
@@ -538,7 +633,6 @@ type
 {$ENDIF}
     mobjflags: LongWord;
     mobjflags_ex: LongWord;
-    mobjflags2_ex: LongWord;
     mo: Pmobj_t;
 {$IFDEF OPENGL}
     flip: boolean;
@@ -579,7 +673,6 @@ type
   Pspriteframe_t = ^spriteframe_t;
   spriteframe_tArray = packed array[0..$FFFF] of spriteframe_t;
   Pspriteframe_tArray = ^spriteframe_tArray;
-
 
 //
 // A sprite definition:

@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  Moving object handling. Spawn functions.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -46,96 +46,283 @@ uses
 //  tied to animation frames.
 // Needs precompiled tables/data structures.
   info_h,
+  p_udmf,
   m_fixed;
 
+//==============================================================================
+//
+// P_SetMobjState
+//
+//==============================================================================
 function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
 
+//==============================================================================
+//
+// P_SetMobjStateNF
+//
+//==============================================================================
 function P_SetMobjStateNF(mobj: Pmobj_t; state: statenum_t): boolean;
 
+//==============================================================================
+//
+// P_ExplodeMissile
+//
+//==============================================================================
 procedure P_ExplodeMissile(mo: Pmobj_t);
 
-procedure P_ThrustMobj(mo: Pmobj_t; angle: angle_t; const move: fixed_t);
-
-function P_FaceMobj(source: Pmobj_t; target: Pmobj_t; delta: Pangle_t): integer;
-
+//==============================================================================
+//
+// P_SeekerMissile
+//
+//==============================================================================
 function P_SeekerMissile(actor: Pmobj_t; thresh, turnMax: angle_t): boolean;
 
+//==============================================================================
+//
+// P_FloorBounceMissile
+//
+//==============================================================================
 procedure P_FloorBounceMissile(mo: Pmobj_t);
 
+//==============================================================================
+//
+// P_ZMovement
+//
+//==============================================================================
 procedure P_ZMovement(mo: Pmobj_t);
 
+//==============================================================================
+//
+// P_BlasterMobjThinker
+//
+//==============================================================================
 procedure P_BlasterMobjThinker(mobj: Pmobj_t);
 
+//==============================================================================
+//
+// P_PlayerLandedOnThing
+//
+//==============================================================================
 procedure P_PlayerLandedOnThing(mo: Pmobj_t; onmobj: Pmobj_t);
 
+//==============================================================================
+//
+// P_MobjThinker
+//
+//==============================================================================
 procedure P_MobjThinker(mobj: Pmobj_t);
 
+//==============================================================================
+//
+// P_SpawnMobj
+//
+//==============================================================================
 function P_SpawnMobj(x, y, z: fixed_t; _type: integer; const mthing: Pmapthing_t = nil): Pmobj_t;
 
+//==============================================================================
+//
+// P_RemoveMobj
+//
+//==============================================================================
 procedure P_RemoveMobj(mobj: Pmobj_t);
 
-function P_SpawnPlayer(mthing: Pmapthing_t): Pmobj_t;
+//==============================================================================
+//
+// P_SpawnPlayer
+//
+//==============================================================================
+function P_SpawnPlayer(mthing: Pmapthing_t; uthing: Pextrathing_t): Pmobj_t;
 
-function P_SpawnMapThing(mthing: Pmapthing_t): Pmobj_t;
+//==============================================================================
+//
+// P_SpawnMapThing
+//
+//==============================================================================
+function P_SpawnMapThing(mthing: Pmapthing_t; uthing: Pextrathing_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_CreateTIDList
+//
+//==============================================================================
 procedure P_CreateTIDList;
 
+//==============================================================================
+//
+// P_InsertMobjIntoTIDList
+//
+//==============================================================================
 procedure P_InsertMobjIntoTIDList(mobj: Pmobj_t; tid: integer);
 
+//==============================================================================
+//
+// P_RemoveMobjFromTIDList
+//
+//==============================================================================
 procedure P_RemoveMobjFromTIDList(mobj: Pmobj_t);
 
+//==============================================================================
+//
+// P_FindMobjFromTID
+//
+//==============================================================================
 function P_FindMobjFromTID(tid: integer; searchPosition: PInteger): Pmobj_t; overload;
 
+//==============================================================================
+//
+// P_FindMobjFromTID
+//
+//==============================================================================
 function P_FindMobjFromTID(tid: integer; searchPosition: PInteger; var mo: Pmobj_t): Pmobj_t; overload;
 
+//==============================================================================
+//
+// P_SpawnPuff
+//
+//==============================================================================
 procedure P_SpawnPuff(x, y, z: fixed_t);
 
+//==============================================================================
+//
+// P_BloodSplatter
+//
+//==============================================================================
 procedure P_BloodSplatter(x, y, z: fixed_t; originator: Pmobj_t);
 
+//==============================================================================
+//
+// P_BloodSplatter2
+//
+//==============================================================================
 procedure P_BloodSplatter2(x, y, z: fixed_t; originator: Pmobj_t);
 
+//==============================================================================
+//
+// P_RipperBlood
+//
+//==============================================================================
 procedure P_RipperBlood(mo: Pmobj_t);
 
+//==============================================================================
+//
+// P_HitFloor
+//
+//==============================================================================
 function P_HitFloor(thing: Pmobj_t): integer;
 
+//==============================================================================
+//
+// P_CheckMissileSpawn
+//
+//==============================================================================
 function P_CheckMissileSpawn(missile: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_SpawnMissile
+//
+//==============================================================================
 function P_SpawnMissile(source: Pmobj_t; dest: Pmobj_t; _type: integer): Pmobj_t;
 
+//==============================================================================
+//
+// P_SpawnMissileXYZ
+//
+//==============================================================================
 function P_SpawnMissileXYZ(x, y, z: fixed_t; source: Pmobj_t; dest: Pmobj_t; _type: integer): Pmobj_t;
 
-function P_SpawnMissileAngleZSpeed(source: Pmobj_t; z: fixed_t; _type: integer; angle: angle_t;
-  momz: fixed_t; speed: fixed_t; owner: Pmobj_t): Pmobj_t;
-
+//==============================================================================
+//
+// P_SpawnMissileAngleZ
+//
+//==============================================================================
 function P_SpawnMissileAngleZ(source: Pmobj_t; z: fixed_t; _type: integer; angle: angle_t;
   momz: fixed_t; speed: fixed_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_SpawnMissileAngleZSpeed
+//
+//==============================================================================
+function P_SpawnMissileAngleZSpeed(source: Pmobj_t; z: fixed_t; _type: integer; angle: angle_t;
+  momz: fixed_t; speed: fixed_t; owner: Pmobj_t): Pmobj_t;
+
+//==============================================================================
+//
+// P_SpawnMissileAngle
+//
+//==============================================================================
 function P_SpawnMissileAngle(source: Pmobj_t; _type: integer; angle: angle_t;
   momz: fixed_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_SpawnMissileAngleSpeed
+//
+//==============================================================================
 function P_SpawnMissileAngleSpeed(source: Pmobj_t; _type: integer;
   angle: angle_t; momz: fixed_t; speed: fixed_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_SpawnPlayerMissile
+//
+//==============================================================================
 function P_SpawnPlayerMissile(source: Pmobj_t; _type: integer): Pmobj_t;
 
+//==============================================================================
+//
+// P_SPMAngle
+//
+//==============================================================================
 function P_SPMAngle(source: Pmobj_t; _type: integer; angle: angle_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_SPMAngleXYZ
+//
+//==============================================================================
 function P_SPMAngleXYZ(source: Pmobj_t; x, y, z: fixed_t; _type: integer;
   angle: angle_t): Pmobj_t;
 
+//==============================================================================
+//
+// P_SpawnKoraxMissile
+//
+//==============================================================================
 function P_SpawnKoraxMissile(x, y, z: fixed_t; source: Pmobj_t; dest: Pmobj_t;
   _type: integer): Pmobj_t;
 
+//==============================================================================
+//
+// P_GetThingFloorType
+//
+//==============================================================================
 function P_GetThingFloorType(thing: Pmobj_t): integer;
 
 var
   iquehead: integer; // Initialized at p_setup
   iquetail: integer; // Initialized at p_setup
 
+//==============================================================================
+//
+// P_FindMobjFromKey
+//
+//==============================================================================
 function P_FindMobjFromKey(const key: LongWord): Pmobj_t;
 
+//==============================================================================
+//
+// MObj_Init
+//
+//==============================================================================
 procedure MObj_Init;
 
+//==============================================================================
+//
+// MObj_ShutDown
+//
+//==============================================================================
 procedure MObj_ShutDown;
 
 var
@@ -150,13 +337,13 @@ uses
   d_player,
   d_think,
   d_main,
-  m_vectors,
   g_game,
   g_demo,
   i_system,
   z_zone,
   m_rnd,
   doomdef,
+  p_playertrace,
   p_gravity,
   p_local,
   p_map,
@@ -182,15 +369,15 @@ uses
   r_sky,
   r_main,
   r_data,
+  r_translations,
   hu_stuff,
   s_sound,
-  sounds,
+  sounddata,
   s_sndseq,
   sb_bar,
   info,
   info_rnd,
-  info_common,
-  doomstat;
+  info_common;
 
 // From Chocolate-Doom
 // Use a heuristic approach to detect infinite state cycles: Count the number
@@ -199,10 +386,12 @@ uses
 const
   MOBJ_CYCLE_LIMIT = 1000000;
 
+//==============================================================================
 //
 // P_SetMobjState
 // Returns true if the mobj is still present.
 //
+//==============================================================================
 function P_SetMobjState(mobj: Pmobj_t; state: statenum_t): boolean;
 var
   st: Pstate_t;
@@ -241,20 +430,19 @@ begin
 
     inc(cycle_counter);
     if cycle_counter > MOBJ_CYCLE_LIMIT then
-      I_Error('P_SetMobjState(): Infinite state cycle detected!');
+      I_Error('P_SetMobjState(): Infinite state cycle detected in object "%s"!', [Info_GetMobjName(mobj.info)]);
   until mobj.tics <> 0;
 
   result := true;
 end;
 
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SetMobjStateNF
 //
 // Same as P_SetMobjState, but does not call the state function.
 //
-//----------------------------------------------------------------------------
-
+//==============================================================================
 function P_SetMobjStateNF(mobj: Pmobj_t; state: statenum_t): boolean;
 var
   st: Pstate_t;
@@ -276,9 +464,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_ExplodeMissile
 //
+//==============================================================================
 procedure P_ExplodeMissile(mo: Pmobj_t);
 begin
   mo.momx := 0;
@@ -301,75 +491,14 @@ begin
   end;
 end;
 
-
-//----------------------------------------------------------------------------
-//
-// PROC P_ThrustMobj
-//
-//----------------------------------------------------------------------------
-procedure P_ThrustMobj(mo: Pmobj_t; angle: angle_t; const move: fixed_t);
-begin
-  angle := angle shr ANGLETOFINESHIFT;
-  mo.momx := mo.momx + FixedMul(move, finecosine[angle]);
-  mo.momy := mo.momy + FixedMul(move, finesine[angle]);
-end;
-
-
-//----------------------------------------------------------------------------
-//
-// FUNC P_FaceMobj
-//
-// Returns 1 if 'source' needs to turn clockwise, or 0 if 'source' needs
-// to turn counter clockwise.  'delta' is set to the amount 'source'
-// needs to turn.
-//
-//----------------------------------------------------------------------------
-function P_FaceMobj(source: Pmobj_t; target: Pmobj_t; delta: Pangle_t): integer;
-var
-  diff: angle_t;
-  angle1: angle_t;
-  angle2: angle_t;
-begin
-  angle1 := source.angle;
-  angle2 := R_PointToAngle2(source.x, source.y, target.x, target.y);
-  if angle2 > angle1 then
-  begin
-    diff := angle2 - angle1;
-    if diff > ANG180 then
-    begin
-      delta^ := ANGLE_MAX - diff;
-      result := 0;
-    end
-    else
-    begin
-      delta^ := diff;
-      result := 1;
-    end;
-  end
-  else
-  begin
-    diff := angle1 - angle2;
-    if diff > ANG180 then
-    begin
-      delta^ := ANGLE_MAX - diff;
-      result := 1;
-    end
-    else
-    begin
-      delta^ := diff;
-      result := 0;
-    end;
-  end;
-end;
-
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SeekerMissile
 //
 // The missile's tracer field must be the target.  Returns true if
 // target was tracked, false if not.
 //
-//----------------------------------------------------------------------------
+//==============================================================================
 function P_SeekerMissile(actor: Pmobj_t; thresh, turnMax: angle_t): boolean;
 var
   dir: integer;
@@ -393,7 +522,7 @@ begin
     exit;
   end;
 
-  dir := P_FaceMobj(actor, target, @delta);
+  dir := P_FaceMobj(actor, target, delta);
   if delta > thresh then
   begin
     delta := delta shr 1;
@@ -435,6 +564,11 @@ const
   FRICTION_FLY = $eb00;
   windTab: array[0..2] of integer = (2048 * 5, 2048 * 10, 2048 * 25);
 
+//==============================================================================
+//
+// P_XYMovement
+//
+//==============================================================================
 procedure P_XYMovement(mo: Pmobj_t);
 var
   ptryx: fixed_t;
@@ -446,7 +580,7 @@ var
   angle: angle_t;
   speed: fixed_t;
   skip: boolean;
-  rnd: longword;
+  rnd: LongWord;
   wasonfloorz: boolean;
   wasonslope: boolean;
   oldsector: Psector_t;
@@ -512,6 +646,12 @@ begin
 
   wasonfloorz := mo.z <= mo.floorz;
   oldsector := Psubsector_t(mo.subsector).sector;
+
+  // JVAL: 20220222 - Wind thrust
+  if mo.flags2 and MF2_WINDTHRUST <> 0 then
+    if oldsector.windthrust <> 0 then
+      P_ThrustMobj(mo, oldsector.windangle, oldsector.windthrust);
+
   wasonslope := oldsector.renderflags and SRF_SLOPED <> 0;
 
   player := mo.player;
@@ -723,7 +863,8 @@ begin
   end;
 
   if mo.flags3_ex and MF3_EX_BOUNCE <> 0 then
-    exit; // no friction for bouncing objects
+    if G_PlayingEngineVersion <= VERSION206 then
+      exit; // no friction for bouncing objects
 
   if (mo.z > mo.floorz) and (mo.flags2 and MF2_FLY = 0) and (mo.flags2 and MF2_ONMOBJ = 0) then
   begin // No friction when falling
@@ -785,12 +926,11 @@ begin
   end;
 end;
 
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_FloorBounceMissile
 //
-//----------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_FloorBounceMissile(mo: Pmobj_t);
 begin
 
@@ -865,8 +1005,12 @@ begin
 //  P_SetMobjState(mo, mobjinfo[mo.type].deathstate);
 end;
 
-
+//==============================================================================
+// P_MonsterFallingDamage
+//
 // Move this to p_inter ***
+//
+//==============================================================================
 procedure P_MonsterFallingDamage(mo: Pmobj_t);
 var
   damage: integer;
@@ -889,22 +1033,18 @@ begin
   P_DamageMobj(mo, nil, nil, damage);
 end;
 
-
-
-//
-//===============
+//==============================================================================
 //
 // P_ZMovement
 //
-//===============
-//
-
+//==============================================================================
 procedure P_ZMovement(mo: Pmobj_t);
 var
   dist: integer;
   delta: integer;
   pl: Pplayer_t;
   laddertics: integer;
+  oldz: fixed_t;
 begin
   pl := mo.player;
 
@@ -1002,6 +1142,7 @@ begin
       P_HitFloor(mo);
     end;
 
+    oldz := mo.z;
     mo.z := mo.floorz;
     if mo.momz < 0 then
     begin
@@ -1022,7 +1163,7 @@ begin
           // JVAL: 20211101 - Crouch
           if G_PlayingEngineVersion >= VERSION207 then
             pl.deltaviewheight := FixedMul(pl.deltaviewheight, FixedDiv(mo.height, mo.info.height));
-	  if mo.momz < -23 * FRACUNIT then
+          if mo.momz < -23 * FRACUNIT then
           begin
             P_FallingDamage(mo.player);
             P_NoiseAlert(mo, mo);
@@ -1072,7 +1213,12 @@ begin
         end;
       end;
       if mo.flags3_ex and MF3_EX_FLOORBOUNCE <> 0 then
-        mo.momz := -mo.momz div 2
+      begin
+        mo.momz := -mo.momz div 2;
+        if G_PlayingEngineVersion >= VERSION207 then
+          if mo.momz + oldz <= mo.floorz then
+            mo.momz := 0;
+      end
       else
         mo.momz := 0;
     end;
@@ -1126,7 +1272,6 @@ begin
     begin
       // Maybe reverse momentum here for ceiling bounce
       // Currently won't happen
-
       A_SeeSound(mo, mo);
       exit;
     end;
@@ -1167,13 +1312,11 @@ begin
   end;
 end;
 
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_BlasterMobjThinker
 //
-//
-//----------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_BlasterMobjThinker(mobj: Pmobj_t);
 var
   i: integer;
@@ -1267,12 +1410,11 @@ begin
   end;
 end;
 
-//===========================================================================
+//==============================================================================
 //
 // P_PlayerLandedOnThing
 //
-//===========================================================================
-
+//==============================================================================
 procedure P_PlayerLandedOnThing(mo: Pmobj_t; onmobj: Pmobj_t);
 var
   pl: Pplayer_t;
@@ -1319,19 +1461,18 @@ begin
   pl.centering := true;
 end;
 
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_MobjThinker
 //
-//----------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_MobjThinker(mobj: Pmobj_t);
 var
   onmo: Pmobj_t;
   pl: Pplayer_t;
 begin
   // JVAL: Clear just spawned flag
-  mobj.flags := mobj.flags and not MF_JUSTAPPEARED;
+  mobj.flags2_ex := mobj.flags2_ex and not MF2_EX_JUSTAPPEARED;
 
   // Handle X and Y momentums
   BlockingMobj := nil;
@@ -1357,7 +1498,7 @@ begin
   end
   else if (mobj.z <> mobj.floorz) or (mobj.momz <> 0) or (BlockingMobj <> nil) then
   begin  // Handle Z momentum and gravity
-    if mobj.flags2 and MF2_PASSMOBJ <> 0 then
+    if ((mobj.player <> nil) and (G_PlayingEngineVersion >= VERSION207)) or (mobj.flags2 and MF2_PASSMOBJ <> 0) then
     begin
       onmo := P_CheckOnmobj(mobj);
       if onmo = nil then
@@ -1393,9 +1534,7 @@ begin
       end;
     end
     else
-    begin
       P_ZMovement(mobj);
-    end;
 
     if P_ThinkerIsRemoved(@mobj.thinker) then
       exit; // mobj was removed
@@ -1415,12 +1554,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_SpawnMobj
 //
-//==========================================================================
-
+//==============================================================================
 function P_SpawnMobj(x: fixed_t; y: fixed_t; z: fixed_t; _type: integer; const mthing: Pmapthing_t = nil): Pmobj_t;
 var
   mobj: Pmobj_t;
@@ -1446,13 +1584,15 @@ begin
   mobj.y := y;
   mobj.radius := info.radius;
   mobj.height := info.height;
-  // JVAL: Set MF_JUSTAPPEARED flag
-  mobj.flags := info.flags or MF_JUSTAPPEARED;
+  mobj.flags := info.flags;
   mobj.flags2 := info.flags2;
   mobj.flags_ex := info.flags_ex;
-  mobj.flags2_ex := info.flags2_ex;
+  // JVAL: Set MF_JUSTAPPEARED flag
+  mobj.flags2_ex := info.flags2_ex or MF2_EX_JUSTAPPEARED;
   mobj.flags3_ex := info.flags3_ex;
   mobj.flags4_ex := info.flags4_ex;
+  mobj.flags5_ex := info.flags5_ex;
+  mobj.flags6_ex := info.flags6_ex;
   mobj.scale := info.scale;
   mobj.gravity := info.gravity;
   mobj.pushfactor := info.pushfactor;
@@ -1465,6 +1605,15 @@ begin
   mobj.WeaveIndexXY := info.WeaveIndexXY;
   mobj.WeaveIndexZ := info.WeaveIndexZ;
   mobj.painchance := info.painchance;
+  mobj.spriteDX := info.spriteDX;
+  mobj.spriteDY := info.spriteDY;
+  // mbf21+
+  mobj.infighting_group := info.infighting_group;
+  mobj.projectile_group := info.projectile_group;
+  mobj.splash_group := info.splash_group;
+  mobj.bloodcolor := info.bloodcolor;
+  mobj.translationname := info.translationname;
+  R_InitMobjTranslation(mobj);
 
   if gameskill <> sk_nightmare then
     mobj.reactiontime := info.reactiontime;
@@ -1534,9 +1683,7 @@ begin
   if z = ONFLOORZ then
     mobj.z := mobj.floorz
   else if z = ONCEILINGZ then
-  begin
-    mobj.z := mobj.ceilingz - mobj.info.height;
-  end
+    mobj.z := mobj.ceilingz - mobj.info.height
   else if z = FLOATRANDZ then
   begin
     space := mobj.ceilingz - mobj.info.height - mobj.floorz;
@@ -1600,12 +1747,11 @@ begin
   result := mobj;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_RemoveMobj
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_RemoveMobj(mobj: Pmobj_t);
 begin
   // Remove from creature queue
@@ -1623,23 +1769,32 @@ begin
   // Unlink from sector and block lists
   P_UnsetThingPosition(mobj);
 
-  // stop any playing sound
-  S_StopSound(mobj);
+  if mobj.flags4_ex and MF4_EX_ALWAYSFINISHSOUND <> 0 then
+    S_UnlinkSound(mobj)
+  else if mobj.flags4_ex and MF4_EX_NEVERFINISHSOUND <> 0 then
+    S_StopSound(mobj)
+  // From Woof: [FG] removed map objects may finish their sounds
+  else if full_sounds then
+    S_UnlinkSound(mobj)
+  else
+    // stop any playing sound
+    S_StopSound(mobj);
+
+  P_RemoveMobjCustomParams(mobj.customparams);
 
   // free block
   P_RemoveThinker(Pthinker_t(mobj));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_SpawnPlayer
 //
 // Called when a player is spawned on the level.  Most of the player
 // structure stays unchanged between levels.
 //
-//==========================================================================
-
-function P_SpawnPlayer(mthing: Pmapthing_t): Pmobj_t;
+//==============================================================================
+function P_SpawnPlayer(mthing: Pmapthing_t; uthing: Pextrathing_t): Pmobj_t;
 var
   p: Pplayer_t;
   x: fixed_t;
@@ -1656,9 +1811,21 @@ begin
   if p.playerstate = PST_REBORN then
     G_PlayerReborn(mthing._type - 1);
 
-  x := mthing.x * FRACUNIT;
-  y := mthing.y * FRACUNIT;
-  z := ONFLOORZ;
+  if uthing <> nil then
+  begin
+    x := uthing.x;
+    y := uthing.y;
+    if uthing.extraflags and UDMF_TF_HASZ <> 0 then
+      z := uthing.z
+    else
+      z := ONFLOORZ;
+  end
+  else
+  begin
+    x := mthing.x * FRACUNIT;
+    y := mthing.y * FRACUNIT;
+    z := ONFLOORZ;
+  end;
 
   // JVAL: 20191209 - 3d floors - Fixed Player spawned in 3d floor
   ss := R_PointInSubsector(x, y);
@@ -1717,6 +1884,7 @@ begin
   result.player := p;
   result.health := p.health;
   result.customparams := nil; // JVAL: Should keep the old params!
+
   p.mo := result;
   p.playerstate := PST_LIVE;
   p.refire := 0;
@@ -1738,11 +1906,43 @@ begin
   p.lastongroundtime := 0;
   p.lastautocrouchtime := 0;
   p.crouchheight := 0;
+  p.plinetarget := nil;
+  p.pcrosstic := leveltime;
+  // JVAL: 20211224 - Clear player history
+  P_ClearPlayerHistory(p);
+  p.nextfire := 0;
+
+  // JVAL: 20220123 - Gravity & Health from UDMF
+  if uthing <> nil then
+  begin
+    if uthing.extraflags and UDMF_TF_HASGRAVITY <> 0 then
+    begin
+      if uthing.gravity < 0.0 then
+        p.mo.gravity := -Round(uthing.gravity * FRACUNIT)
+      else
+        p.mo.gravity := Round(p.mo.gravity * uthing.gravity);
+    end;
+    if uthing.extraflags and UDMF_TF_HASHEALTH <> 0 then
+    begin
+      if uthing.health < 0.0 then
+      begin
+        p.health := -Round(uthing.health);
+        p.mo.health := p.health;
+      end
+      else
+      begin
+        p.health := Round(p.health * uthing.health);
+        p.mo.health := p.health;
+      end
+    end;
+  end;
 
   // setup gun psprite
   P_SetupPsprites(p);
+
+  // give all cards in death match mode
   if deathmatch <> 0 then
-  begin // Give all keys in death match mode
+  begin
     p.keys := 2047;
   end;
 
@@ -1755,13 +1955,11 @@ begin
   end;
 end;
 
-//==========================================================================
 //
 // P_SpawnMapThing
 //
 // The fields of the mapthing should already be in host byte order.
 //
-//==========================================================================
 const
   classFlags: array[0..2] of integer = (
     MTF_FIGHTER,
@@ -1769,10 +1967,16 @@ const
     MTF_MAGE
   );
 
-function P_SpawnMapThing(mthing: Pmapthing_t): Pmobj_t;
+//==============================================================================
+//
+// P_SpawnMapThing
+//
+//==============================================================================
+function P_SpawnMapThing(mthing: Pmapthing_t; uthing: Pextrathing_t): Pmobj_t;
 var
   i: integer;
   spawnMask: integer;
+  bit: integer;
   x: fixed_t;
   y: fixed_t;
   z: fixed_t;
@@ -1789,6 +1993,23 @@ begin
     if deathmatch_p < MAX_DEATHMATCH_STARTS then
     begin
       memcpy(@deathmatchstarts[deathmatch_p], mthing, SizeOf(mthing^));
+      if uthing <> nil then
+        memcpy(@udeathmatchstarts[deathmatch_p], uthing, SizeOf(uthing^))
+      else
+      begin
+        ZeroMemory(@udeathmatchstarts[deathmatch_p], SizeOf(uthing^));
+        if mthing.options and 1 <> 0 then
+          udeathmatchstarts[deathmatch_p].extraflags :=
+            udeathmatchstarts[deathmatch_p].extraflags or UDMF_TF_SKILL1 or UDMF_TF_SKILL2;
+        if mthing.options and 2 <> 0 then
+          udeathmatchstarts[deathmatch_p].extraflags :=
+            udeathmatchstarts[deathmatch_p].extraflags or UDMF_TF_SKILL3;
+        if mthing.options and 4 <> 0 then
+          udeathmatchstarts[deathmatch_p].extraflags :=
+            udeathmatchstarts[deathmatch_p].extraflags or UDMF_TF_SKILL4 or UDMF_TF_SKILL5;
+        udeathmatchstarts[deathmatch_p].x := mthing.x * FRACUNIT;
+        udeathmatchstarts[deathmatch_p].y := mthing.y * FRACUNIT;
+      end;
       inc(deathmatch_p);
     end;
     exit;
@@ -1810,8 +2031,16 @@ begin
   begin
     // save spots for respawning in network games
     playerstarts[mthing.arg1, mthing._type - 1] := mthing^;
+    if uthing <> nil then
+      uplayerstarts[mthing.arg1, mthing._type - 1] := uthing^
+    else
+    begin
+      ZeroMemory(@uplayerstarts[mthing.arg1, mthing._type - 1], SizeOf(extrathing_t));
+      uplayerstarts[mthing.arg1, mthing._type - 1].x := mthing.x * FRACUNIT;
+      uplayerstarts[mthing.arg1, mthing._type - 1].y := mthing.y * FRACUNIT;
+    end;
     if (deathmatch = 0) and (mthing.arg1 = 0) then
-      result := P_SpawnPlayer(mthing);
+      result := P_SpawnPlayer(mthing, uthing);
     exit;
   end;
 
@@ -1820,8 +2049,16 @@ begin
   begin
     mthing._type := 5 + mthing._type - 9100;  // Translate to 5 - 8
     playerstarts[mthing.arg1, mthing._type - 1] := mthing^;
+    if uthing <> nil then
+      uplayerstarts[mthing.arg1, mthing._type - 1] := uthing^
+    else
+    begin
+      ZeroMemory(@uplayerstarts[mthing.arg1, mthing._type - 1], SizeOf(extrathing_t));
+      uplayerstarts[mthing.arg1, mthing._type - 1].x := mthing.x * FRACUNIT;
+      uplayerstarts[mthing.arg1, mthing._type - 1].y := mthing.y * FRACUNIT;
+    end;
     if (deathmatch = 0) and (mthing.arg1 = 0) then
-      result := P_SpawnPlayer(mthing);
+      result := P_SpawnPlayer(mthing, uthing);
     exit;
   end;
 
@@ -1848,15 +2085,27 @@ begin
   if mthing.options and spawnMask = 0 then
     exit;
 
-  // Check current skill with spawn flags
-  if (gameskill = sk_baby) or (gameskill = sk_easy) then
-    spawnMask := MTF_EASY
-  else if (gameskill = sk_hard) or (gameskill = sk_nightmare) then
-    spawnMask := MTF_HARD
+  if uthing <> nil then
+  begin
+    bit := _SHL(1, Ord(gameskill));
+    if bit and uthing.extraflags = 0 then
+    begin
+      result := nil;
+      exit;
+    end;
+  end
   else
-    spawnMask := MTF_NORMAL;
-  if mthing.options and spawnMask = 0 then
-    exit;
+  begin
+    // Check current skill with spawn flags
+    if (gameskill = sk_baby) or (gameskill = sk_easy) then
+      spawnMask := MTF_EASY
+    else if (gameskill = sk_hard) or (gameskill = sk_nightmare) then
+      spawnMask := MTF_HARD
+    else
+      spawnMask := MTF_NORMAL;
+    if mthing.options and spawnMask = 0 then
+      exit;
+  end;
 
   // Check current character classes with spawn flags
   if not netgame then
@@ -1898,7 +2147,7 @@ begin
       exit;
   end;
   // don't spawn keycards and players in deathmatch
-  if (deathmatch <> 0) and ((mobjinfo[i].flags and MF_NOTDMATCH) <> 0) then
+  if (deathmatch <> 0) and (mobjinfo[i].flags and MF_NOTDMATCH <> 0) then
     exit;
 
   // don't spawn any monsters if -nomonsters
@@ -1906,8 +2155,16 @@ begin
     exit;
 
   // spawn it
-  x := mthing.x * FRACUNIT;
-  y := mthing.y * FRACUNIT;
+  if uthing <> nil then
+  begin
+    x := uthing.x;
+    y := uthing.y;
+  end
+  else
+  begin
+    x := mthing.x * FRACUNIT;
+    y := mthing.y * FRACUNIT;
+  end;
 
   // JVAL
   // Random map enemies
@@ -1923,6 +2180,10 @@ begin
     z := mthing.height * FRACUNIT
   else
     z := ONFLOORZ;
+
+  if uthing <> nil then
+    if uthing.extraflags and UDMF_TF_HASZ <> 0 then
+      z := uthing.z;
 
 // JVAL: 3d floors
   ss := R_PointInSubsector(x, y);
@@ -1960,6 +2221,9 @@ begin
   result := P_SpawnMobj(x, y, z, i, mthing);
   result.spawnpoint := mthing^;
 
+  if mthing.options and MTF_FRIEND <> 0 then
+    result.flags2_ex := result.flags2_ex or MF2_EX_FRIEND;
+
   if z = ONFLOORZ then
     result.z := result.z + mthing.height * FRACUNIT
   else if z = ONCEILINGZ then
@@ -1983,11 +2247,13 @@ begin
 
   if result.tics > 0 then
     result.tics := 1 + (P_Random mod result.tics);
-
   if result.flags and MF_COUNTKILL <> 0 then
   begin
     // Quantize angle to 45 degree increments
-    result.angle := ANG45 * (mthing.angle div 45);
+    if result.flags2_ex and MF2_EX_PRECISESPAWNANGLE <> 0 then
+      result.angle := ANG1 * mthing.angle
+    else
+      result.angle := ANG45 * (mthing.angle div 45);
   end
   else
   begin
@@ -2008,13 +2274,30 @@ begin
       P_SetMobjState(result, S_ICEGUY_DORMANT);
     result.tics := -1;
   end;
+
+  // JVAL: 20220123 - Gravity & Health from UDMF
+  if uthing <> nil then
+  begin
+    if uthing.extraflags and UDMF_TF_HASGRAVITY <> 0 then
+    begin
+      if uthing.gravity < 0.0 then
+        result.gravity := -Round(uthing.gravity * FRACUNIT)
+      else
+        result.gravity := Round(result.gravity * uthing.gravity);
+    end;
+    if uthing.extraflags and UDMF_TF_HASHEALTH <> 0 then
+    begin
+      if uthing.health < 0.0 then
+        result.health := -Round(uthing.health)
+      else
+        result.health := Round(result.health * uthing.health);
+    end;
+  end;
 end;
 
-//==========================================================================
 //
 // P_CreateTIDList
 //
-//==========================================================================
 
 const
   MAX_TID_COUNT = 200;
@@ -2023,6 +2306,11 @@ var
   TIDList: array[0..MAX_TID_COUNT] of integer; // +1 for termination marker
   TIDMobj: array[0..MAX_TID_COUNT] of Pmobj_t;
 
+//==============================================================================
+//
+// P_CreateTIDList
+//
+//==============================================================================
 procedure P_CreateTIDList;
 var
   i: integer;
@@ -2054,12 +2342,11 @@ begin
   TIDList[i] := 0;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_InsertMobjIntoTIDList
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_InsertMobjIntoTIDList(mobj: Pmobj_t; tid: integer);
 var
   i: integer;
@@ -2089,12 +2376,11 @@ begin
   TIDMobj[index] := mobj;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_RemoveMobjFromTIDList
 //
-//==========================================================================
-
+//==============================================================================
 procedure P_RemoveMobjFromTIDList(mobj: Pmobj_t);
 var
   i: integer;
@@ -2114,12 +2400,11 @@ begin
   mobj.tid := 0;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_FindMobjFromTID
 //
-//==========================================================================
-
+//==============================================================================
 function P_FindMobjFromTID(tid: integer; searchPosition: PInteger): Pmobj_t;
 var
   i: integer;
@@ -2139,6 +2424,11 @@ begin
   result := nil;
 end;
 
+//==============================================================================
+//
+// P_FindMobjFromTID
+//
+//==============================================================================
 function P_FindMobjFromTID(tid: integer; searchPosition: PInteger; var mo: Pmobj_t): Pmobj_t;
 begin
   result := P_FindMobjFromTID(tid, searchPosition);
@@ -2146,19 +2436,16 @@ begin
 end;
 
 //
-//===============================================================================
 //
 //            GAME SPAWN FUNCTIONS
 //
-//===============================================================================
 //
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_SpawnPuff
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_SpawnPuff(x, y, z: fixed_t);
 var
   puff: Pmobj_t;
@@ -2182,43 +2469,48 @@ begin
   PuffSpawned := puff;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_BloodSplatter
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_BloodSplatter(x, y, z: fixed_t; originator: Pmobj_t);
 var
   mo: Pmobj_t;
 begin
   mo := P_SpawnMobj(x, y, z, Ord(MT_BLOODSPLATTER));
+
+  if originator.bloodcolor <> 0 then
+    R_SetMobjBloodTranslation(mo, originator.bloodcolor);
+
   mo.target := originator;
   mo.momx := (P_Random - P_Random) * 1024;
   mo.momy := (P_Random - P_Random) * 1024;
   mo.momz := 3 * FRACUNIT;
 end;
 
-//===========================================================================
+//==============================================================================
 //
 //  P_BloodSplatter2
 //
-//===========================================================================
-
+//==============================================================================
 procedure P_BloodSplatter2(x, y, z: fixed_t; originator: Pmobj_t);
 var
   mo: Pmobj_t;
 begin
   mo := P_SpawnMobj(x + _SHL(P_Random - 128, 11), y + _SHL(P_Random - 128, 11), z, Ord(MT_AXEBLOOD));
+
+  if originator.bloodcolor <> 0 then
+    R_SetMobjBloodTranslation(mo, originator.bloodcolor);
+
   mo.target := originator;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // PROC P_RipperBlood
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 procedure P_RipperBlood(mo: Pmobj_t);
 var
   th: Pmobj_t;
@@ -2233,14 +2525,14 @@ begin
   th.tics := th.tics + P_Random mod 3;
 end;
 
-//---------------------------------------------------------------------------
-//
-// FUNC P_HitFloor
-//
-//---------------------------------------------------------------------------
 const
   SMALLSPLASHCLIP = 12 * FRACUNIT;
 
+//==============================================================================
+//
+// P_HitFloor
+//
+//==============================================================================
 function P_HitFloor(thing: Pmobj_t): integer;
 var
   mo: Pmobj_t;
@@ -2359,16 +2651,14 @@ begin
   result := FLOOR_SOLID;
 end;
 
-
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_CheckMissileSpawn
 //
 // Returns true if the missile is at a valid spawn point, otherwise
 // explodes it and returns false.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_CheckMissileSpawn(missile: Pmobj_t): boolean;
 begin
   // move a little forward so an angle can be computed if it
@@ -2385,15 +2675,14 @@ begin
     result := true;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SpawnMissile
 //
 // Returns nil if the missile exploded immediately, otherwise returns
 // a mobj_t pointer to the missile.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_SpawnMissile(source: Pmobj_t; dest: Pmobj_t; _type: integer): Pmobj_t;
 var
   th: Pmobj_t;
@@ -2401,21 +2690,37 @@ var
   dist: integer;
   z: fixed_t;
 begin
-  case _type of
-    Ord(MT_MNTRFX1): // Minotaur swing attack missile
-      z := source.z + 40 * FRACUNIT;
-    Ord(MT_MNTRFX2): // Minotaur floor fire missile
-      z := ONFLOORZ + source.floorclip;
-    Ord(MT_CENTAUR_FX):
-      z := source.z + 45 * FRACUNIT;
-    Ord(MT_ICEGUY_FX):
-      z := source.z + 40 * FRACUNIT;
-    Ord(MT_HOLY_MISSILE):
-      z := source.z + 40 * FRACUNIT;
-  else
-    z := source.z + 32 * FRACUNIT;
+  // JVAL: Prevent possible savegame bug
+  if dest = nil then
+  begin
+    result := nil;
+    exit;
   end;
+
+  if source.info.missileheight = 0 then
+  begin
+    case _type of
+      Ord(MT_MNTRFX1): // Minotaur swing attack missile
+        z := source.z + 40 * FRACUNIT;
+      Ord(MT_MNTRFX2): // Minotaur floor fire missile
+        z := ONFLOORZ + source.floorclip;
+      Ord(MT_CENTAUR_FX):
+        z := source.z + 45 * FRACUNIT;
+      Ord(MT_ICEGUY_FX):
+        z := source.z + 40 * FRACUNIT;
+      Ord(MT_HOLY_MISSILE):
+        z := source.z + 40 * FRACUNIT;
+    else
+      z := source.z + 32 * FRACUNIT;
+    end;
+  end
+  else if source.info.missileheight < FRACUNIT div 2 then
+    z := source.z + source.info.missileheight * FRACUNIT
+  else
+    z := source.z + source.info.missileheight;
+
   z := z - source.floorclip;
+
   th := P_SpawnMobj(source.x, source.y, z, _type);
   if th <> nil then
   begin
@@ -2449,15 +2754,14 @@ begin
     result := nil;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SpawnMissileXYZ
 //
 // Returns nil if the missile exploded immediately, otherwise returns
 // a mobj_t pointer to the missile.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_SpawnMissileXYZ(x, y, z: fixed_t; source: Pmobj_t; dest: Pmobj_t; _type: integer): Pmobj_t;
 var
   flags_ex: integer;
@@ -2465,6 +2769,13 @@ var
   an: angle_t;
   dist: integer;
 begin
+  // JVAL: Prevent savegame bug
+  if dest = nil then
+  begin
+    result := nil;
+    exit;
+  end;
+
   flags_ex := mobjinfo[Ord(_type)].flags_ex;
 
   if flags_ex and MF_EX_FLOORHUGGER <> 0 then
@@ -2516,11 +2827,11 @@ begin
     result := nil;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SpawnMissileAngleZSpeed
 //
-//---------------------------------------------------------------------------
+//==============================================================================
 function P_SpawnMissileAngleZSpeed(source: Pmobj_t; z: fixed_t; _type: integer; angle: angle_t;
   momz: fixed_t; speed: fixed_t; owner: Pmobj_t): Pmobj_t;
 var
@@ -2568,46 +2879,53 @@ begin
     result := nil;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SpawnMissileAngleZ
 //
-//---------------------------------------------------------------------------
+//==============================================================================
 function P_SpawnMissileAngleZ(source: Pmobj_t; z: fixed_t; _type: integer; angle: angle_t;
   momz: fixed_t; speed: fixed_t): Pmobj_t;
 begin
   result := P_SpawnMissileAngleZSpeed(source, z, _type, angle, momz, mobjinfo[Ord(_type)].speed, nil);
 end;
 
-
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SpawnMissileAngle
 //
 // Returns nil if the missile exploded immediately, otherwise returns
 // a mobj_t pointer to the missile.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_SpawnMissileAngle(source: Pmobj_t; _type: integer; angle: angle_t;
   momz: fixed_t): Pmobj_t;
 var
   z: fixed_t;
   mo: Pmobj_t;
 begin
-  case _type of
-    Ord(MT_MNTRFX1): // Minotaur swing attack missile
-      z := source.z + 40 * FRACUNIT;
-    Ord(MT_MNTRFX2): // Minotaur floor fire missile
-      z := ONFLOORZ + source.floorclip;
-    Ord(MT_ICEGUY_FX2): // Secondary Projectiles of the Ice Guy
-      z := source.z + 3 * FRACUNIT;
-    Ord(MT_MSTAFF_FX2):
-      z := source.z + 40 * FRACUNIT;
+  if source.info.missileheight = 0 then
+  begin
+    case _type of
+      Ord(MT_MNTRFX1): // Minotaur swing attack missile
+        z := source.z + 40 * FRACUNIT;
+      Ord(MT_MNTRFX2): // Minotaur floor fire missile
+        z := ONFLOORZ + source.floorclip;
+      Ord(MT_ICEGUY_FX2): // Secondary Projectiles of the Ice Guy
+        z := source.z + 3 * FRACUNIT;
+      Ord(MT_MSTAFF_FX2):
+        z := source.z + 40 * FRACUNIT;
+    else
+      z := source.z + 32 * FRACUNIT;
+    end;
+  end
+  else if source.info.missileheight < FRACUNIT div 2 then
+    z := source.z + source.info.missileheight * FRACUNIT
   else
-    z := source.z + 32 * FRACUNIT;
-  end;
+    z := source.z + source.info.missileheight;
+
   z := z - source.floorclip;
+
   mo := P_SpawnMobj(source.x, source.y, z, _type);
   if mo <> nil then
   begin
@@ -2627,15 +2945,14 @@ begin
     result := nil;
 end;
 
-//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_SpawnMissileAngleSpeed
 //
 // Returns nil if the missile exploded immediately, otherwise returns
 // a mobj_t pointer to the missile.
 //
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_SpawnMissileAngleSpeed(source: Pmobj_t; _type: integer;
   angle: angle_t; momz: fixed_t; speed: fixed_t): Pmobj_t;
 var
@@ -2663,17 +2980,13 @@ begin
     result := nil;
 end;
 
-
-
-//
-//================
+//==============================================================================
 //
 // P_SpawnPlayerMissile
 //
 // Tries to aim at a nearby monster
-//================
 //
-
+//==============================================================================
 function P_SpawnPlayerMissile(source: Pmobj_t; _type: integer): Pmobj_t;
 var
   an: angle_t;
@@ -2766,6 +3079,11 @@ begin
     result := nil;
 end;
 
+//==============================================================================
+//
+// P_SPMAngle
+//
+//==============================================================================
 function P_SPMAngle(source: Pmobj_t; _type: integer; angle: angle_t): Pmobj_t;
 var
   th: Pmobj_t;
@@ -2820,12 +3138,11 @@ begin
     result := nil;
 end;
 
-//===========================================================================
+//==============================================================================
 //
 // P_SPMAngleXYZ
 //
-//===========================================================================
-
+//==============================================================================
 function P_SPMAngleXYZ(source: Pmobj_t; x, y, z: fixed_t; _type: integer;
   angle: angle_t): Pmobj_t;
 var
@@ -2879,6 +3196,11 @@ begin
     result := nil;
 end;
 
+//==============================================================================
+//
+// P_SpawnKoraxMissile
+//
+//==============================================================================
 function P_SpawnKoraxMissile(x, y, z: fixed_t; source: Pmobj_t; dest: Pmobj_t;
   _type: integer): Pmobj_t;
 var
@@ -2920,24 +3242,11 @@ begin
     result := nil;
 end;
 
-{//---------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_GetThingFloorType
 //
-//---------------------------------------------------------------------------
-
-function P_GetThingFloorType(thing: Pmobj_t): integer;
-begin
-  result := flats[thing.floorpic].terraintype;
-end;} // JVAL SOS
-
-
-//---------------------------------------------------------------------------
-//
-// FUNC P_GetThingFloorType
-//
-//---------------------------------------------------------------------------
-
+//==============================================================================
 function P_GetThingFloorType(thing: Pmobj_t): integer;
 var
   s: Psector_t;
@@ -2950,7 +3259,12 @@ begin
   result := flats[s.floorpic].terraintype;
 end;
 
-procedure CmdSpwanMobj(const parm1, parm2: string);
+//==============================================================================
+//
+// CmdSpawnMobj
+//
+//==============================================================================
+procedure CmdSpawnMobj(const parm1, parm2: string);
 var
   sc: TScriptEngine;
   x, y, z: fixed_t;
@@ -2994,7 +3308,7 @@ begin
   tmp := '';
   while sc.GetString do
     tmp := tmp + sc._String + ' ';
-  tmp := strupper(strtrim(tmp));
+  trimprocU(tmp);
 
   dn := atoi(tmp, 0);
   if dn >= 1 then
@@ -3017,6 +3331,11 @@ begin
   sc.Free;
 end;
 
+//==============================================================================
+//
+// CmdSummon
+//
+//==============================================================================
 procedure CmdSummon(const parm1, parm2: string);
 var
   x, y, z: fixed_t;
@@ -3076,21 +3395,33 @@ begin
     printf('summon: mobj %s can not be spawned'#13#10, [parm]);
 end;
 
+//==============================================================================
+//
+// MObj_Init
+//
+//==============================================================================
 procedure MObj_Init;
 begin
   mobjlist := TMobjList.Create;
-  C_AddCmd('spawnmobj, p_spawnmobj', @CmdSpwanMobj);
+  C_AddCmd('spawnmobj, p_spawnmobj', @CmdSpawnMobj);
   C_AddCmd('summon', @CmdSummon);
 end;
 
+//==============================================================================
+//
+// MObj_ShutDown
+//
+//==============================================================================
 procedure MObj_ShutDown;
 begin
   mobjlist.Free;
 end;
 
+//==============================================================================
 //
 // FUNC P_FindMobjFromKey
 //
+//==============================================================================
 function P_FindMobjFromKey(const key: LongWord): Pmobj_t;
 var
   currentthinker: Pthinker_t;

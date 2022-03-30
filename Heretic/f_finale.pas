@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 // Game completion, final screen animation.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -35,20 +35,39 @@ unit f_finale;
 interface
 
 uses
-  doomtype,
-  d_event,
-  info_h;
+  d_event;
 
+//==============================================================================
+//
+// F_Responder
+//
+//==============================================================================
 function F_Responder(ev: Pevent_t): boolean;
 
 { Called by main loop. }
+
+//==============================================================================
+//
+// F_Ticker
+//
+//==============================================================================
 procedure F_Ticker;
 
 { Called by main loop. }
+
+//==============================================================================
+//
+// F_Drawer
+//
+//==============================================================================
 procedure F_Drawer;
 
+//==============================================================================
+//
+// F_StartFinale
+//
+//==============================================================================
 procedure F_StartFinale;
-
 
 var
   bgflatE1: string = 'FLOOR25';   // end of Heretic Episode 1
@@ -67,17 +86,12 @@ uses
   i_video,
 {$ENDIF}
   am_map,
-  d_player,
   d_main,
   g_game,
   m_menu,
-  info,
-  p_pspr,
-  r_data,
+  p_umapinfo,
   r_defs,
-  r_things,
 // Functions.
-  i_system,
   z_zone,
   v_data,
   v_video,
@@ -85,7 +99,7 @@ uses
   s_sound,
 // Data.
   h_strings,
-  sounds,
+  sounddata,
   doomdef,
   doomstat,
   hu_stuff;
@@ -94,8 +108,8 @@ var
 // Stage of animation:
 //  0 = text, 1 = art screen, 2 = character cast
   finalestage: integer;
-
   finalecount: integer;
+  using_FMI: boolean;
 
   yval: integer = 0;
   nextscroll: integer = 0;
@@ -108,6 +122,11 @@ var
   finaletext: string;
   finaleflat: string;
 
+//==============================================================================
+//
+// F_StartFinale
+//
+//==============================================================================
 procedure F_StartFinale;
 begin
   gameaction := ga_nothing;
@@ -115,7 +134,10 @@ begin
   viewactive := false;
   amstate := am_inactive;
 
-  S_ChangeMusic(Ord(mus_cptd), true);
+  if (gamemapinfo <> nil) and (gamemapinfo.intermusicnum > 0) then
+    S_ChangeMusic(gamemapinfo.intermusicnum, true)
+  else
+    S_ChangeMusic(Ord(mus_cptd), true);
 
   case gameepisode of
     1:
@@ -145,6 +167,27 @@ begin
       end;
   else
     // Ouch.
+    finaletext := '';
+    finaleflat := '';
+    finaletext := 'The End';  // this is to avoid a crash on a missing text in the last map.
+  end;
+
+  using_FMI := false;
+
+  if gamemapinfo <> nil then
+  begin
+    if (gamemapinfo.intertextsecret[0] <> #0) and secretexit and (gamemapinfo.intertextsecret[0] <> '-') then // '-' means that any default intermission was cleared.
+      finaletext := ubigstringtostring(gamemapinfo.intertextsecret)
+    else if (gamemapinfo.intertext[0] <> #0) and  not secretexit and (gamemapinfo.intertext[0] <> '-') then // '-' means that any default intermission was cleared.
+      finaletext := ubigstringtostring(gamemapinfo.intertext);
+
+    if gamemapinfo.interbackdrop <> '' then
+      finaleflat := gamemapinfo.interbackdrop;
+
+    if finaleflat = '' then
+      finaleflat := bgflatE1; // use a single fallback for all maps.
+
+    using_FMI := true;
   end;
 
   finalestage := 0;
@@ -153,11 +196,43 @@ begin
   nextscroll := 0;
 end;
 
+//==============================================================================
+//
+// F_Responder
+//
+//==============================================================================
 function F_Responder(ev: Pevent_t): boolean;
 begin
   if ev._type <> ev_keydown then
   begin
     result := false;
+    exit;
+  end;
+
+  if using_FMI then
+  begin
+    if finalestage = 0 then
+    begin
+      finalecount := finalecount + 3 * TICRATE;
+      if finalecount > Length(finaletext) * TEXTSPEED + TEXTWAIT then
+      begin
+        if gamemapinfo.endpic = '' then
+          gameaction := ga_worlddone  // next level
+        else
+        begin
+          finalestage := 1;
+          finalecount := 0;
+        end;
+      end;
+      result := true;
+      exit;
+    end;
+
+    if finalestage = 1 then
+      if finalecount > TICRATE then
+        gameaction := ga_worlddone; // next level
+
+    result := true;
     exit;
   end;
 
@@ -170,9 +245,30 @@ begin
     result := false;
 end;
 
+//==============================================================================
+//
+// FMI_Ticker
+//
+//==============================================================================
+procedure FMI_Ticker;
+begin
+  if (gamemapinfo.endpic <> '') and (gamemapinfo.endpic <> '-') then
+  begin
+    finalecount := 0;
+    finalestage := 1;
+    wipegamestate := -1;  // force a wipe
+    if gamemapinfo.endpic = '!' then
+      using_FMI := false;
+  end
+  else
+    gameaction := ga_worlddone; // next level, e.g. MAP07
+end;
+
+//==============================================================================
 //
 // F_Ticker
 //
+//==============================================================================
 procedure F_Ticker;
 begin
   // advance animation
@@ -180,17 +276,26 @@ begin
 
   if (finalestage = 0) and (finalecount > Length(finaletext) * TEXTSPEED + TEXTWAIT) then
   begin
-    finalecount := 0;
-    finalestage := 1;
-    wipegamestate := -1;    // force a wipe
+    if using_FMI then
+      FMI_Ticker
+    else
+    begin
+      finalecount := 0;
+      finalestage := 1;
+      wipegamestate := -1;    // force a wipe
+    end;
   end;
 end;
 
+//==============================================================================
+//
+// F_TextWrite
+//
+//==============================================================================
 procedure F_TextWrite;
 var
-  src: PByteArray;
-  dest: integer;
-  x, y, w: integer;
+  bkok: boolean;
+  w: integer;
   count: integer;
   ch: string;
   c: char;
@@ -201,25 +306,10 @@ var
   cy: integer;
 begin
   // erase the entire screen to a tiled background
+  bkok := V_TileScreen8(finaleflat, SCN_TMP);
 
-  src := W_CacheLumpNum(R_GetLumpForFlat(R_FlatNumForName(finaleflat)), PU_STATIC);
-  dest := 0;
-
-  for y := 0 to 200 - 1 do
-  begin
-    for x := 0 to (320 div 64) - 1 do
-    begin
-      memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 64);
-      dest := dest + 64;
-    end;
-
-    if 320 and 63 <> 0 then
-    begin
-      memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 320 and 63);
-      dest := dest + (320 and 63);
-    end;
-  end;
-  Z_ChangeTag(src, PU_CACHE);
+  if not bkok then
+    ZeroMemory(@screens[SCN_TMP, 0], V_ScreensSize(SCN_TMP));
 
   // draw some of the text onto the screen
   cx := 20;
@@ -259,9 +349,8 @@ begin
     end;
 
     w := hu_font[c1].width;
-    if cx + w > 320 then
-      break;
-    V_DrawPatch(cx, cy, SCN_TMP, hu_font[c1], false);
+    if cx + w < 320 then
+      V_DrawPatch(cx, cy, SCN_TMP, hu_font[c1], false);
     cx := cx + w;
     dec(count);
   end;
@@ -270,6 +359,11 @@ begin
   V_FullScreenStretch;
 end;
 
+//==============================================================================
+//
+// F_DemonScroll
+//
+//==============================================================================
 procedure F_DemonScroll;
 var
   p1, p2: PByteArray;
@@ -311,6 +405,11 @@ var
   underwaterpic: integer = -2;
   underwaterpal: integer = -2;
 
+//==============================================================================
+//
+// F_DrawUnderwaterPic
+//
+//==============================================================================
 procedure F_DrawUnderwaterPic;
 var
   pal: PByteArray;
@@ -342,6 +441,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// F_DrawUnderwater
+//
+//==============================================================================
 procedure F_DrawUnderwater;
 var
   pal: PByteArray;
@@ -365,11 +469,22 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // F_Drawer
 //
+//==============================================================================
 procedure F_Drawer;
 begin
+  if using_FMI then
+  begin
+    if finalestage = 0 then
+      F_TextWrite
+    else
+      V_PageDrawer(gamemapinfo.endpic);
+    exit;
+  end;
+
   if finalestage = 0 then
   begin
     F_TextWrite;

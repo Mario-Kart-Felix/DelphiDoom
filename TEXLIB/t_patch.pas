@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  PATCH custom image format. (Load patches inside HI_START/HI_END namespace)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -50,7 +50,19 @@ type
     destructor Destroy; virtual;
   end;
 
-function T_IsValidPatchImage(var f: file; const start, size: integer): boolean;
+//==============================================================================
+//
+// T_IsValidPatchImage
+//
+//==============================================================================
+function T_IsValidPatchImage(var f: file; const start, size: integer): boolean; overload;
+
+//==============================================================================
+//
+// T_IsValidPatchImage
+//
+//==============================================================================
+function T_IsValidPatchImage(patch: Ppatch_t; const size: integer): boolean; overload;
 
 implementation
 
@@ -58,6 +70,11 @@ uses
   mt_utils,
   v_video;
 
+//==============================================================================
+//
+// TPatchTextureManager.Create
+//
+//==============================================================================
 constructor TPatchTextureManager.Create;
 begin
   inherited Create;
@@ -66,6 +83,11 @@ begin
   patchsize := 0;
 end;
 
+//==============================================================================
+//
+// TPatchTextureManager.LoadHeader
+//
+//==============================================================================
 function TPatchTextureManager.LoadHeader(stream: TDStream): boolean;
 var
   w, h: integer;
@@ -92,6 +114,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TPatchTextureManager.LoadImage
+//
+//==============================================================================
 function TPatchTextureManager.LoadImage(stream: TDStream): boolean;
 var
   count: integer;
@@ -162,6 +189,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// TPatchTextureManager.Destroy
+//
+//==============================================================================
 destructor TPatchTextureManager.Destroy;
 begin
   if patch <> nil then
@@ -169,10 +201,45 @@ begin
   Inherited destroy;
 end;
 
+//==============================================================================
+//
+// T_IsValidPatchImage
+//
+//==============================================================================
 function T_IsValidPatchImage(var f: file; const start, size: integer): boolean;
 var
   N, pos: integer;
   patch: Ppatch_t;
+begin
+  pos := FilePos(f);
+
+  seek(f, start);
+
+  patch := malloc(size);
+
+  BlockRead(f, patch^, size, N);
+
+  if N <> size then
+  begin
+    memfree(pointer(patch), size);
+    seek(f, pos);
+    result := false;
+    exit;
+  end;
+
+  result := T_IsValidPatchImage(patch, N);
+
+  memfree(pointer(patch), size);
+  seek(f, pos);
+end;
+
+//==============================================================================
+//
+// T_IsValidPatchImage
+//
+//==============================================================================
+function T_IsValidPatchImage(patch: Ppatch_t; const size: integer): boolean;
+var
   col: integer;
   column: Pcolumn_t;
   desttop: integer;
@@ -185,18 +252,10 @@ var
 begin
   result := true;
 
-  pos := FilePos(f);
-
-  seek(f, start);
-
-  patch := malloc(size);
-
-  BlockRead(f, patch^, size, N);
-
   w := patch.width;
   h := patch.height;
 
-  if IsIntegerInRange(w, 0, 8192) and IsIntegerInRange(h, 0, 1024)  and (N = size) then
+  if IsIntegerInRange(w, 0, 8192) and IsIntegerInRange(h, 0, 1024) then
   begin
     col := 0;
     desttop := 0;
@@ -208,7 +267,7 @@ begin
         break;
 
       column := Pcolumn_t(integer(patch) + patch.columnofs[col]);
-      if not IsIntegerInRange(integer(column), integer(patch), integer(patch) + N - 3) then
+      if not IsIntegerInRange(integer(column), integer(patch), integer(patch) + size - 3) then
       begin
         if column.topdelta <> $ff then
         begin
@@ -216,7 +275,7 @@ begin
           break;
         end;
       end;
-      if not IsIntegerInRange(integer(column), integer(patch), integer(patch) + N) then
+      if not IsIntegerInRange(integer(column), integer(patch), integer(patch) + size) then
       begin
         result := false;
         break;
@@ -252,7 +311,7 @@ begin
         else
           column := Pcolumn_t(integer(column) + column.length + 4);
 
-        if not IsIntegerInRange(integer(column), integer(patch), integer(patch) + N - 3) then
+        if not IsIntegerInRange(integer(column), integer(patch), integer(patch) + size - 3) then
           if col < w - 1 then
           begin
             result := false;
@@ -273,9 +332,6 @@ begin
   end
   else
     result := false;
-
-  memfree(pointer(patch), size);
-  seek(f, pos);
 end;
 
 end.

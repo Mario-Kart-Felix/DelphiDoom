@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -32,7 +32,7 @@
 //  Muzzle flash?
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -47,26 +47,81 @@ uses
   r_defs,
   z_zone;
 
+//==============================================================================
+//
+// P_SpawnFireFlicker
+//
+//==============================================================================
 procedure P_SpawnFireFlicker(sector: Psector_t);
 
+//==============================================================================
+//
+// P_SpawnLightFlash
+//
+//==============================================================================
 procedure P_SpawnLightFlash(sector: Psector_t);
 
+//==============================================================================
+//
+// T_StrobeFlash
+//
+//==============================================================================
 procedure T_StrobeFlash(flash: Pstrobe_t);
 
+//==============================================================================
+//
+// P_SpawnStrobeFlash
+//
+//==============================================================================
 procedure P_SpawnStrobeFlash(sector: Psector_t; fastOrSlow, inSync: integer);
 
+//==============================================================================
+//
+// EV_StartLightStrobing
+//
+//==============================================================================
 function EV_StartLightStrobing(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_TurnTagLightsOff
+//
+//==============================================================================
 function EV_TurnTagLightsOff(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_LightTurnOn
+//
+//==============================================================================
 function EV_LightTurnOn(line: Pline_t; bright: integer): integer;
 
+//==============================================================================
+//
+// T_Glow
+//
+//==============================================================================
 procedure T_Glow(g: Pglow_t);
 
+//==============================================================================
+//
+// P_SpawnGlowingLight
+//
+//==============================================================================
 procedure P_SpawnGlowingLight(sector: Psector_t);
 
+//==============================================================================
+//
+// T_LightFlash
+//
+//==============================================================================
 procedure T_LightFlash(flash: Plightflash_t);
 
+//==============================================================================
+//
+// T_FireFlicker
+//
+//==============================================================================
 procedure T_FireFlicker(flick: Pfireflicker_t);
 
 implementation
@@ -75,22 +130,22 @@ uses
   p_tick,
   p_setup;
 
+//==============================================================================
 //
 // FIRELIGHT FLICKER
-//
-
 //
 // T_FireFlicker
 //
 // [STRIFE]
 // haleyjd 2011023: Changes to amount and duration of flicker
 //
+//==============================================================================
 procedure T_FireFlicker(flick: Pfireflicker_t);
 var
   amount: integer;
 begin
   flick.count := flick.count - 1;
-  if flick.count > 0  then
+  if flick.count > 0 then
     exit;
 
   amount := (P_Random and 3) * 8; // [STRIFE] 16 -> 8
@@ -104,12 +159,14 @@ begin
   flick.count := (P_Random and 3) + 1;
 end;
 
+//==============================================================================
 //
 // P_SpawnFireFlicker
 //
 // [STRIFE]
 // haleyjd 2011023: Changes to minimum light level and initial duration
 //
+//==============================================================================
 procedure P_SpawnFireFlicker(sector: Psector_t);
 var
   flick: Pfireflicker_t;
@@ -132,15 +189,14 @@ begin
   flick.count := 2; // [STRIFE]: Initial count 4 -> 2
 end;
 
+//==============================================================================
 //
 // BROKEN LIGHT FLASHING
-//
-
-
 //
 // T_LightFlash
 // Do flashing lights.
 //
+//==============================================================================
 procedure T_LightFlash(flash: Plightflash_t);
 begin
   flash.count := flash.count - 1;
@@ -159,11 +215,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_SpawnLightFlash
 // After the map has been loaded, scan each sector
 // for specials that spawn thinkers
 //
+//==============================================================================
 procedure P_SpawnLightFlash(sector: Psector_t);
 var
   flash: Plightflash_t;
@@ -185,14 +243,13 @@ begin
   flash.count := (P_Random and flash.maxtime) + 1;
 end;
 
+//==============================================================================
 //
 // STROBE LIGHT FLASHING
 //
-
-
-//
 // T_StrobeFlash
 //
+//==============================================================================
 procedure T_StrobeFlash(flash: Pstrobe_t);
 begin
   flash.count := flash.count - 1;
@@ -211,11 +268,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_SpawnStrobeFlash
 // After the map has been loaded, scan each sector
 // for specials that spawn thinkers
 //
+//==============================================================================
 procedure P_SpawnStrobeFlash(sector: Psector_t; fastOrSlow, inSync: integer);
 var
   flash: Pstrobe_t;
@@ -243,9 +302,12 @@ begin
     flash.count := 1;
 end;
 
+//==============================================================================
+// EV_StartLightStrobing
 //
 // Start strobing lights (usually from a trigger)
 //
+//==============================================================================
 function EV_StartLightStrobing(line: Pline_t): integer;
 var
   secnum: integer;
@@ -266,9 +328,12 @@ begin
   until secnum < 0;
 end;
 
+//==============================================================================
+// EV_TurnTagLightsOff
 //
 // TURN LINE'S TAG LIGHTS OFF
 //
+//==============================================================================
 function EV_TurnTagLightsOff(line: Pline_t): integer;
 var
   i: integer;
@@ -301,9 +366,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// EV_LightTurnOn
 //
 // TURN LINE'S TAG LIGHTS ON
 //
+//==============================================================================
 function EV_LightTurnOn(line: Pline_t; bright: integer): integer;
 var
   i: integer;
@@ -340,9 +408,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// T_Glow
 //
 // Spawn glowing light
 //
+//==============================================================================
 procedure T_Glow(g: Pglow_t);
 begin
   case g.direction of
@@ -369,6 +440,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_SpawnGlowingLight
+//
+//==============================================================================
 procedure P_SpawnGlowingLight(sector: Psector_t);
 var
   g: Pglow_t;

@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  LineOfSight/Visibility checks, uses REJECT Lookup Table.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,10 +38,32 @@ uses
   m_fixed,
   p_mobj_h;
 
+//==============================================================================
+//
+// P_CheckSight
+//
+//==============================================================================
 function P_CheckSight(t1: Pmobj_t; t2: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_CheckSightXYZ
+//
+//==============================================================================
+function P_CheckSightXYZ(const x, y, z: fixed_t; t2: Pmobj_t): boolean;
+
+//==============================================================================
+//
+// P_CheckCameraSight
+//
+//==============================================================================
 function P_CheckCameraSight(const camx, camy, camz: fixed_t; const mo: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_CheckVisibility
+//
+//==============================================================================
 function P_CheckVisibility(const atx, aty, atz: fixed_t; const atradious: fixed_t): boolean;
 
 implementation
@@ -59,14 +81,14 @@ uses
   r_defs,
   r_main;
 
+//==============================================================================
 //
 // P_CheckSight
-//
-
 //
 // P_DivlineSide
 // Returns side 0 (front), 1 (back), or 2 (on).
 //
+//==============================================================================
 function P_DivlineSide(const x, y: fixed_t; const node: Pdivline_t): integer;
 var
   dx: fixed_t;
@@ -98,7 +120,16 @@ begin
 
   if node.dy = 0 then
   begin
-    if x = node.y then
+    // JVAL: 20220219 - Fix wrong coordinates check
+    // From EE:
+    // haleyjd 11/11/02: applied cph's bug fix:
+    // !node->dy ? x == node->y ? 2 ...
+    //             ^          ^
+    // This bug compared the wrong coordinates to each other,
+    // and caused line-of-sight miscalculations. Turns out the
+    // P_CrossSubsector optimization demo sync problem was caused by
+    // masking this bug.
+    if decide(G_PlayingEngineVersion < VERSION207, x, y) = node.y then
     begin
       result := 2;
       exit;
@@ -136,12 +167,14 @@ begin
     result := 1; // back side
 end;
 
+//==============================================================================
 //
 // P_InterceptVector2
 // Returns the fractional intercept point
 // along the first divline.
 // This is only called by the addthings and addlines traversers.
 //
+//==============================================================================
 function P_InterceptVector2(v2, v1: Pdivline_t): fixed_t;
 var
   num: fixed_t;
@@ -175,11 +208,88 @@ type
   end;
   Plos_t = ^los_t;
 
+//==============================================================================
+//
+// P_CrossSubsecPolyObj
+//
+// haleyjd:
+// Checks a line of sight against lines belonging to the given polyobject.
+//
+//==============================================================================
+function P_CrossSubsecPolyObj(const po: Ppolyobj_t; const los: Plos_t): boolean;
+var
+  i: integer;
+  polySeg: PPseg_t;
+  line: Pline_t;
+  divl: divline_t;
+  v1, v2: Pvertex_t;
+begin
+  polySeg := po.segs;
+  for i := 0 to po.numsegs - 1 do
+  begin
+    if polySeg^.miniseg then // JVAL: skip minisegs
+    begin
+      inc(polySeg);
+      continue;
+    end;
+
+    line := polySeg^.linedef;
+    // already checked other side?
+    if line.validcount = validcount then
+    begin
+      inc(polySeg);
+      continue;
+    end;
+
+    line.validcount := validcount;
+
+    // OPTIMIZE: killough 4/20/98: Added quick bounding-box rejection test
+    if (line.bbox[BOXLEFT] > los.bbox[BOXRIGHT]) or
+       (line.bbox[BOXRIGHT] < los.bbox[BOXLEFT]) or
+       (line.bbox[BOXBOTTOM] > los.bbox[BOXTOP]) or
+       (line.bbox[BOXTOP] < los.bbox[BOXBOTTOM]) then
+    begin
+      inc(polySeg);
+      continue;
+    end;
+
+    v1 := line.v1;
+    v2 := line.v2;
+
+    // line isn't crossed?
+    if P_DivlineSide(v1.x, v1.y, @los.strace) = P_DivlineSide(v2.x, v2.y, @los.strace) then
+    begin
+      inc(polySeg);
+      continue;
+    end;
+
+    divl.x := v1.x;
+    divl.y := v1.y;
+    divl.dx := v2.x - v1.x;
+    divl.dy := v2.y - v1.y;
+
+    // line isn't crossed?
+    if P_DivlineSide(los.strace.x, los.strace.y, @divl) = P_DivlineSide(los.t2x, los.t2y, @divl) then
+    begin
+      inc(polySeg);
+      continue;
+    end;
+
+    // stop because it is not two sided
+    result := false;
+    exit;
+  end;
+
+  result := true;
+end;
+
+//==============================================================================
 //
 // P_CrossSubsector
 // Returns true
 //  if strace crosses the given subsector successfully.
 //
+//==============================================================================
 function P_CrossSubsector(const num: integer; const los: Plos_t): boolean;
 var
   seg: Pseg_t;
@@ -206,6 +316,13 @@ var
   vmidy: fixed_t;
 begin
   sub := @subsectors[num];
+
+  if sub.poly <> nil then
+  begin
+    result := P_CrossSubsecPolyObj(sub.poly, los);
+    if not result then
+      exit;
+  end;
 
   // check lines
   seg := @segs[sub.firstline - 1];
@@ -350,11 +467,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_CrossBSPNode
 // Returns true
 //  if strace crosses the given node successfully.
 //
+//==============================================================================
 function P_CrossBSPNode(bspnum: integer; const los: Plos_t): boolean;
 var
   bsp: Pnode_t;
@@ -395,12 +514,14 @@ begin
   result := P_CrossBSPNode(bsp.children[side xor 1], los);
 end;
 
+//==============================================================================
 //
 // P_CheckSight
 // Returns true
 //  if a straight line between t1 and t2 is unobstructed.
 // Uses REJECT.
 //
+//==============================================================================
 function P_CheckSight(t1: Pmobj_t; t2: Pmobj_t): boolean;
 var
   s1: integer;
@@ -460,9 +581,9 @@ begin
         exit;
       end;
     end
-    else
     // JVAL 20191206 - Fix problem reported by slayermbm
     // https://www.doomworld.com/forum/topic/92113-delphidoom-204720-updated-oct-12-2019/?do=findComment&comment=2051252
+    else
     begin
       if midn > -1 then
         if Psubsector_t(t1.subsector).sector = Psubsector_t(t2.subsector).sector then
@@ -514,11 +635,13 @@ begin
   result := P_CrossBSPNode(numnodes - 1, @los);
 end;
 
+//==============================================================================
 //
 // P_CheckCameraSight
 //
 // JVAL: To determine if camera chase view can see the player
 //
+//==============================================================================
 function P_CheckCameraSight(const camx, camy, camz: fixed_t; const mo: Pmobj_t): boolean;
 var
   los: los_t;
@@ -528,7 +651,6 @@ begin
     result := false;
     exit;
   end;
-
 
   // An unobstructed LOS is possible.
   // Now look from eyes of t1 to any part of t2.
@@ -571,6 +693,17 @@ begin
   result := P_CrossBSPNode(numnodes - 1, @los);
 end;
 
+//==============================================================================
+//
+// P_CheckSightXYZ
+//
+//==============================================================================
+function P_CheckSightXYZ(const x, y, z: fixed_t; t2: Pmobj_t): boolean;
+begin
+  Result := P_CheckCameraSight(x, y, z, t2);
+end;
+
+//==============================================================================
 //
 // P_CheckVisibility
 //
@@ -578,6 +711,7 @@ end;
 // Checks if an object at (atx, aty, atz) with radious = atradious can be
 // possibly visible
 //
+//==============================================================================
 function P_CheckVisibility(const atx, aty, atz: fixed_t; const atradious: fixed_t): boolean;
 var
   los: los_t;

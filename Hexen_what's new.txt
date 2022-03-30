@@ -1,3 +1,44 @@
+Small optimizations to plane rendering (software mode).
+Speed optimizations to transparent sprite rendering.
+Small speed optimizations to renderstyle Add & Subtract in 8 bit color mode.
+Added SPIN field in VOXELDEF lumps, it compines DROPPEDSPIN & PLACEDSPIN behavior.
+Added diher8bittransparency console variable.
+Better transparency manipulation in 8 bit color software rendering.
+If depthbuffer is active will draw sprites from front to back to avoid overdraw.
+Fixed some voxel glitches for voxels on a 3d floors.
+Speed optimizations to slope software rendering.
+Small optimizations to software depthbuffer.
+Optimization to multithreading walls software rendering.
+Uncapped framerate scales better in multi-core CPUs.
+Added interpolatereducelag console variable. When set, it will try to reduce lag. Default is "false".
+New menu for uncapped framerate (Options/Display/Advanced/Uncapped FrameRate).
+More efficient segs clipping to speedup rendering of huge maps.
+
+Version 2.0.7 build 732 - (20220318)
+-----------------------
+Fixed seg rendering in lines from (0, 0) point.
+
+Version 2.0.7 build 731 - (20220317)
+-----------------------
+Prepeare drawseg list in separate thread in software rendering.
+Use general purpose threads in 8 bit software rendering blit.
+Speed optimizations in R_PointToAngleEx().
+Speed optimizations of big maps in software rendering.
+Fixed misspelled of "joystick" in the menus.
+Better multithreading scaling in software mode (prepare clipping info for sprites & voxels).
+Fixed crosshair drawing in OpenGL mode.
+Added support for tall patches in PNG format.
+More robust uncapped framerate.
+Speed optimizations to the OpenGL rendering.
+Fixes to 3d colissions of actors moving up or down other actors.
+Default sound channels raised to 32, maximum sound channels raised to 64.
+Corrections to key bindings menu.
+Key bindings for the AUTOMAP keys.
+Improved multithreading handling in software rendering mode.
+Added dotestactivethreads console variable, when it's set to true (default) the engine will tweak active threads without workload.
+
+Version 2.0.7 build 730 - (20220302)
+-----------------------
 Fixed flags in A_ChangeVelocity() ACTORDEF function.
 Export info tables to Pascal.
 Added ExportInfoPascal, InfoExportPascal, ExportInfoPascalBI, InfoExportPascalBI, ExportInfoPascalBuiltIn & InfoExportPascalBuiltIn console commands.
@@ -26,7 +67,7 @@ ACTORDEF does not require the "Stop" keyword in states.
 Added the TICRATE const in states parameters evaluation.
 Added the LEVELTIME, GAMEMAP & LEVELNAME variables in states parameters evaluation.
 Fixed glitch in large flats multithreading software rendering.
-Fog sectors (lightlevel > 255).
+Fog sectors (lightlevel > 1000).
 Fog strength can be configured individually for normal & white fog sectors (OpenGL).
 Fixed fog strength.
 Added GetSectorInterpolate() & SetSectorInterpolate() PascalScript functions.
@@ -70,12 +111,301 @@ Poison and ice damage color palette in OpenGL mode and in software 32 bit mode.
 Fixed potential crash when no IWADs found.
 Multiple DEHACKED files inside WAD and PK3.
 Use the native monitor resolution as default in software rendering mode.
+When sliding a wall it will take into acount the "maxstepheight" property to decide if it can pass.
+Faster and safer thread de-allocation.
+Display a crosshair. Can be turned on/off by the "drawcrosshair" console variable.
+Fixed MF3_EX_NOBLOCKMONST flag behavior.
+Fix gravity field inheritance in ACTORDEF declarations.
+Added MF4_EX_CANNOTSTEP flag, actors with this flag can not step-up.
+String evaluation in parameters of ACTORDEF functions.
+Added MF4_EX_CANNOTDROPOFF flag, actors with this flag can not drop-off.
+Use sound files in pk3 without WAD equivalent. Supported file formats are WAV, OGG, FLAC, OGA, AU, VOC & SND.
+Speed optimizations to DD_IDE tool.
+Infinite state cycle error message will display the actor's name.
+Software rendering lights affect masked, sprites and voxels.
+Master and tracer custom parameters are accessible by ACTORDEF functions. MASTERCUSTOMPARAM(), MASTERPARAM(), TRACERCUSTOMPARAM() & TRACERPARAM()
+Force string evaluation in ACTORDEF function parameters with the EVAL function.
+Added ACTORDEF functions:
+ -A_SetMasterCustomParam(param: string, value: integer)
+ -A_AddMasterCustomParam(param: string, value: integer)
+ -A_SubtractMasterCustomParam(param: string, value: integer)
+ -A_JumpIfMasterCustomParam(param: string, value: integer, offset: integer)
+ -A_JumpIfMasterCustomParamLess(param: string, value: integer, offset: integer)
+ -A_JumpIfMasterCustomParamGreater(param: string, value: integer, offset: integer)
+ -A_GoToIfMasterCustomParam(param: string, value: integer, state: state_t)
+ -A_GoToIfMasterCustomParamLess(param: string, value: integer, state: state_t)
+ -A_GoToIfMasterCustomParamGreater(param: string, value: integer, state: state_t)
+ -A_SetTracerCustomParam(param: string, value: integer)
+ -A_AddTracerCustomParam(param: string, value: integer)
+ -A_SubtractTracerCustomParam(param: string, value: integer)
+ -A_JumpIfTracerCustomParam(param: string, value: integer, offset: integer)
+ -A_JumpIfTracerCustomParamLess(param: string, value: integer, offset: integer)
+ -A_JumpIfTracerCustomParamGreater(param: string, value: integer, offset: integer)
+ -A_GoToIfTracerCustomParam(param: string, value: integer, state: state_t)
+ -A_GoToIfTracerCustomParamLess(param: string, value: integer, state: state_t)
+ -A_GoToIfTracerCustomParamGreater(param: string, value: integer, state: state_t)
+Evalueate actor flags in ACTORDEF functions parameters with the FLAG() function.
+A_JumpXXXX() ACTORDEF functions will recognize the RANDOM keyword for setting offset.
+Actor evaluator can access player's mobj in weapon functions.
+Ensure that the sprite names that are overwritten by the "TEXT" dehacked keyword are in uppercase.
+Fixed angle field (#8) in A_SpawnItemEx(), also the field can be a floating point value.
+Warning message in state parameters check displays actor message.
+Added MF4_EX_FORCERADIUSDMG mobj flag. When set the bomb hurts actors with the MF_EX_NORADIUSDMG flag.
+Added MF4_EX_SHORTMRANGE mobj flag. When set the actor does not fire missile in distance greater than 14 * 64 map units.
+Added MF4_EX_DMGIGNORED mobj flag. When set the other actors ignore its attacks.
+Added MF2_EX_DONTINFIGHTMONSTERS mobj flag. When set does not return fire.
+Added A_SetMonsterInfight() & A_UnSetMonsterInfight() ACTORDEF functions.
+Added MF4_EX_HIGHERMPROB mobj flag. When set the actor has higher missile attack probability.
+Added MF4_EX_RANGEHALF mobj flag. When set the actor use half distance for missile attack probability.
+Added MF4_EX_NOTHRESHOLD mobj flag. When set the actor can target other actors without checking threshold.
+Added MF4_EX_LONGMELEERANGE mobj flag. When set the actor has long melee range.
+Ripper projectile will play ripsound when rips thru things.
+Fixed translation table for translations 4-7.
+Parse [SPRITES] DEHACKED/BEX extention.
+Added MF4_EX_MAP07BOSS1 & MF4_EX_MAP07BOSS2 mobj flags.
+Added A_BossDeath() ACTORDEF function.
+Dynamic ceiling slope check correction.
+Bug fix: Now correctly adjust all sectors affected by floor raise/lower.
+3D floor logic corrections.
+Auto fix interpolation for instant changes in sectors heights and texture offsets.
+Read the NOCLIPPING line flag in UDMF maps.
+Spawn monsters with precise angle if they have the MF2_EX_PRECISESPAWNANGLE flag set.
+Added the MF2_EX_FRIEND mask (friendly monsters). The difference with the MF_ALLY flag is that monsters with the MF2_EX_FRIEND flag will attack other monsters.
+Speed optimizations to the software rendering lights.
+Added MF4_EX_SELFAPPLYINGLIGHT flag. When set, the lightmap in software rendering mode will apply the light to the emitter.
+Added r_lightmaponemitters console variable. When set, the lightmap in software rendering mode will always the light to the emitter.
+Added A_RipSound() & A_RandomoRipSound() ACTORDEF functions.
+Added MF4_EX_FULLVOLRIP & MF4_EX_RANDOMRIPSOUND mobj flags.
+Memory leak fix: Remove mobj custom params when mobj is removed.
+Added full_sounds console variable. When true, the mobjs will finish their sounds when removed.
+Added MF4_EX_ALWAYSFINISHSOUND & MF4_EX_NEVERFINISHSOUND mobj flags to overwrite the full_sounds console variable.
+Always check the actor's instance flags, not its info flags.
+Corrected software rendering lights clipping in 3d floors.
+Added A_ChangeSpriteFlip(propability: integer) ACTORDEF function.
+Infinite state cycle detection while moving player sprites.
+Infightining group and mechanics.
+Projectile group and mechanics.
+Splash group and mechanics.
+Added A_SpawnObject() ACTORDEF function (mbf21).
+Added A_MonsterProjectile() ACTORDEF function (mbf21).
+SYSRAND function in ACTORDEF parameters evaluation (uses random seed from system's clock)
+Added A_MonsterBulletAttack() ACTORDEF function (mbf21).
+Added A_MonsterMeleeAttack() ACTORDEF function (mbf21).
+Added A_RadiusDamage() ACTORDEF function (mbf21).
+Added A_NoiseAlert() ACTORDEF function (mbf21).
+Added A_HealChase() ACTORDEF function (mbf21).
+Added A_SeekTracer() ACTORDEF function (mbf21).
+Added A_FindTracer() ACTORDEF function (mbf21).
+Added A_ClearTracer() ACTORDEF function (mbf21).
+Added A_JumpIfHealthBelow() ACTORDEF function (mbf21).
+Added A_JumpIfTargetInSight() ACTORDEF function (mbf21).
+Added A_JumpIfTargetCloser() ACTORDEF function (mbf21).
+Added A_JumpIfTracerInSight() ACTORDEF function (mbf21).
+Added A_JumpIfTracerCloserMBF21() ACTORDEF function (mbf21).
+More persistent check while trying to adjust missing textures.
+A_DropItem() sets the MF2_DROPPED flag.
+Added A_JumpIfFlagsSet() ACTORDEF function (mbf21).
+Added A_AddFlags() ACTORDEF function (mbf21).
+Added A_RemoveFlags() ACTORDEF function (mbf21).
+Added A_WeaponProjectile() ACTORDEF function (mbf21).
+Added A_WeaponBulletAttack() ACTORDEF function (mbf21).
+Added A_WeaponMeleeAttack() ACTORDEF function (mbf21).
+Added A_WeaponSound() ACTORDEF function (mbf21).
+Added A_WeaponAlert() ACTORDEF function (mbf21).
+Added A_WeaponJump() ACTORDEF function (mbf21).
+Added A_ConsumeAmmo() ACTORDEF function (mbf21).
+Added A_CheckAmmo() ACTORDEF function (mbf21).
+Added A_RefireTo() ACTORDEF function (mbf21).
+Added A_GunFlashTo() ACTORDEF function (mbf21).
+Use player mobjinfo meleerange field to determine player's melee range.
+MF3_EX_NOCRUSH flag will set invulnerable an actor on crushing.
+Added crush state for mobjs.
+Added MF4_EX_DONTGIB mobj flag. Actors with this flag will not gib.
+Fixed some glitches in voxel software rendering.
+Support for the wait keyword in ACTORDEF.
+Display warning message when a pk3 file can not be loaded.
+Update DelphiHexen Doombuilder configuration for UDB compatibility.
+"ACTIVE SOUND" alias for "ACTION SOUND" DEHACKED field.
+Support for [SPRITES] section in DEHACKED.
+Optionally can draw the player's trace in automap.
+Added MF4_EX_BACKINGMELEE flag. When set the actor will backup from melee attack.
+Added A_SetProjectileGroup(group: string) ACTORDEF function.
+Added A_SetInfightingGroup(group: string) ACTORDEF function.
+Added A_SetSplashGroup(group: string) ACTORDEF function.
+Fixed conflict with A_CheckFloor() ACTORDEF function.
+Accept DEH_ACTOR_xxx as a vaild actor alias.
+Support for multipatch tall textures.
+Fixed support for TEXTURE3 lump.
+Allow CRxxxxxx colorregions outside CR_START, CR_END namespace.
+"RADIUS" alias for "WIDTH" DEHACKED field.
+Added CR_BLACK, CR_PURPL & CR_WHITE translation tables.
+Displays a warning when disk buzy lump not found.
+Fixed translation tables for players.
+Blood color support (mbf21 specs).
+Translation tables for things.
+Added A_Delayfire(tics: integer = TICRATE) ACTORDEF function, delays player fire.
+Added PascalScript functions to control blood color & translation:
+ -GetActorTranslation(actor): string;
+ -SetActorTranslation(actor, translation: string);
+ -GetActorBloodColor(actor): string;
+ -SetActorBloodColor(actor, bloodcolor: string);
+Added 10 new translations CRTRANS0 thru CRTRANS9 for user defined translation lumps.
+Added A_SetTranslation(trans: string) ACTORDEF function.
+Added A_SetBloodColor(color: string) ACTORDEF function.
+Fix some problems with player movement clipping when landing on other actors.
+Emulates correctly the ripple effect in OpenGL mode.
+XMI (Extended midi), CMF (Creative music file) & SOP (Sopepos) music support.
+Use the carret ("^") instead of slash ("\") while searching for external textures for sprites (OpenGL).
+The engine can use the zfloor & zceiling fields of vertexes in UDMF.
+Support for the health and gravity fields of things in UDMF.
+Prevent crash or undefined behavior when parsing MAPINFO lump.
+Displays the game mode sooner in startup screen.
+Default turbo scale set to 200.
+Process C lang style defines and conditions in custom content.
+The default value of autoloadgwafiles console variable changed to false.
+Added the #exitif conditianal directive in text content definition lumps.
+Recognizes IWAD file extention.
+Added SetConsoleStr, SetConsoleInt & SetConsoleBool PascalScript functions to set console variables. The new value will not be saved to the ini file and it can only be retrived with the GetConsoleStr, GetConsoleInt & GetConsoleBool PascalScript functions.
+Save/Load mechanism global changes to easily accomodate new fields additions.
+Speed optimization to string manipulation routines.
+Remember last skill level.
+Small optimizations to the software voxel rendering.
+Corrected flat scale in OpenGL mode.
+Faster proccessing of include files.
+Added #CVARFORCE directive. It can be placed in any text content and forces the value of a console variable to the value specified.
+Search and compile ACS script if the BEHAVIOR lump is invalid or missing.
+Remember line's renderflags in saved games.
+More accurate check while searching the highest surrounding floor.
+Added new PascalScript functions to access the new SideDefs' fields:
+ -function PS_GetSideTopTextureOffset(const sd: Integer): Integer;
+ -procedure PS_SetSideTopTextureOffset(const sd: Integer; const offs: Integer);
+ -function PS_GetSideBottomTextureOffset(const sd: Integer): Integer;
+ -procedure PS_SetSideBottomTextureOffset(const sd: Integer; const offs: Integer);
+ -function PS_GetSideMidTextureOffset(const sd: Integer): Integer;
+ -procedure PS_SetSideMidTextureOffset(const sd: Integer; const offs: Integer);
+ -function PS_GetSideTopRowOffset(const sd: Integer): Integer;
+ -procedure PS_SetSideTopRowOffset(const sd: Integer; const offs: Integer);
+ -function PS_GetSideBottomRowOffset(const sd: Integer): Integer;
+ -procedure PS_SetSideBottomRowOffset(const sd: Integer; const offs: Integer);
+ -function PS_GetSideMidRowOffset(const sd: Integer): Integer;
+ -procedure PS_SetSideMidRowOffset(const sd: Integer; const offs: Integer);
+Use 64 characters long string for short names in PK3.
+Calculates 8 bit light tables in separate thread.
+Added "DROPPED ITEM" alias for "DROPITEM" DEHACKED field.
+Interpolate only the sectors touched by the renderer in uncapped framerate.
+Added #CREATEPALETTE directive. It can be placed in any text content and forces the engine to recreate PLAYPAL & COLORMAPS. You can specify a base pal as parameter.
+Does not crash if an ACS script not found.
+Texture offsets can be set individually for top, bottom & middle textures of sidedefs.
+Added "HIDDEN" UDMF sector property.
+DEFAULTMISSILE in ACTORDEF will add the MF2_IMPACT & MF2_PCROSS mobj flags.
+Added missileheight mobjinfo field.
+Fix of OPENARRAYOFU16 and OPENARRAYOFS16 declarations (PascalScript).
+Fixed missileheight ACTORDEF export.
+Added meleethreshold mobjinfo field.
+Does not check CRC for grAb PNG chunk.
+Added windthrust & windangle sector fields. They affect actors with the +WINDTHRUST flag.
+More flexible Save/Load serialization to allow easier field additions and save space.
+Moving Poly objects interpolation (uncapped framerate mode).
+Added NOJUMP sector flag. When set it will prevent player jump in the sector.
+Added interpolatepolyobjs console variable. When true (default) will interpolate polyobjs movement.
+Rotating Poly objects interpolation (uncapped framerate mode).
+Fix A_CStaffMissileSlither double declaration.
+Added NOJUMP option in MAPINFO.
+Added NOCROUCH sector flag. When set it will prevent player crouch in the sector.
+Added NOCROUCH option in MAPINFO.
+Added 77 new PascalScript funtions to access UDMF line specials procs:
+  -Ceiling_CrushAndRaise()
+  -Ceiling_CrushRaiseAndStay()
+  -Ceiling_CrushStop()
+  -Ceiling_LowerAndCrush()
+  -Ceiling_LowerByValue()
+  -Ceiling_LowerByValueTimes8()
+  -Ceiling_LowerToFloor()
+  -Ceiling_LowerToHighestFloor()
+  -Ceiling_LowerToLowest()
+  -Ceiling_MoveToValueAndCrush()
+  -Ceiling_MoveToValue()
+  -Ceiling_MoveToValueTimes8()
+  -Ceiling_RaiseByValue()
+  -Ceiling_RaiseByValueTimes8()
+  -Ceiling_RaiseToHighestFloor()
+  -Door_Close()
+  -Door_CloseWaitOpen()
+  -Door_Open()
+  -Door_Raise()
+  -FloorAndCeiling_LowerByValue()
+  -FloorAndCeiling_LowerRaise()
+  -FloorAndCeiling_RaiseByValue()
+  -Floor_CrushStop()
+  -Floor_LowerByValue()
+  -Floor_LowerByValueTimes8()
+  -Floor_LowerToHighest()
+  -Floor_LowerToLowestCeiling()
+  -Floor_LowerToLowest()
+  -Floor_LowerToNearest()
+  -Floor_MoveToValue()
+  -Floor_MoveToValueTimes8()
+  -Floor_RaiseAndCrushDoom()
+  -Floor_RaiseAndCrush()
+  -Floor_RaiseByTexture()
+  -Floor_RaiseByValue()
+  -Floor_RaiseByValueTimes8()
+  -Floor_RaiseInstant()
+  -Floor_LowerInstant()
+  -Floor_RaiseToCeilingNoChange()
+  -Floor_RaiseToHighest()
+  -Floor_RaiseToLowestCeiling()
+  -Floor_RaiseToNearest()
+  -Floor_ToCeilingInstantNoChange()
+  -Floor_Waggle()
+  -Light_ChangeToValue()
+  -Light_Fade()
+  -Light_Flicker()
+  -Light_ForceLightning()
+  -Light_ForceLightningTics()
+  -Light_Glow()
+  -Light_LowerByValue()
+  -Light_MaxNeighbor()
+  -Light_MinNeighbor()
+  -Light_RaiseByValue()
+  -Light_Strobe()
+  -Light_StrobeDoom()
+  -Pillar_BuildAndCrush()
+  -Pillar_Build()
+  -Pillar_Open()
+  -Plat_DownByValue()
+  -Plat_DownWaitUpStay()
+  -Plat_DownWaitUpStayLip()
+  -Plat_PerpetualRaise()
+  -Plat_PerpetualRaiseLip()
+  -Plat_UpByValue()
+  -Plat_UpNearestWaitDownStay ()
+  -Plat_UpWaitDownStay()
+  -Polyobj_DoorSlide()
+  -Polyobj_DoorSwing()
+  -Polyobj_Move()
+  -Polyobj_MoveTimes8()
+  -Polyobj_OR_Move()
+  -Polyobj_OR_MoveTimes8()
+  -Polyobj_OR_RotateLeft()
+  -Polyobj_OR_RotateRight()
+  -Polyobj_RotateLeft()
+  -Polyobj_RotateRight()
+Added option to use legacy midi playback (snd_uselegacymidiplayer default).
+Added -uselegacymidiplayer & -nouselegacymidiplayer command line parameters.
+Added -internalmidiplayer command line parameter.
+Improved midi playback.
+Max light source distance increased from 2048px to 8192px in software rendering.
+Small optimizations to sprite rendering.
+Fixed masked middle texture bleeding when player was exactly placed on the line.
+Small optimization to masked middle textute software rendering.
+Bosses will have only seesound and deathsound at full volume by default.
 
 Version 2.0.6 build 729 - (20211011)
 -----------------------
 Allow MODELDEF declarations without texture.
 Added MOD, S3M, IT & XM track music format support.
-Shows a I_DevWarning if sound channel can not be found.
+Shows an I_DevWarning if sound channel can not be found.
 Fixed potential doublicate mobj key while loading saved game.
 Overlay functions as mobj codepointers:
   - A_OverlayClear;
@@ -387,7 +717,7 @@ Fixed problems with A_SpawnItem & A_SpawnItemEx actordef functions.
 Added A_ScaleVelocity & A_ChangeVelocity ACTORDEF functions.
 Added FloatRandom function in parameters of ACTORDEF functions. Usage is FloatRandom(1.5, 2.5) <-- return a float value between 1.5 and 2.5.
 Bug fix: Players can now spawned on 3d floors when the "On middle Floor" flag is set.
-Bug fix: Solve issue with A_SpawnItem & A_SpawnItemEx in sectors with 3d floors.
+Bug fix: Solved issue with A_SpawnItem & A_SpawnItemEx in sectors with 3d floors.
 Eliminated problems with voxel frames without a corresponding sprite in the wad.
 Fixed problem with KVX voxels in software rendering mode.
 Eliminated problems with transparent drawing when the software renderer activates dephtbuffer (3d floors).
@@ -496,12 +826,12 @@ Fake 3d is off by default.
 When the -dontsavedefaults is passed to the command line parameters, the defaults file (Hexen32.ini) will not be saved.
 
 Version 2.0.4 build 718 - (13/10/2018)
--------------
+-----------------------
 Paraller vissprite sorting using separate thread.
 Fixed rare bug that could crash the engine. The error could occur if multithreading mode was enabled and total spans had never exceeded the number of active threads for flat drawing.
 
 Version 2.0.4 build 717 - (20/9/2018)
--------------
+-----------------------
 CODEPTR keyword in BEX files will recornize ACTORDEF actions with custom parameters.
 Fixed bug in A_SubtractCustomParam and A_SubtractTargetCustomParam ACTORDEF functions.
 ACTORDEF functions can now access mobj custom params using the appropriate keywords:
@@ -530,7 +860,7 @@ ACTORDEF functions can now access world and map variables using the appropriate 
   -WorldFloat (for world float variables)
 
 Version 2.0.4 build 715 - (18/2/2018)
--------------
+-----------------------
 Corrected demo recording bug. Problem was more likely appeared in version 2.0.3.704.
 16 and 32 angles in sprites.
 Midi files will not freeze the game input when restarted.
@@ -543,7 +873,7 @@ Will read PNG sprites inside WADs, support for "grAb" PNG chunk to determine off
 Will also read BMP (bitmaps) sprites inside WADs. 
 
 Version 2.0.4 build 714 - (22/1/2018)
------------
+-----------------------
 Interpolate sector flag can be controled within PascalScript.
 Fixed accuracy of status bar drawing in 8 bit display mode.
 Hires lookup tables are calculated using multiple threads if possible.
@@ -552,7 +882,7 @@ If infinite state cycles detected will exit with I_Error.
 Small fixes to the fake3d effect.
 
 Version 2.0.4 build 713 - (12/1/2018)
--------------
+-----------------------
 Menu beautifications.
 Option to switch to ESDF keyboard movement.
 Now correctly executes console commands on AUTOEXEC lump.
@@ -560,12 +890,12 @@ Speed optimizations to the software renderer on maps with big number of drawsegs
 Fixed small issues with the multithreaded dephbuffer calculation.
 
 Version 2.0.4 build 712 - (1/1/2018)
--------------
+-----------------------
 Corrections to the screen DPI detection.
 Doombuilder configuration files are distributed with the binaries.
 
 Version 2.0.4 build 711 - (31/12/2017)
------------
+-----------------------
 Fixes to sky drawing (both software and OpenGL mode).
 Corrected z-fighting between corpse and dropped item (software renderer).
 Multithreading depthbuffer calculation for the software renderer.
@@ -576,12 +906,12 @@ Multithreading performance improvements in computers with 4 or more CPU threads 
 Screen DPI awareness when running in Windows 8.1 or greater.
 
 Version 2.0.4 build 710 - (23/12/2017)
------------
+-----------------------
 Automatically unset the TWO-SIDED flag for lines without backsector.
 Speed optimizations in things rendering (software renderer).
 
 Version 2.0.4 build 708 - (21/12/2017)
------------
+-----------------------
 Mobjs do not slip while descenting a slopped floor.
 Added line special 251, mobjs on tagged sectors will slip if descenting a slope.
 Added "Gravity" sector field (controlled by PascalScript).
@@ -603,20 +933,20 @@ Speed optimizations for the software renderer.
 Fixed tutti frutti bug for short textures.
 
 Version 2.0.3 build 707 - (12/12/2017)
------------
+-----------------------
 Fixed full screen title drawing problem when the width resolution was 1920 or 2560.
 
 Version 2.0.3 build 706 - (18/11/2017)
------------
+-----------------------
 Added new model formats (ddmodel & dmx) for the OpenGL version. These formats can be created with the DD_MODEL tool (https://sourceforge.net/projects/delphidoom-procedural-modeler/).
 
 Version 2.0.3 build 705 - (7/11/2017)
------------
+-----------------------
 Fixed music pitch problem (as mentioned by RTC_Marine at https://www.doomworld.com/forum/topic/92113-delphidoom-20/?do=findComment&comment=1700485)
 Hud drawing speed optimizations in 2560 x 1440 & 3840 x 2160 resolutions.
 
 Version 2.0.3 build 704 - (29/10/2017)
------------
+-----------------------
 PascalScript can now access DLLs from inside pk3 files. (or WAD files if using PK3ENTRY lump)
 Smooth freelooking. Now the engine does not ignore the slight variations in mouse movement (as suggested by  RTC_Marine - https://www.doomworld.com/forum/topic/92113-delphidoom-20/?do=findComment&comment=1700485) 
 Internal save/load version updated to version 2.03.
@@ -624,7 +954,7 @@ Added gl_no_glfinish_hack console variable to avoid with OpenGL slowdown on syst
 Will load configuration file (hexen32.ini) of previous versions.
 
 Version 2.0.2 build 703 - (17/10/2017)
------------
+-----------------------
 Added PCX image external texture support.
 A_Gotoxxxxx functions evaluate small expresions in state parameter (addition & substraction of a constant value).
 Added AllMissiles method to "Actors" PascalScript variable.
@@ -670,18 +1000,18 @@ Added PascalScript function "IsPrime()".
 Builds map nodes if missing.
 
 Version 2.0.2 build 702 - (30/8/2017)
------------
+-----------------------
 Fixed alpha channel in TGA screenshots.
 Added keepsavegamename console variable, when true (default) you do not have to re-ender the save game name when overwritting saves.
 The mouse sensitivity slider within menus can accept values up to 20.
 
 Version 2.0.1 build 701 - (28/12/2016)
------------
+-----------------------
 Fixed some glitches of the overlay drawer when screenblocks < 10.
 New PascalScript functions, mostly for retrieving information about mobjinfo.
 
 Version 2.0.1 build 700 - (22/12/2016)
------------
+-----------------------
 Places screenshots inside data\screenshots folder.
 Mirror screenshot to jpg format.
 General purpose multithreading utilities will use more than 2 logical CPUs if available.
@@ -726,11 +1056,11 @@ Added A_GlobalEarthQuake mobj function.
 Corrected voxel scale in software rendering mode. 
 
 Version 1.1.6 build 605 - (29/8/2016)
------------
+-----------------------
 Fixes to the textured automap.
 
 Version 1.1.6 build 600 - (31/12/2015)
------------
+-----------------------
 When setblocks = 10 viewwidth does not pad div 8.
 Unlimited buffer when recordifng demos.
 Fake3d fixes.

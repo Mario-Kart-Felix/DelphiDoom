@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,12 +30,32 @@ unit info_export;
 
 interface
 
+//==============================================================================
+//
+// Info_GetMobjinfoPascal
+//
+//==============================================================================
 function Info_GetMobjinfoPascal(const astart: integer = 0; const afinish: integer = -1): string;
 
+//==============================================================================
+//
+// Info_GetMobjinfoPascalConst
+//
+//==============================================================================
 function Info_GetMobjinfoPascalConst(const astart: integer = 0; const afinish: integer = -1): string;
 
+//==============================================================================
+//
+// Info_GetStatesPascal
+//
+//==============================================================================
 function Info_GetStatesPascal(const astart: integer = 0; const afinish: integer = -1): string;
 
+//==============================================================================
+//
+// Info_InitExportCommands
+//
+//==============================================================================
 procedure Info_InitExportCommands;
 
 implementation
@@ -48,13 +68,19 @@ uses
   deh_main,
   info,
   info_h,
+  info_common,
   m_argv,
   m_fixed,
   p_gender,
   p_spec,
   r_renderstyle,
-  sounds;
+  sounddata;
 
+//==============================================================================
+//
+// _state_name_Ord
+//
+//==============================================================================
 function _state_name_Ord(const x: Integer): string;
 begin
   if x < 0 then
@@ -65,6 +91,11 @@ begin
     Result := itoa(x);
 end;
 
+//==============================================================================
+//
+// _state_name
+//
+//==============================================================================
 function _state_name(const x: Integer): string;
 begin
   if x < 0 then
@@ -75,6 +106,11 @@ begin
     Result := 'statenum_t(' + itoa(x) + ')';
 end;
 
+//==============================================================================
+//
+// _sound_name_Ord
+//
+//==============================================================================
 function _sound_name_Ord(const x: Integer): string;
 begin
   if x < 0 then
@@ -85,6 +121,11 @@ begin
     Result := itoa(x);
 end;
 
+//==============================================================================
+//
+// _mobjinfo_name_Ord
+//
+//==============================================================================
 function _mobjinfo_name_Ord(const x: Integer): string;
 begin
   if x < 0 then
@@ -95,6 +136,11 @@ begin
     Result := itoa(x);
 end;
 
+//==============================================================================
+//
+// _gender_name
+//
+//==============================================================================
 function _gender_name(const x: Integer): string;
 begin
   if x < 0 then
@@ -105,6 +151,11 @@ begin
     Result := 'gender_t(' + itoa(x) + ')';
 end;
 
+//==============================================================================
+//
+// _pascal_name
+//
+//==============================================================================
 function _pascal_name(const s: string): string;
 var
   i: integer;
@@ -119,6 +170,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// _renderstyle_name
+//
+//==============================================================================
 function _renderstyle_name(const x: Integer): string;
 begin
   if x < 0 then
@@ -129,6 +185,11 @@ begin
     Result := 'mobjrenderstyle_t(' + itoa(x) + ')';
 end;
 
+//==============================================================================
+//
+// itoa_FRACUNIT
+//
+//==============================================================================
 function itoa_FRACUNIT(const x: integer): string;
 begin
   if Abs(x) < FRACUNIT then
@@ -143,6 +204,11 @@ begin
     Result := itoa(x);
 end;
 
+//==============================================================================
+//
+// itoa_FLAGS
+//
+//==============================================================================
 function itoa_FLAGS(const x: Integer; const flags: TDTextList): string;
 var
   i: integer;
@@ -180,6 +246,11 @@ begin
   sl.Free;
 end;
 
+//==============================================================================
+//
+// _spritenum_name_Ord
+//
+//==============================================================================
 function _spritenum_name_Ord(const x: Integer): string;
 begin
   if x < 0 then
@@ -190,6 +261,11 @@ begin
     Result := itoa(x);
 end;
 
+//==============================================================================
+//
+// _action_name
+//
+//==============================================================================
 function _action_name(const action: actionf_t): string;
 var
   i: integer;
@@ -206,6 +282,11 @@ begin
   Result := 'nil';
 end;
 
+//==============================================================================
+//
+// Info_GetMobjinfoPascal
+//
+//==============================================================================
 function Info_GetMobjinfoPascal(const astart: integer = 0; const afinish: integer = -1): string;
 var
   ret: string;
@@ -292,10 +373,9 @@ begin
     AddLn('mobjinfo[' + mname + '].alpha := ' + itoa(mobjinfo[i].alpha) + ';');
     AddLn('mobjinfo[' + mname + '].healstate := ' + _state_name_Ord(mobjinfo[i].healstate) + ';');
     AddLn('mobjinfo[' + mname + '].crashstate := ' + _state_name_Ord(mobjinfo[i].crashstate) + ';');
+    AddLn('mobjinfo[' + mname + '].crushstate := ' + _state_name_Ord(mobjinfo[i].crushstate) + ';');
     AddLn('mobjinfo[' + mname + '].interactstate := ' + _state_name_Ord(mobjinfo[i].interactstate) + ';');
-    {$IFDEF DOOM_OR_STRIFE}
     AddLn('mobjinfo[' + mname + '].missileheight := ' + itoa(mobjinfo[i].missileheight) + ';');
-    {$ENDIF}
     AddLn('mobjinfo[' + mname + '].vspeed := ' + itoa(mobjinfo[i].vspeed) + ';');
     if mobjinfo[i].pushfactor = DEFPUSHFACTOR then
       AddLn('mobjinfo[' + mname + '].pushfactor := DEFPUSHFACTOR;')
@@ -325,12 +405,26 @@ begin
     AddLn('mobjinfo[' + mname + '].WeaveIndexZ := ' + itoa(mobjinfo[i].WeaveIndexZ) + ';');
     AddLn('mobjinfo[' + mname + '].spriteDX := ' + itoa_FRACUNIT(mobjinfo[i].spriteDX) + ';');
     AddLn('mobjinfo[' + mname + '].spriteDY := ' + itoa_FRACUNIT(mobjinfo[i].spriteDY) + ';');
+    AddLn('mobjinfo[' + mname + '].flags5_ex := ' + itoa_FLAGS(mobjinfo[i].flags5_ex, mobj_flags5_ex) + ';');
+    AddLn('mobjinfo[' + mname + '].flags6_ex := ' + itoa_FLAGS(mobjinfo[i].flags6_ex, mobj_flags6_ex) + ';');
+    AddLn('mobjinfo[' + mname + '].infighting_group := ' + Info_InfightingGroupToString(mobjinfo[i].infighting_group) + ';');
+    AddLn('mobjinfo[' + mname + '].projectile_group := ' + Info_ProjectileGroupToString(mobjinfo[i].projectile_group) + ';');
+    AddLn('mobjinfo[' + mname + '].splash_group := ' + Info_SplashGroupToString(mobjinfo[i].splash_group) + ';');
+    AddLn('mobjinfo[' + mname + '].ripsound := ' + _sound_name_Ord(mobjinfo[i].ripsound) + ';');
+    AddLn('mobjinfo[' + mname + '].bloodcolor := ' + itoa(mobjinfo[i].bloodcolor) + ';');
+    AddLn('mobjinfo[' + mname + '].translationname := ''' + mobjinfo[i].translationname + ''';');
+    AddLn('mobjinfo[' + mname + '].meleethreshold := ' + itoa(mobjinfo[i].meleethreshold) + ';');
     AddLn('');
   end;
 
   Result := ret;
 end;
 
+//==============================================================================
+//
+// Info_GetMobjinfoPascalConst
+//
+//==============================================================================
 function Info_GetMobjinfoPascalConst(const astart: integer = 0; const afinish: integer = -1): string;
 var
   ret: string;
@@ -434,10 +528,9 @@ begin
     AddField('alpha', itoa(fmobjinfo[i].alpha));
     AddField('healstate', _state_name_Ord(fmobjinfo[i].healstate));
     AddField('crashstate', _state_name_Ord(fmobjinfo[i].crashstate));
+    AddField('crushstate', _state_name_Ord(fmobjinfo[i].crushstate));
     AddField('interactstate', _state_name_Ord(fmobjinfo[i].interactstate));
-    {$IFDEF DOOM_OR_STRIFE}
     AddField('missileheight', itoa(fmobjinfo[i].missileheight));
-    {$ENDIF}
     AddField('vspeed', itoa(fmobjinfo[i].vspeed));
     if fmobjinfo[i].pushfactor = DEFPUSHFACTOR then
       AddField('pushfactor', 'DEFPUSHFACTOR')
@@ -467,6 +560,15 @@ begin
     AddField('WeaveIndexZ', itoa(fmobjinfo[i].WeaveIndexZ));
     AddField('spriteDX', itoa_FRACUNIT(fmobjinfo[i].spriteDX));
     AddField('spriteDY', itoa_FRACUNIT(fmobjinfo[i].spriteDY));
+    AddField('flags5_ex', itoa_FLAGS(fmobjinfo[i].flags5_ex, mobj_flags5_ex));
+    AddField('flags6_ex', itoa_FLAGS(fmobjinfo[i].flags6_ex, mobj_flags6_ex));
+    AddField('infighting_group', Info_InfightingGroupToString(mobjinfo[i].infighting_group));
+    AddField('projectile_group', Info_ProjectileGroupToString(mobjinfo[i].projectile_group));
+    AddField('splash_group', Info_SplashGroupToString(mobjinfo[i].splash_group));
+    AddField('ripsound', _sound_name_Ord(fmobjinfo[i].ripsound));
+    AddField('bloodcolor', itoa(fmobjinfo[i].bloodcolor));
+    AddField('translationname', '''' + _pascal_name(fmobjinfo[i].translationname) + '''');
+    AddField('meleethreshold', itoa(fmobjinfo[i].meleethreshold));
     if i = finish then
       AddLn(' )')
     else
@@ -478,6 +580,11 @@ begin
   Result := ret;
 end;
 
+//==============================================================================
+//
+// Info_GetStatesPascal
+//
+//==============================================================================
 function Info_GetStatesPascal(const astart: integer = 0; const afinish: integer = -1): string;
 var
   ret: string;
@@ -535,6 +642,11 @@ begin
   Result := ret;
 end;
 
+//==============================================================================
+//
+// CmdExportInfoPascal
+//
+//==============================================================================
 procedure CmdExportInfoPascal(const fname: string);
 var
   fname1: string;
@@ -547,7 +659,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -566,6 +678,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// CmdExportInfoPascalBI
+//
+//==============================================================================
 procedure CmdExportInfoPascalBI(const fname: string);
 var
   fname1: string;
@@ -578,7 +695,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -597,6 +714,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// CmdExportInfoPascalConst
+//
+//==============================================================================
 procedure CmdExportInfoPascalConst(const fname: string);
 var
   fname1: string;
@@ -609,7 +731,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -628,6 +750,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// CmdExportInfoPascalConstBI
+//
+//==============================================================================
 procedure CmdExportInfoPascalConstBI(const fname: string);
 var
   fname1: string;
@@ -640,7 +767,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -662,6 +789,11 @@ end;
 var
   export_commands_registered: boolean = false;
 
+//==============================================================================
+//
+// Info_InitExportCommands
+//
+//==============================================================================
 procedure Info_InitExportCommands;
 begin
   if export_commands_registered then

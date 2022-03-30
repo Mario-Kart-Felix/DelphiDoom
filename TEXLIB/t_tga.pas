@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  TGA image format.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -95,6 +95,11 @@ type
 
 implementation
 
+//==============================================================================
+//
+// TTGATextureManager.LoadPalette
+//
+//==============================================================================
 function TTGATextureManager.LoadPalette(stream: TDStream): boolean;
 var
   palet: pointer;
@@ -124,6 +129,11 @@ begin
   LoadPalette := true;
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.Load8bitpaltga
+//
+//==============================================================================
 function TTGATextureManager.Load8bitpaltga(stream: TDStream): boolean;
 var
   pixel, rle: byte;
@@ -194,11 +204,21 @@ begin
   memfree(buffer, hdr.width);
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.load8bitgraytga
+//
+//==============================================================================
 function TTGATextureManager.load8bitgraytga(stream: TDStream): boolean;
 begin
   load8bitgraytga := false;
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.load16bittga
+//
+//==============================================================================
 function TTGATextureManager.load16bittga(stream: TDStream): boolean;
 var
   rle: byte;
@@ -220,7 +240,7 @@ begin
   begin
     x := 0;
     y := hdr.height - 1;
-    while not(y < 0) do
+    while y >= 0 do
     begin
       stream.read(rle, 1);
       if rle > 127 then
@@ -265,6 +285,11 @@ begin
   memfree(buffer, hdr.width * 2);
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.load24bittga
+//
+//==============================================================================
 function TTGATextureManager.load24bittga(stream: TDStream):boolean;
 var
   rle: byte;
@@ -331,6 +356,11 @@ begin
   memfree(buffer, hdr.width * 3);
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.Load32bittga
+//
+//==============================================================================
 function TTGATextureManager.Load32bittga(stream: TDStream):boolean;
 var
   rle: byte;
@@ -342,7 +372,7 @@ begin
   buffer := malloc(hdr.width * 4);
   if hdr.imgtype = 2 then
   begin
-    for y := hdr.height-1 downto 0 do
+    for y := hdr.height - 1 downto 0 do
     begin
       stream.read(buffer^, hdr.width * 4);
       FBitmap^.PutPixels(0, y, hdr.width, buffer, 32);
@@ -397,6 +427,11 @@ begin
   memfree(buffer, hdr.width * 4);
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.Create
+//
+//==============================================================================
 constructor TTGATextureManager.Create;
 begin
   inherited Create;
@@ -404,6 +439,11 @@ begin
   FFrameCount := 10;
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.LoadHeader
+//
+//==============================================================================
 function TTGATextureManager.LoadHeader(stream: TDStream):boolean;
 begin
   if id <> nil then
@@ -433,6 +473,11 @@ begin
   LoadHeader := true;
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.LoadImage
+//
+//==============================================================================
 function TTGATextureManager.LoadImage(stream: TDStream):boolean;
 begin
   LoadImage := true;
@@ -457,6 +502,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TTGATextureManager.Destroy
+//
+//==============================================================================
 destructor TTGATextureManager.Destroy;
 begin
   if id <> nil then

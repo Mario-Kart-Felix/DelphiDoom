@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  All the clipping: columns, horizontal spans, sky columns.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,14 +36,31 @@ interface
 
 uses
   d_delphi,
+{$IFNDEF OPENGL}
+  doomdef,
+{$ENDIF}
   m_fixed,
   tables,
   r_defs;
 
 {$IFNDEF OPENGL}
+
+var
+  solidcol: packed array[0..MAXWIDTH - 1] of Byte;
+
+//==============================================================================
+//
+// R_RenderMaskedSegRange
+//
+//==============================================================================
 procedure R_RenderMaskedSegRange(const ds: Pdrawseg_t; const x1, x2: integer);
 
-procedure R_StoreWallRange(const start: integer; const stop: integer);
+//==============================================================================
+//
+// R_StoreWallRange
+//
+//==============================================================================
+procedure R_StoreWallRange(start: integer; stop: integer);
 {$ENDIF}
 
 var
@@ -74,6 +91,9 @@ var
   rw_stopx: integer;
   rw_centerangle: angle_t;
   rw_offset: fixed_t;
+  rw_offset_mid: fixed_t;
+  rw_offset_bot: fixed_t;
+  rw_offset_top: fixed_t;
   rw_scale: fixed_t;
   rw_scalestep: fixed_t;
   rw_midtexturemid: fixed_t;
@@ -96,7 +116,6 @@ var
   bottomfrac: int64; // R_WiggleFix
   bottomstep: fixed_t;
 {$ENDIF}
-
 
 {$IFNDEF OPENGL}
 var
@@ -123,9 +142,20 @@ var
   midwallcolfunc: PProcedure;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_NewDrawSeg
+//
+//==============================================================================
 function R_NewDrawSeg: Pdrawseg_t;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_WiggleFix
+//
+//==============================================================================
 procedure R_WiggleFix(sec: Psector_t);
 {$ENDIF}
 
@@ -139,7 +169,6 @@ uses
   g_game,
   r_bsp,
 {$IFNDEF OPENGL}
-  doomdef,
   doomdata,
   doomtype,
   p_setup, // JVAL: 3d floors
@@ -151,11 +180,7 @@ uses
   r_main,
   r_things,
   r_plane,
-  r_draw,
   r_sky,
-  r_cache_walls,
-  r_wall8,
-  r_wall32,
   r_scale,
   r_segs2,
 {$IFDEF STRIFE}
@@ -168,9 +193,7 @@ uses
 {$ENDIF}
   z_zone;
 
-
 {$IFNDEF OPENGL}
-
 
 //
 // R_FixWiggle()
@@ -233,6 +256,11 @@ var
     (clamp:   64 * FRACUNIT; heightbits:  9)
   );
 
+//==============================================================================
+//
+// R_WiggleFix
+//
+//==============================================================================
 procedure R_WiggleFix(sec: Psector_t);
 var
   height: integer;
@@ -274,12 +302,11 @@ begin
   end;
 end;
 
-
 // OPTIMIZE: closed two sided lines as single sided
-
 //
 // R_RenderMaskedSegRange
 //
+//==============================================================================
 procedure R_RenderMaskedSegRange(const ds: Pdrawseg_t; const x1, x2: integer);
 var
   index: integer;
@@ -291,6 +318,8 @@ var
   mc2height: integer;
   texturecolumn: integer;
   t: double;
+  texturemid_dbl: double;
+  spryscale_dbl: double;
 {$IFDEF DOOM_OR_STRIFE}
   tempsec: sector_t;
 {$ENDIF}
@@ -348,12 +377,7 @@ begin
         LIGHTSEGSHIFT) + extralight;
 
   if r_fakecontrast then
-  begin
-    if curline.v1.y = curline.v2.y then
-      dec(lightnum)
-    else if curline.v1.x = curline.v2.x then
-      inc(lightnum);
-  end;
+    inc(lightnum, curline.fakecontrastlight);
 
   if lightnum < 0 then
     lightnum := 0
@@ -405,7 +429,8 @@ begin
       dc_texturemid := backsector.ceilingheight;
     dc_texturemid := dc_texturemid - viewz;
   end;
-  dc_texturemid := dc_texturemid + curline.sidedef.rowoffset;
+  dc_texturemid := dc_texturemid + curline.sidedef.rowoffset + curline.sidedef.midrowoffset;
+  texturemid_dbl := dc_texturemid / FRACUNIT;
 
   if fixedcolormap <> nil then
     dc_colormap := fixedcolormap;
@@ -477,8 +502,9 @@ begin
       sprtopscreen := FixedInt64(t); }
 
      //t -> double (delphidoom)
-      t := (centeryfrac / FRACUNIT) - (dc_texturemid / FRACUNIT) * (spryscale / FRACUNIT);
-      if (t + (textureheight[texnum] / FRACUNIT) * (spryscale / FRACUNIT) < 0) or (t > SCREENHEIGHT * 2) then
+      spryscale_dbl := spryscale / FRACUNIT;
+      t := centery - texturemid_dbl * spryscale_dbl;
+      if (t + (textureheight[texnum] / FRACUNIT) * spryscale_dbl < 0) or (t > SCREENHEIGHT * 2) or (t < -32000.0) then
       begin
         if ds.use_double then
           spryscale := Trunc(ds.scale_dbl + (dc_x - ds.x1) * rw_scalestep_dbl)
@@ -499,7 +525,7 @@ begin
         dc_mod := 0;
         dc_texturemod := maskedtexturecol[dc_x] and (DC_HIRESFACTOR - 1);
         R_GetDCs(texnum, texturecolumn);
-        R_DrawMaskedColumn2(mc2height);
+        R_DrawMaskedColumn2(mc2height, spryscale);
       end
       else
       begin
@@ -537,6 +563,11 @@ var
   rndsepi: integer = -1;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_NewDrawSeg
+//
+//==============================================================================
 function R_NewDrawSeg: Pdrawseg_t;
 var
   i, bufid: integer;
@@ -577,11 +608,19 @@ end;
 //  between start and stop pixels (inclusive).
 //
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_StoreWallRange_DBL
+//
+//==============================================================================
 procedure R_StoreWallRange_DBL(const pds: Pdrawseg_t; const start: integer; const stop: integer);
 var
   vtop: fixed_t;
   lightnum: integer;
   lightnum2: integer;
+  i: integer;
+  didsolidcol: boolean;
   rw_scale_dbl2: Double;
   worldtop_dbl: Double;
   worldbottom_dbl: Double;
@@ -631,7 +670,7 @@ begin
     midtexture := texturetranslation[sidedef.midtexture];
     rw_midtextureheight := texturecolumnheight[midtexture];
     if rw_midtextureheight = 128 then
-      midwallcolfunc  := basewallcolfunc
+      midwallcolfunc := basewallcolfunc
     else
       midwallcolfunc := tallwallcolfunc;
     // a single sided line is terminal, so it must mark ends
@@ -648,7 +687,7 @@ begin
       // top of texture at top
       rw_midtexturemid := worldtop;
     end;
-    rw_midtexturemid := rw_midtexturemid + FixedMod(sidedef.rowoffset, textureheight[midtexture]);
+    rw_midtexturemid := rw_midtexturemid + FixedMod(sidedef.rowoffset + sidedef.midrowoffset, textureheight[midtexture]);
     rw_midtexturemid := FixedMod(rw_midtexturemid, texturecolumnheightfrac[midtexture]);
 
     pds.silhouette := SIL_BOTH;
@@ -781,7 +820,7 @@ begin
       toptexture := texturetranslation[sidedef.toptexture];
       rw_toptextureheight := texturecolumnheight[toptexture];
       if rw_toptextureheight = 128 then
-        topwallcolfunc  := basewallcolfunc
+        topwallcolfunc := basewallcolfunc
       else
         topwallcolfunc := tallwallcolfunc;
       if linedef.flags and ML_DONTPEGTOP <> 0 then
@@ -804,7 +843,7 @@ begin
       bottomtexture := texturetranslation[sidedef.bottomtexture];
       rw_bottomtextureheight := texturecolumnheight[bottomtexture];
       if rw_bottomtextureheight = 128 then
-        bottomwallcolfunc  := basewallcolfunc
+        bottomwallcolfunc := basewallcolfunc
       else
         bottomwallcolfunc := tallwallcolfunc;
       if linedef.flags and ML_DONTPEGBOTTOM <> 0 then
@@ -816,9 +855,9 @@ begin
       else // top of texture at top
         rw_bottomtexturemid := worldlow;
     end;
-    rw_toptexturemid := rw_toptexturemid + FixedMod(sidedef.rowoffset, textureheight[toptexture]);
+    rw_toptexturemid := rw_toptexturemid + FixedMod(sidedef.rowoffset + sidedef.toprowoffset, textureheight[toptexture]);
     rw_toptexturemid := FixedMod(rw_toptexturemid, texturecolumnheightfrac[toptexture]);
-    rw_bottomtexturemid := rw_bottomtexturemid + FixedMod(sidedef.rowoffset, textureheight[bottomtexture]);
+    rw_bottomtexturemid := rw_bottomtexturemid + FixedMod(sidedef.rowoffset + sidedef.bottomrowoffset, textureheight[bottomtexture]);
     rw_bottomtexturemid := FixedMod(rw_bottomtexturemid, texturecolumnheightfrac[bottomtexture]);
 
     // JVAL: 3d Floors
@@ -846,6 +885,13 @@ begin
       rw_offset := -rw_offset;
 
     rw_offset := rw_offset + sidedef.textureoffset + curline.offset;
+    if curline.specialoffsets then
+    begin
+      rw_offset_mid := rw_offset + sidedef.midtextureoffset;
+      rw_offset_bot := rw_offset + sidedef.bottomtextureoffset;
+      rw_offset_top := rw_offset + sidedef.toptextureoffset;
+    end;
+
     rw_centerangle := ANG90 + viewangle - rw_normalangle;
 
     // calculate light table
@@ -858,12 +904,7 @@ begin
       lightnum := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
 
       if r_fakecontrast then
-      begin
-        if curline.v1.y = curline.v2.y then
-          dec(lightnum)
-        else if curline.v1.x = curline.v2.x then
-          inc(lightnum);
-      end;
+        inc(lightnum, curline.fakecontrastlight);
 
       if lightnum < 0 then
         lightnum := 0
@@ -889,12 +930,7 @@ begin
         sec2 := @sectors[frontsector.midsec];
         lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
         if r_fakecontrast then
-        begin
-          if curline.v1.y = curline.v2.y then
-            dec(lightnum2)
-          else if curline.v1.x = curline.v2.x then
-            inc(lightnum2);
-        end;
+          inc(lightnum2, curline.fakecontrastlight);
 
         if lightnum2 < 0 then
           lightnum2 := 0
@@ -919,12 +955,7 @@ begin
         sec2 := pds.midsec;
         lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
         if r_fakecontrast then
-        begin
-          if curline.v1.y = curline.v2.y then
-            dec(lightnum2)
-          else if curline.v1.x = curline.v2.x then
-            inc(lightnum2);
-        end;
+          inc(lightnum2, curline.fakecontrastlight);
 
         if lightnum2 < 0 then
           lightnum2 := 0
@@ -965,12 +996,7 @@ begin
           lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
         end;
         if r_fakecontrast then
-        begin
-          if curline.v1.y = curline.v2.y then
-            dec(lightnum2)
-          else if curline.v1.x = curline.v2.x then
-            inc(lightnum2);
-        end;
+          inc(lightnum2, curline.fakecontrastlight);
 
         if lightnum2 < 0 then
           lightnum2 := 0
@@ -1038,7 +1064,6 @@ begin
   bottomstep := round(bottomstep_dbl);
   bottomfrac := round(bottomfrac_dbl);
 
-
   if backsector <> nil then
   begin
     worldhigh_dbl := worldhigh / WORLDUNIT;
@@ -1095,26 +1120,54 @@ begin
       markfloor := false;
   end;
 
-  if pds.midvis <> nil then
+  if curline.specialoffsets then
   begin
-    if pds.midsec <> nil then
+    if pds.midvis <> nil then
     begin
-      f_RenderSegLoop_dbl_3dFloors_Vis(pds);  // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_dbl_3dFloors_Vis_SO(pds);  // version 205
+      end
+      else
+      begin
+        f_RenderSegLoop_dbl_Vis_SO(pds);  // version 205
+      end;
     end
     else
     begin
-      f_RenderSegLoop_dbl_Vis(pds);  // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_dbl_3dFloors_SO(pds);  // version 205
+      end
+      else
+      begin
+        f_RenderSegLoop_dbl_SO;  // version 205
+      end;
     end;
   end
   else
   begin
-    if pds.midsec <> nil then
+    if pds.midvis <> nil then
     begin
-      f_RenderSegLoop_dbl_3dFloors(pds);  // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_dbl_3dFloors_Vis(pds);  // version 205
+      end
+      else
+      begin
+        f_RenderSegLoop_dbl_Vis(pds);  // version 205
+      end;
     end
     else
     begin
-      f_RenderSegLoop_dbl;  // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_dbl_3dFloors(pds);  // version 205
+      end
+      else
+      begin
+        f_RenderSegLoop_dbl;  // version 205
+      end;
     end;
   end;
 
@@ -1135,6 +1188,31 @@ begin
     begin
       pds.scale2 := pds.scale1;
       pds.scalestep_dbl := 0.0;
+    end;
+  end;
+
+  didsolidcol := false;
+  if midtexture = 0 then
+    if markfloor or markceiling then
+      for i := start to stop do
+        if floorclip[i] <= ceilingclip[i] + 1 then
+        begin
+          solidcol[i] := 1;
+          didsolidcol := true;
+        end;
+
+  // cph - if a column was made solid by this wall, we _must_ save full clipping info
+  if (backsector <> nil) and didsolidcol then
+  begin
+    if pds.silhouette and SIL_BOTTOM = 0 then
+    begin
+      pds.silhouette := pds.silhouette or SIL_BOTTOM;
+      pds.bsilheight := backsector.floorheight;
+    end;
+    if pds.silhouette and SIL_TOP = 0 then
+    begin
+      pds.silhouette := pds.silhouette or SIL_TOP;
+      pds.tsilheight := backsector.ceilingheight;
     end;
   end;
 
@@ -1174,20 +1252,46 @@ begin
   inc(ds_p);
 end;
 
+//==============================================================================
 //
 // R_StoreWallRange
 // A wall segment will be drawn
 //  between start and stop pixels (inclusive).
 //
-procedure R_StoreWallRange(const start: integer; const stop: integer);
+//==============================================================================
+procedure R_StoreWallRange(start: integer; stop: integer);
+//procedure R_StoreWallRange(const start: integer; const stop: integer);
 var
   vtop: fixed_t;
   lightnum: integer;
   lightnum2: integer; // JVAL: 3d Floors
+  i: integer;
+  didsolidcol: boolean;
   pds: Pdrawseg_t;
   overflow: boolean;
   sec2: Psector_t;
+  high_less_top: boolean;
+  low_greater_bottom: boolean;
 begin
+  while start <= stop do
+  begin
+    if solidcol[start] = 1 then
+      inc(start)
+    else
+      break;
+  end;
+
+  while start <= stop do
+  begin
+    if solidcol[stop] = 1 then
+      dec(stop)
+    else
+      break;
+  end;
+
+  if start > stop then
+    Exit;
+
   if curline.linedef.renderflags and LRF_SLOPED <> 0 then
   begin
     R_StoreSlopeRange(start, stop); // JVAL: Slopes
@@ -1270,7 +1374,7 @@ begin
     midtexture := texturetranslation[sidedef.midtexture];
     rw_midtextureheight := texturecolumnheight[midtexture];
     if rw_midtextureheight = 128 then
-      midwallcolfunc  := basewallcolfunc
+      midwallcolfunc := basewallcolfunc
     else
       midwallcolfunc := tallwallcolfunc;
     // a single sided line is terminal, so it must mark ends
@@ -1287,7 +1391,7 @@ begin
       // top of texture at top
       rw_midtexturemid := worldtop;
     end;
-    rw_midtexturemid := rw_midtexturemid + FixedMod(sidedef.rowoffset, textureheight[midtexture]);
+    rw_midtexturemid := rw_midtexturemid + FixedMod(sidedef.rowoffset + sidedef.midrowoffset, textureheight[midtexture]);
     rw_midtexturemid := FixedMod(rw_midtexturemid, texturecolumnheightfrac[midtexture]);
 
     pds.silhouette := SIL_BOTH;
@@ -1420,7 +1524,7 @@ begin
       toptexture := texturetranslation[sidedef.toptexture];
       rw_toptextureheight := texturecolumnheight[toptexture];
       if rw_toptextureheight = 128 then
-        topwallcolfunc  := basewallcolfunc
+        topwallcolfunc := basewallcolfunc
       else
         topwallcolfunc := tallwallcolfunc;
       if linedef.flags and ML_DONTPEGTOP <> 0 then
@@ -1443,7 +1547,7 @@ begin
       bottomtexture := texturetranslation[sidedef.bottomtexture];
       rw_bottomtextureheight := texturecolumnheight[bottomtexture];
       if rw_bottomtextureheight = 128 then
-        bottomwallcolfunc  := basewallcolfunc
+        bottomwallcolfunc := basewallcolfunc
       else
         bottomwallcolfunc := tallwallcolfunc;
       if linedef.flags and ML_DONTPEGBOTTOM <> 0 then
@@ -1455,9 +1559,9 @@ begin
       else // top of texture at top
         rw_bottomtexturemid := worldlow;
     end;
-    rw_toptexturemid := rw_toptexturemid + FixedMod(sidedef.rowoffset, textureheight[toptexture]);
+    rw_toptexturemid := rw_toptexturemid + FixedMod(sidedef.rowoffset + sidedef.toprowoffset, textureheight[toptexture]);
     rw_toptexturemid := FixedMod(rw_toptexturemid, texturecolumnheightfrac[toptexture]);
-    rw_bottomtexturemid := rw_bottomtexturemid + FixedMod(sidedef.rowoffset, textureheight[bottomtexture]);
+    rw_bottomtexturemid := rw_bottomtexturemid + FixedMod(sidedef.rowoffset + sidedef.bottomrowoffset, textureheight[bottomtexture]);
     rw_bottomtexturemid := FixedMod(rw_bottomtexturemid, texturecolumnheightfrac[bottomtexture]);
 
     // JVAL: 3d Floors
@@ -1485,6 +1589,13 @@ begin
       rw_offset := -rw_offset;
 
     rw_offset := rw_offset + sidedef.textureoffset + curline.offset;
+    if curline.specialoffsets then
+    begin
+      rw_offset_mid := rw_offset + sidedef.midtextureoffset;
+      rw_offset_bot := rw_offset + sidedef.bottomtextureoffset;
+      rw_offset_top := rw_offset + sidedef.toptextureoffset;
+    end;
+
     rw_centerangle := ANG90 + viewangle - rw_normalangle;
 
     // calculate light table
@@ -1497,12 +1608,7 @@ begin
       lightnum := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
 
       if r_fakecontrast then
-      begin
-        if curline.v1.y = curline.v2.y then
-          dec(lightnum)
-        else if curline.v1.x = curline.v2.x then
-          inc(lightnum);
-      end;
+        inc(lightnum, curline.fakecontrastlight);
 
       if lightnum < 0 then
         lightnum := 0
@@ -1528,12 +1634,7 @@ begin
         sec2 := @sectors[frontsector.midsec];
         lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
         if r_fakecontrast then
-        begin
-          if curline.v1.y = curline.v2.y then
-            dec(lightnum2)
-          else if curline.v1.x = curline.v2.x then
-            inc(lightnum2);
-        end;
+          inc(lightnum2, curline.fakecontrastlight);
 
         if lightnum2 < 0 then
           lightnum2 := 0
@@ -1561,12 +1662,7 @@ begin
         sec2 := pds.midsec;
         lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
         if r_fakecontrast then
-        begin
-          if curline.v1.y = curline.v2.y then
-            dec(lightnum2)
-          else if curline.v1.x = curline.v2.x then
-            inc(lightnum2);
-        end;
+          inc(lightnum2, curline.fakecontrastlight);
 
         if lightnum2 < 0 then
           lightnum2 := 0
@@ -1607,12 +1703,7 @@ begin
           lightnum2 := _SHR(sec2.lightlevel, LIGHTSEGSHIFT) + extralight;
         end;
         if r_fakecontrast then
-        begin
-          if curline.v1.y = curline.v2.y then
-            dec(lightnum2)
-          else if curline.v1.x = curline.v2.x then
-            inc(lightnum2);
-        end;
+          inc(lightnum2, curline.fakecontrastlight);
 
         if lightnum2 < 0 then
           lightnum2 := 0
@@ -1659,6 +1750,10 @@ begin
     end;
   end;
 
+  // Compare before shifting
+  high_less_top := worldhigh < worldtop;
+  low_greater_bottom := worldlow > worldbottom;
+
   // calculate incremental stepping values for texture edges
   worldtop := worldtop div WORLDUNIT;
 //  worldtop := worldtop shr WORLDBITS;
@@ -1680,13 +1775,13 @@ begin
     worldlow := worldlow div WORLDUNIT;
 //    worldlow := worldlow shr WORLDBITS;
 
-    if worldhigh < worldtop then
+    if high_less_top then
     begin
       pixhigh := (int64(centeryfrac) div WORLDUNIT) - int64(worldhigh) * int64(rw_scale) shr FRACBITS;  // R_WiggleFix
       pixhighstep := -FixedMul(rw_scalestep, worldhigh);
     end;
 
-    if worldlow > worldbottom then
+    if low_greater_bottom then
     begin
       pixlow := (int64(centeryfrac) div WORLDUNIT) - int64(worldlow) * int64(rw_scale) shr FRACBITS;  // R_WiggleFix
       pixlowstep := -FixedMul(rw_scalestep, worldlow);
@@ -1721,26 +1816,79 @@ begin
       markfloor := false;
   end;
 
-  if pds.midvis <> nil then
+  if curline.specialoffsets then
   begin
-    if pds.midsec <> nil then
+    if pds.midvis <> nil then
     begin
-      f_RenderSegLoop_3dFloors_Vis(pds); // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_3dFloors_Vis_SO(pds); // version 207
+      end
+      else
+      begin
+        f_RenderSegLoop_Vis_SO(pds); // version 207
+      end;
     end
     else
     begin
-      f_RenderSegLoop_Vis(pds); // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_3dFloors_SO(pds); // version 207
+      end
+      else
+      begin
+        f_RenderSegLoop_SO; // version 207
+      end;
     end;
   end
   else
   begin
-    if pds.midsec <> nil then
+    if pds.midvis <> nil then
     begin
-      f_RenderSegLoop_3dFloors(pds); // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_3dFloors_Vis(pds); // version 205
+      end
+      else
+      begin
+        f_RenderSegLoop_Vis(pds); // version 205
+      end;
     end
     else
     begin
-      f_RenderSegLoop; // version 205
+      if pds.midsec <> nil then
+      begin
+        f_RenderSegLoop_3dFloors(pds); // version 205
+      end
+      else
+      begin
+        f_RenderSegLoop; // version 205
+      end;
+    end;
+  end;
+
+  didsolidcol := false;
+  if midtexture = 0 then
+    if markfloor or markceiling then
+      for i := start to stop do
+        if floorclip[i] <= ceilingclip[i] + 1 then
+        begin
+          solidcol[i] := 1;
+          didsolidcol := true;
+        end;
+
+  // cph - if a column was made solid by this wall, we _must_ save full clipping info
+  if (backsector <> nil) and didsolidcol then
+  begin
+    if pds.silhouette and SIL_BOTTOM = 0 then
+    begin
+      pds.silhouette := pds.silhouette or SIL_BOTTOM;
+      pds.bsilheight := backsector.floorheight;
+    end;
+    if pds.silhouette and SIL_TOP = 0 then
+    begin
+      pds.silhouette := pds.silhouette or SIL_TOP;
+      pds.tsilheight := backsector.ceilingheight;
     end;
   end;
 

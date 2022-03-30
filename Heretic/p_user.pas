@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
 //  Pending weapon.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -42,20 +42,60 @@ uses
   m_fixed,
   tables;
 
+//==============================================================================
+//
+// P_PlayerThink
+//
+//==============================================================================
 procedure P_PlayerThink(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_Thrust
+//
+//==============================================================================
 procedure P_Thrust(player: Pplayer_t; angle: angle_t; const move: fixed_t);
 
+//==============================================================================
+//
+// P_PlayerNextArtifact
+//
+//==============================================================================
 procedure P_PlayerNextArtifact(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_PlayerUseArtifact
+//
+//==============================================================================
 procedure P_PlayerUseArtifact(player: Pplayer_t; arti: artitype_t);
 
+//==============================================================================
+//
+// P_GetPlayerNum
+//
+//==============================================================================
 function P_GetPlayerNum(player: Pplayer_t): integer;
 
+//==============================================================================
+//
+// P_UndoPlayerChicken
+//
+//==============================================================================
 function P_UndoPlayerChicken(player: Pplayer_t): boolean;
 
+//==============================================================================
+//
+// P_UseArtifact
+//
+//==============================================================================
 function P_UseArtifact(player: Pplayer_t; arti: artitype_t): boolean;
 
+//==============================================================================
+//
+// P_PlayerRemoveArtifact
+//
+//==============================================================================
 procedure P_PlayerRemoveArtifact(player: Pplayer_t; slot: integer);
 
 implementation
@@ -71,11 +111,14 @@ uses
   i_io,
 {$ENDIF}
   g_game,
+  p_common,
   p_mobj_h,
   p_mobj,
   p_tick,
   p_pspr,
   p_local,
+  p_playertrace,
+  p_friends,
   p_setup,    // JVAL: 3d Floors
   p_slopes,   // JVAL: Slopes
   p_3dfloors, // JVAL: Slopes
@@ -85,9 +128,8 @@ uses
   p_inter,
   r_main,
   r_defs,
-  doomstat,
   sb_bar,
-  sounds,
+  sounddata,
   s_sound;
 
 //
@@ -100,10 +142,12 @@ const
 var
   onground: boolean;
 
+//==============================================================================
 //
 // P_Thrust
 // Moves the given origin along a given angle.
 //
+//==============================================================================
 procedure P_Thrust(player: Pplayer_t; angle: angle_t; const move: fixed_t);
 var
   mv: fixed_t;
@@ -128,10 +172,12 @@ begin
   end
 end;
 
+//==============================================================================
 //
 // P_CalcHeight
 // Calculate the walking / running height adjustment
 //
+//==============================================================================
 procedure P_CalcHeight(player: Pplayer_t);
 var
   angle: integer;
@@ -241,6 +287,11 @@ begin
     player.viewz := player.mo.floorz + 4 * FRACUNIT;
 end;
 
+//==============================================================================
+//
+// P_CalcHeight205
+//
+//==============================================================================
 procedure P_CalcHeight205(player: Pplayer_t);
 var
   angle: integer;
@@ -322,7 +373,12 @@ begin
     player.viewz := player.mo.floorz + 4 * FRACUNIT;
 end;
 
+//==============================================================================
+// P_SlopesCalcHeight
+//
 // JVAL: Slopes
+//
+//==============================================================================
 procedure P_SlopesCalcHeight(player: Pplayer_t);
 var
   angle: integer;
@@ -446,9 +502,11 @@ begin
   player.oldviewz := oldviewz;
 end;
 
+//==============================================================================
 //
 // P_MovePlayer
 //
+//==============================================================================
 procedure P_MovePlayer(player: Pplayer_t);
 var
   cmd: Pticcmd_t;
@@ -471,8 +529,21 @@ begin
   if onground then
     player.lastongroundtime := leveltime; // JVAL: 20211101 - Crouch
 
-  cmd_jump := (cmd.jump_crouch and CMD_JUMP_MASK) shr CMD_JUMP_SHIFT;
-  cmd_crouch := (cmd.jump_crouch and CMD_CROUCH_MASK) shr CMD_CROUCH_SHIFT;
+  // JVAL: 20220225 - NOJUMP sector flag (UDMF)
+  if Psubsector_t(player.mo.subsector).sector.flags and SF_NOJUMP <> 0 then
+    cmd_jump := 0
+  else if (gamemapinfo <> nil) and gamemapinfo.nojump then
+    cmd_jump := 0
+  else
+    cmd_jump := (cmd.jump_crouch and CMD_JUMP_MASK) shr CMD_JUMP_SHIFT;
+
+  // JVAL: 20220226 - NOCROUCH sector flag (UDMF)
+  if Psubsector_t(player.mo.subsector).sector.flags and SF_NOCROUCH <> 0 then
+    cmd_crouch := 0
+  else if (gamemapinfo <> nil) and gamemapinfo.nocrouch then
+    cmd_crouch := 0
+  else
+    cmd_crouch := (cmd.jump_crouch and CMD_CROUCH_MASK) shr CMD_CROUCH_SHIFT;
 
   onair := (player.cheats and CF_LOWGRAVITY <> 0) or (player.mo.flags2 and MF2_FLY <> 0);
   if player.chickenTics <> 0 then
@@ -724,6 +795,11 @@ const
   ANG5 = ANG90 div 18;
   ANG355 = ANG270 +  ANG5 * 17; // add by JVAL
 
+//==============================================================================
+//
+// P_DeathThink
+//
+//==============================================================================
 procedure P_DeathThink(player: Pplayer_t);
 var
   angle: angle_t;
@@ -784,7 +860,8 @@ end;
 // PROC P_ChickenPlayerThink
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_ChickenPlayerThink(player: Pplayer_t);
 var
   pmo: Pmobj_t;
@@ -814,9 +891,11 @@ begin
     S_StartSound(pmo, Ord(sfx_chicact));
 end;
 
+//==============================================================================
 //
 // P_PlayerThink
 //
+//==============================================================================
 procedure P_PlayerThink(player: Pplayer_t);
 var
   cmd: Pticcmd_t;
@@ -853,11 +932,19 @@ begin
       player.teleporttics := 0;
   end;
 
+  P_AimLineAttack(player.mo, player.mo.angle, 16 * 64 * FRACUNIT);
+  if (player.plinetarget = nil) and (linetarget <> nil) then
+    player.pcrosstic := leveltime;
+  player.plinetarget := linetarget;
+
   if player.playerstate = PST_DEAD then
   begin
     P_DeathThink(player);
     exit;
   end;
+
+  P_PlayerHistoryNotify(player);  // JVAL: 20211224 - Notify player history
+  P_HandleFriendsNearMe(player);  // JVAL: 20220107 - Handle nearby friends
 
   if player.chickenTics <> 0 then
     P_ChickenPlayerThink(player);
@@ -912,7 +999,6 @@ begin
         if player.readyweapon = wp_gauntlets then
           newweapon := wp_staff;
     end;
-
 
     if (player.weaponowned[Ord(newweapon)] <> 0) and
        (newweapon <> player.readyweapon) then
@@ -998,7 +1084,6 @@ begin
   if player.bonuscount <> 0 then
     player.bonuscount := player.bonuscount - 1;
 
-
   // Handling colormaps.
   if player.powers[Ord(pw_invulnerability)] <> 0 then
   begin
@@ -1026,7 +1111,8 @@ end;
 // PROC P_ArtiTele
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_ArtiTele(player: Pplayer_t);
 var
   i: integer;
@@ -1064,7 +1150,8 @@ end;
 // PROC P_PlayerNextArtifact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_PlayerNextArtifact(player: Pplayer_t);
 begin
   if player = @players[consoleplayer] then
@@ -1089,13 +1176,13 @@ begin
   end;
 end;
 
-
 //----------------------------------------------------------------------------
 //
 // PROC P_PlayerRemoveArtifact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_PlayerRemoveArtifact(player: Pplayer_t; slot: integer);
 var
   i: integer;
@@ -1133,7 +1220,8 @@ end;
 // PROC P_PlayerUseArtifact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_PlayerUseArtifact(player: Pplayer_t; arti: artitype_t);
 var
   i: integer;
@@ -1165,7 +1253,8 @@ end;
 // Returns true if artifact was used.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_UseArtifact(player: Pplayer_t; arti: artitype_t): boolean;
 var
   mo: Pmobj_t;
@@ -1283,13 +1372,13 @@ begin
   result := true;
 end;
 
-
 //----------------------------------------------------------------------------
 //
 // FUNC P_GetPlayerNum
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_GetPlayerNum(player: Pplayer_t): integer;
 var
   i: integer;
@@ -1309,7 +1398,8 @@ end;
 // FUNC P_UndoPlayerChicken
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_UndoPlayerChicken(player: Pplayer_t): boolean;
 var
   fog: Pmobj_t;

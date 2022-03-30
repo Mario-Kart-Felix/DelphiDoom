@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -57,8 +57,18 @@ type
   end;
   Pscroll_t = ^scroll_t;
 
+//==============================================================================
+//
+// P_SpawnScrollers
+//
+//==============================================================================
 procedure P_SpawnScrollers;
 
+//==============================================================================
+//
+// T_Scroll
+//
+//==============================================================================
 procedure T_Scroll(s: Pscroll_t);
 
 implementation
@@ -66,6 +76,7 @@ implementation
 uses
   d_delphi,
   doomtype,
+  i_system,
   p_mobj_h,
   p_setup,
   p_spec,
@@ -74,6 +85,9 @@ uses
   tables,
   z_zone;
 
+//==============================================================================
+// T_Scroll
+//
 // killough 2/28/98:
 //
 // This function, with the help of r_plane.c and r_bsp.c, supports generalized
@@ -92,7 +106,8 @@ uses
 //
 // This is the main scrolling code
 // killough 3/7/98
-
+//
+//==============================================================================
 procedure T_Scroll(s: Pscroll_t);
 var
   dx, dy: fixed_t;
@@ -184,6 +199,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_AddScroller
 //
@@ -201,7 +217,7 @@ end;
 //
 // accel: non-zero if this is an accelerative effect
 //
-
+//==============================================================================
 procedure P_AddScroller(_type: scrolltype_e; dx, dy: fixed_t; control: integer;
   affectee: integer; accel: integer);
 var
@@ -222,13 +238,17 @@ begin
   P_AddThinker(@s.thinker);
 end;
 
+//==============================================================================
+// P_AddWallScroller
+//
 // Adds wall scroller. Scroll amount is rotated with respect to wall's
 // linedef first, so that scrolling towards the wall in a perpendicular
 // direction is translated into vertical motion, while scrolling along
 // the wall in a parallel direction is translated into horizontal motion.
 //
 // killough 5/25/98: cleaned up arithmetic to avoid drift due to roundoff
-
+//
+//==============================================================================
 procedure P_AddWallScroller(dx, dy: fixed_t; l: Pline_t;
   control: integer; accel: integer);
 var
@@ -260,7 +280,12 @@ const
 const
   CARRYFACTOR = 6144;
 
+//==============================================================================
+// P_SpawnScrollers
+//
 // Initialize the scrollers
+//
+//==============================================================================
 procedure P_SpawnScrollers;
 var
   i: integer;
@@ -356,8 +381,32 @@ begin
           s := lines[i].sidenum[0];
           P_AddScroller(sc_side, -sides[s].textureoffset,
                         sides[s].rowoffset, -1, s, accel);
-       end;
+        end;
 
+     1024, // special 255 with tag control
+     1025,
+     1026:
+        begin
+          if l.tag = 0 then
+            I_Warning('P_SpawnScrollers(): Line %d with special %d is missing a tag!'#13#10, [i, special])
+          else
+          begin
+            s := lines[i].sidenum[0];
+            if special > 1024 then
+              control := sides[s].sector.iSectorID;
+
+            if special = 1026 then
+              accel := 1;
+
+            dx := -sides[s].textureoffset div 8;
+            dy := sides[s].rowoffset div 8;
+
+            s := -1;
+            while P_FindLineFromLineTag2(l, s) >= 0 do
+              if s <> i then
+                P_AddScroller(sc_side, dx, dy, control, lines[s].sidenum[0], accel);
+          end;
+        end;
     end;
 
   end;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Handling interactions (i.e., collisions).
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -35,9 +35,8 @@ interface
 
 uses
   doomdef,
-  dstrings,
   d_englsh,
-  sounds,
+  sounddata,
   doomstat,
   m_rnd,
   i_system,
@@ -47,10 +46,25 @@ uses
   s_sound,
   d_player;
 
+//==============================================================================
+//
+// P_GivePower
+//
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: integer): boolean;
 
+//==============================================================================
+//
+// P_TouchSpecialThing
+//
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 
+//==============================================================================
+//
+// P_DamageMobj
+//
+//==============================================================================
 procedure P_DamageMobj(target, inflictor, source: Pmobj_t; damage: integer);
 
 const
@@ -59,6 +73,11 @@ const
   maxammo: array[0..Ord(NUMAMMO) - 1] of integer = (200, 50, 300, 50);
   clipammo: array[0..Ord(NUMAMMO) - 1] of integer = (10, 4, 20, 1);
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 
 var
@@ -83,6 +102,8 @@ uses
   m_fixed,
   d_items,
   g_game,
+  p_friends,
+  p_common,
   p_mobj,
   p_obituaries,
   p_3dfloors,
@@ -90,6 +111,7 @@ uses
   ps_main, // JVAL: Script Events
   r_defs,
   r_main,
+  udmf_spec,
   tables;
 
 const
@@ -99,12 +121,46 @@ const
 // GET STUFF
 //
 
+//==============================================================================
+// P_GiveAmmoAutoSwitch
 //
 // P_GiveAmmo
 // Num is the number of clip loads,
 // not the individual count (0= 1/2 clip).
 // Returns false if the ammo can't be picked up at all
 //
+// mbf21: take into account new weapon autoswitch flags
+//
+//==============================================================================
+function P_GiveAmmoAutoSwitch(player: Pplayer_t; ammo: ammotype_t; oldammo: integer): boolean;
+var
+  i: integer;
+begin
+  if (weaponinfo[Ord(player.readyweapon)].mbf21bits and WPF_AUTOSWITCHFROM <> 0) and
+    (weaponinfo[Ord(player.readyweapon)].ammo <> ammo) then
+  begin
+    for i := Ord(NUMWEAPONS) - 1 downto Ord(player.readyweapon) + 1 do
+    begin
+      if (player.weaponowned[i] <> 0) and
+         (weaponinfo[i].mbf21bits and WPF_NOAUTOSWITCHTO = 0) and
+         (weaponinfo[i].ammo = ammo) and
+         (weaponinfo[i].ammopershot > oldammo) and
+         (weaponinfo[i].ammopershot <= player.ammo[Ord(ammo)]) then
+      begin
+        player.pendingweapon := weapontype_t(i);
+        break;
+      end;
+    end;
+  end;
+
+  result := true;
+end;
+
+//==============================================================================
+//
+// P_GiveAmmo
+//
+//==============================================================================
 function P_GiveAmmo(player: Pplayer_t; ammo: ammotype_t; num: integer): boolean;
 var
   oldammo: integer;
@@ -136,12 +192,17 @@ begin
     num := num * 2
   end;
 
-
   oldammo := player.ammo[Ord(ammo)];
   player.ammo[Ord(ammo)] := player.ammo[Ord(ammo)] + num;
 
   if player.ammo[Ord(ammo)] > player.maxammo[Ord(ammo)] then
     player.ammo[Ord(ammo)] := player.maxammo[Ord(ammo)];
+
+  if G_PlayingEngineVersion > VERSION207 then
+  begin
+    result := P_GiveAmmoAutoSwitch(player, ammo, oldammo);
+    exit;
+  end;
 
   // If non zero ammo,
   // don't change up weapons,
@@ -197,10 +258,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveWeapon
 // The weapon name may have a MF_DROPPED flag ored in.
 //
+//==============================================================================
 function P_GiveWeapon(player: Pplayer_t; weapon: weapontype_t; dropped: boolean): boolean;
 var
   gaveammo: boolean;
@@ -256,10 +319,12 @@ begin
   result := gaveweapon or gaveammo;
 end;
 
+//==============================================================================
 //
 // P_GiveBody
 // Returns false if the body isn't needed at all
 //
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 begin
   if player.health >= mobjinfo[Ord(MT_PLAYER)].spawnhealth then
@@ -276,11 +341,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveArmor
 // Returns false if the armor is worse
 // than the current armor.
 //
+//==============================================================================
 function P_GiveArmor(player: Pplayer_t; armortype: integer): boolean;
 var
   hits: integer;
@@ -298,9 +365,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveCard
 //
+//==============================================================================
 procedure P_GiveCard(player: Pplayer_t; card: card_t);
 begin
   if player.cards[Ord(card)] then
@@ -310,9 +379,11 @@ begin
   player.cards[Ord(card)] := true;
 end;
 
+//==============================================================================
 //
 // P_GivePower
 //
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: integer): boolean;
 begin
   if power = Ord(pw_invulnerability) then
@@ -361,9 +432,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_TouchSpecialThing
 //
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 var
   player: Pplayer_t;
@@ -457,8 +530,15 @@ begin
         if not player.cards[Ord(it_bluecard)] then
           player._message := GOTBLUECARD;
         P_GiveCard(player, it_bluecard);
-      if netgame then
-        exit;
+        if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
+          exit;
+        end;
       end;
 
     Ord(SPR_YKEY):
@@ -467,7 +547,14 @@ begin
           player._message := GOTYELWCARD;
         P_GiveCard(player, it_yellowcard);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
       end;
 
     Ord(SPR_RKEY):
@@ -476,7 +563,14 @@ begin
           player._message := GOTREDCARD;
         P_GiveCard(player, it_redcard);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
       end;
 
     Ord(SPR_BSKU):
@@ -485,7 +579,14 @@ begin
           player._message := GOTBLUESKUL;
         P_GiveCard(player, it_blueskull);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
       end;
 
     Ord(SPR_YSKU):
@@ -494,7 +595,14 @@ begin
           player._message := GOTYELWSKUL;
         P_GiveCard(player, it_yellowskull);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
       end;
 
     Ord(SPR_RSKU):
@@ -503,7 +611,14 @@ begin
           player._message := GOTREDSKULL;
         P_GiveCard(player, it_redskull);
         if netgame then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
       end;
 
   // medikits, heals
@@ -751,15 +866,25 @@ begin
 
   if special.flags and MF_COUNTITEM <> 0 then
     player.itemcount := player.itemcount + 1;
+
+  if special.special <> 0 then
+  begin
+    P_ExecuteActorSpecial(special.special, @special.args, toucher);
+    special.special := 0;
+  end;
+
   P_RemoveMobj(special);
   player.bonuscount := player.bonuscount + BONUSADD;
   if player = @players[consoleplayer] then
     S_StartSound(nil, sound);
 end;
 
+//==============================================================================
+// P_SpawnDroppedMobj
 //
 // KillMobj
 //
+//==============================================================================
 function P_SpawnDroppedMobj(x, y, z: fixed_t; _type: integer): Pmobj_t;
 begin
   result := P_SpawnMobj(x, y, z, _type);
@@ -777,6 +902,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_KillMobj
+//
+//==============================================================================
 procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 var
   item: integer;
@@ -792,6 +922,8 @@ begin
   target.flags := target.flags or (MF_CORPSE or MF_DROPOFF);
   target.flags2_ex := target.flags2_ex and not MF2_EX_PASSMOBJ;
   target.height := target.height div 4;
+
+  P_ExecuteActorSpecial(target.special, @target.args, target);
 
   if (source <> nil) and (source.player <> nil) then
   begin
@@ -904,6 +1036,7 @@ begin
     P_SpawnDroppedMobj(target.x, target.y, ONFLOORZ, item);
 end;
 
+//==============================================================================
 //
 // P_DamageMobj
 // Damages both enemies and players
@@ -915,6 +1048,7 @@ end;
 // Source can be NULL for slime, barrel explosions
 // and other environmental stuff.
 //
+//==============================================================================
 procedure P_DamageMobj(target, inflictor, source: Pmobj_t; damage: integer);
 var
   ang: angle_t;
@@ -922,6 +1056,7 @@ var
   player: Pplayer_t;
   thrust: fixed_t;
   mass: integer;
+  ignore: boolean;
 begin
   if target.flags and MF_SHOOTABLE = 0 then
   begin
@@ -971,7 +1106,6 @@ begin
   player := target.player;
   if (player <> nil) and (gameskill = sk_baby) then
     damage := _SHR1(damage); // take half damage in trainer mode
-
 
   if (inflictor <> nil) and (target.flags_ex and MF_EX_FIRERESIST <> 0) then
   begin
@@ -1073,12 +1207,17 @@ begin
 
   target.reactiontime := 0; // we're awake now...
 
-  if ((target.threshold = 0) or (target._type = Ord(MT_VILE))) and
-     (source <> nil) and (source <> target) and (source._type <> Ord(MT_VILE)) then
+  if ((target.threshold = 0) or (target.flags4_ex and MF4_EX_NOTHRESHOLD <> 0)) and
+     (source <> nil) and (source <> target) and (source.flags4_ex and MF4_EX_DMGIGNORED = 0) then
   begin
     // if not intent on another player,
     // chase after this one
-    if target.flags2_ex and MF2_EX_DONTINFIGHTMONSTERS = 0 then
+    if G_PlayingEngineVersion >= VERSION207 then
+      ignore := P_BothFriends(target, source) or P_InfightingImmune(target, source)
+    else
+      ignore := false;
+
+    if (target.flags2_ex and MF2_EX_DONTINFIGHTMONSTERS = 0) and not ignore then
     begin
       target.target := source;
       target.threshold := BASETHRESHOLD;
@@ -1089,6 +1228,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 begin
   if demoplayback then

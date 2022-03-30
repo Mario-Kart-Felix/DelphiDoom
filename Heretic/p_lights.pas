@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  Muzzle flash?
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,54 +36,107 @@ unit p_lights;
 interface
 
 uses
-  doomdef,
   m_rnd,
   p_spec,
   r_defs,
   z_zone;
 
+//==============================================================================
+//
+// P_SpawnFireFlicker
+//
+//==============================================================================
 procedure P_SpawnFireFlicker(sector: Psector_t);
 
+//==============================================================================
+//
+// P_SpawnLightFlash
+//
+//==============================================================================
 procedure P_SpawnLightFlash(sector: Psector_t);
 
+//==============================================================================
+//
+// T_StrobeFlash
+//
+//==============================================================================
 procedure T_StrobeFlash(flash: Pstrobe_t);
 
+//==============================================================================
+//
+// P_SpawnStrobeFlash
+//
+//==============================================================================
 procedure P_SpawnStrobeFlash(sector: Psector_t; fastOrSlow, inSync: integer);
 
+//==============================================================================
+//
+// EV_StartLightStrobing
+//
+//==============================================================================
 procedure EV_StartLightStrobing(line: Pline_t);
 
+//==============================================================================
+//
+// EV_TurnTagLightsOff
+//
+//==============================================================================
 procedure EV_TurnTagLightsOff(line: Pline_t);
 
+//==============================================================================
+//
+// EV_LightTurnOn
+//
+//==============================================================================
 procedure EV_LightTurnOn(line: Pline_t; bright: integer);
 
+//==============================================================================
+//
+// T_Glow
+//
+//==============================================================================
 procedure T_Glow(g: Pglow_t);
 
+//==============================================================================
+//
+// P_SpawnGlowingLight
+//
+//==============================================================================
 procedure P_SpawnGlowingLight(sector: Psector_t);
 
+//==============================================================================
+//
+// T_LightFlash
+//
+//==============================================================================
 procedure T_LightFlash(flash: Plightflash_t);
 
+//==============================================================================
+//
+// T_FireFlicker
+//
+//==============================================================================
 procedure T_FireFlicker(flick: Pfireflicker_t);
 
 implementation
 
 uses
-  d_delphi,
   p_tick,
   p_setup;
 
+//==============================================================================
 //
 // FIRELIGHT FLICKER
 //
-
-//
 // T_FireFlicker
 //
+//==============================================================================
 procedure T_FireFlicker(flick: Pfireflicker_t);
 var
   amount: integer;
 begin
   flick.count := flick.count - 1;
-  if flick.count > 0  then
+  if flick.count > 0 then
     exit;
 
   amount := (P_Random and 3) * 16;
@@ -96,9 +149,11 @@ begin
   flick.count := 4;
 end;
 
+//==============================================================================
 //
 // P_SpawnFireFlicker
 //
+//==============================================================================
 procedure P_SpawnFireFlicker(sector: Psector_t);
 var
   flick: Pfireflicker_t;
@@ -118,15 +173,14 @@ begin
   flick.count := 4;
 end;
 
+//==============================================================================
 //
 // BROKEN LIGHT FLASHING
-//
-
-
 //
 // T_LightFlash
 // Do flashing lights.
 //
+//==============================================================================
 procedure T_LightFlash(flash: Plightflash_t);
 begin
   flash.count := flash.count - 1;
@@ -145,11 +199,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_SpawnLightFlash
 // After the map has been loaded, scan each sector
 // for specials that spawn thinkers
 //
+//==============================================================================
 procedure P_SpawnLightFlash(sector: Psector_t);
 var
   flash: Plightflash_t;
@@ -171,14 +227,13 @@ begin
   flash.count := (P_Random and flash.maxtime) + 1;
 end;
 
+//==============================================================================
 //
 // STROBE LIGHT FLASHING
 //
-
-
-//
 // T_StrobeFlash
 //
+//==============================================================================
 procedure T_StrobeFlash(flash: Pstrobe_t);
 begin
   flash.count := flash.count - 1;
@@ -197,11 +252,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_SpawnStrobeFlash
 // After the map has been loaded, scan each sector
 // for specials that spawn thinkers
 //
+//==============================================================================
 procedure P_SpawnStrobeFlash(sector: Psector_t; fastOrSlow, inSync: integer);
 var
   flash: Pstrobe_t;
@@ -229,9 +286,12 @@ begin
     flash.count := 1;
 end;
 
+//==============================================================================
+// EV_StartLightStrobing
 //
 // Start strobing lights (usually from a trigger)
 //
+//==============================================================================
 procedure EV_StartLightStrobing(line: Pline_t);
 var
   secnum: integer;
@@ -250,9 +310,12 @@ begin
   until secnum < 0;
 end;
 
+//==============================================================================
+// EV_TurnTagLightsOff
 //
 // TURN LINE'S TAG LIGHTS OFF
 //
+//==============================================================================
 procedure EV_TurnTagLightsOff(line: Pline_t);
 var
   i: integer;
@@ -283,9 +346,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// EV_LightTurnOn
 //
 // TURN LINE'S TAG LIGHTS ON
 //
+//==============================================================================
 procedure EV_LightTurnOn(line: Pline_t; bright: integer);
 var
   i: integer;
@@ -320,9 +386,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// T_Glow
 //
 // Spawn glowing light
 //
+//==============================================================================
 procedure T_Glow(g: Pglow_t);
 begin
   case g.direction of
@@ -349,6 +418,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_SpawnGlowingLight
+//
+//==============================================================================
 procedure P_SpawnGlowingLight(sector: Psector_t);
 var
   g: Pglow_t;

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@
 //  Moreover, the sky areas have to be determined.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -52,32 +52,85 @@ uses
   r_defs,
   r_visplanes;  // JVAL: 3d Floors
 
+//==============================================================================
+//
+// R_InitPlanes
+//
+//==============================================================================
 procedure R_InitPlanes;
 
+//==============================================================================
+//
+// R_ClearPlanes
+//
+//==============================================================================
 procedure R_ClearPlanes;
 
 {$IFNDEF OPENGL}
 type
   mapplanefunc_t = procedure(const y: integer; const x1, x2: integer);
 
+//==============================================================================
+//
+// R_MapPlane
+//
+//==============================================================================
 procedure R_MapPlane(const y: integer; const x1, x2: integer);
 
+//==============================================================================
+// R_MapPlaneAngle
+//
 // JVAL: 20200221 - Texture angle
+//
+//==============================================================================
 procedure R_MapPlaneAngle(const y: integer; const x1, x2: integer);
 
+//==============================================================================
+//
+// R_MakeSpans
+//
+//==============================================================================
 procedure R_MakeSpans(x, t1, b1, t2, b2: integer; const func: mapplanefunc_t);
 
+//==============================================================================
+//
+// R_DrawPlanes
+//
+//==============================================================================
 procedure R_DrawPlanes;
 
+//==============================================================================
+//
+// R_DoDrawPlane
+//
+//==============================================================================
 procedure R_DoDrawPlane(const pl: Pvisplane_t); // JVAL: 3d Floors
 {$ENDIF}
+
+//==============================================================================
+//
+// R_FindPlane
+//
+//==============================================================================
 function R_FindPlane(height: fixed_t; picnum: integer; lightlevel: integer;
   xoffs, yoffs: fixed_t; flags: LongWord; const floor_or_ceiling: boolean;
   angle: angle_t; anglex, angley: fixed_t;
   {$IFNDEF OPENGL}slope: Pvisslope_t; {$ENDIF} slopeSID: integer = -1): Pvisplane_t;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_DupPlane
+//
+//==============================================================================
 function R_DupPlane(pl: Pvisplane_t; start: integer; stop: integer): Pvisplane_t;
+
+//==============================================================================
+//
+// R_CheckPlane
+//
+//==============================================================================
 function R_CheckPlane(pl: Pvisplane_t; start: integer; stop: integer): Pvisplane_t;
 {$ENDIF}
 
@@ -135,11 +188,23 @@ var
 //
   planezlight: PBytePArray;
   planeheight: fixed_t;
+  planeheightz: fixed_t;
 {$ENDIF}
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_InitializeVisplanes
+//
+//==============================================================================
 procedure R_InitializeVisplanes;
 
+//==============================================================================
+//
+// R_ClearVisPlanes
+//
+//==============================================================================
 procedure R_ClearVisPlanes;
 {$ENDIF}
 
@@ -167,7 +232,6 @@ uses
 {$ENDIF}
   z_zone;
 
-
 //
 // spanstart holds the start of a plane span
 // initialized to 0 at start
@@ -181,11 +245,12 @@ var
   cachedystep: array[0..MAXHEIGHT - 1] of fixed_t;
 {$ENDIF}
 
-
+//==============================================================================
 //
 // R_InitPlanes
 // Only at game startup.
 //
+//==============================================================================
 procedure R_InitPlanes;
 begin
   // Doh!
@@ -205,6 +270,12 @@ end;
 // BASIC PRIMITIVE
 //
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_MapPlane
+//
+//==============================================================================
 procedure R_MapPlane(const y: integer; const x1, x2: integer);
 var
   distance: fixed_t;
@@ -302,7 +373,12 @@ begin
     R_DrawSpanToZBuffer;
 end;
 
+//==============================================================================
+// R_MapPlaneAngle
+//
 // JVAL: 20200221 - Texture angle
+//
+//==============================================================================
 procedure R_MapPlaneAngle(const y: integer; const x1, x2: integer);
 var
   distance: fixed_t;
@@ -415,10 +491,12 @@ const
 var
   visplanehash: array[0..VISPLANEHASHSIZE + VISPLANEHASHOVER - 1] of LongWord;
 
+//==============================================================================
 //
 // R_ClearPlanes
 // At begining of frame.
 //
+//==============================================================================
 procedure R_ClearPlanes;
 {$IFNDEF OPENGL}
 type
@@ -437,9 +515,9 @@ begin
   cc.sm1 := -1;
   cc.sm2 := -1;
   vv := PInteger(@ff)^;
-  memseti(@floorclip, vv, viewwidth div 2);
+  FillDWord(@floorclip, viewwidth div 2, vv);
   vv := PInteger(@cc)^;
-  memseti(@ceilingclip, vv, viewwidth div 2);
+  FillDWord(@ceilingclip, viewwidth div 2, vv);
 
   if Odd(viewwidth) then // JVAL: This shouldn't happen
   begin
@@ -470,6 +548,12 @@ end;
 // JVAL
 //   Free zone memory of visplanes
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_ClearVisPlanes
+//
+//==============================================================================
 procedure R_ClearVisPlanes;
 var
   i: integer;
@@ -483,6 +567,7 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
 //
 // R_NewVisPlane
 //
@@ -490,6 +575,7 @@ end;
 //   Create a new visplane
 //   Uses zone memory to allocate top and bottom arrays
 //
+//==============================================================================
 function R_NewVisPlane: Pvisplane_t;
 begin
   if lastvisplane > maxvisplane then
@@ -510,9 +596,11 @@ begin
   inc(lastvisplane);
 end;
 
+//==============================================================================
 //
 // R_VisplaneHash
 //
+//==============================================================================
 function R_VisplaneHash(height: fixed_t; picnum: integer; lightlevel: integer;
   xoffs, yoffs: fixed_t; angle: angle_t; anglex, angley: fixed_t;
   flags: LongWord; slopeSID: integer): LongWord;
@@ -525,7 +613,8 @@ begin
                  LongWord(picnum)) * 3 +
                  LongWord(height div FRACUNIT) +
                  LongWord(height and (FRACUNIT - 1));
-  result := result + LongWord(slopeSID + 1) * 7;  // JVAL: Slopes
+  if slopeSID <> -1 then
+    result := result + LongWord(slopeSID + 1) * 7;  // JVAL: Slopes
   if angle <> 0 then
   begin
     result := result + angle; // JVAL: 20200221 - Texture angle
@@ -534,9 +623,11 @@ begin
   result := result and (VISPLANEHASHSIZE - 1);
 end;
 
+//==============================================================================
 //
 // R_FindPlane
 //
+//==============================================================================
 function R_FindPlane(height: fixed_t; picnum: integer; lightlevel: integer;
   xoffs, yoffs: fixed_t; flags: LongWord; const floor_or_ceiling: boolean;
   angle: angle_t; anglex, angley: fixed_t;
@@ -672,9 +763,12 @@ begin
 end;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
 //
 // R_DupPlane
 //
+//==============================================================================
 function R_DupPlane(pl: Pvisplane_t; start: integer; stop: integer): Pvisplane_t;
 var
   pll: Pvisplane_t;
@@ -710,9 +804,11 @@ begin
   result := pl;
 end;
 
+//==============================================================================
 //
 // R_CheckPlane
 //
+//==============================================================================
 function R_CheckPlane(pl: Pvisplane_t; start: integer; stop: integer): Pvisplane_t;
 var
   intrl: integer;
@@ -720,6 +816,7 @@ var
   unionl: integer;
   unionh: integer;
   x: integer;
+  pi: PInteger;
 begin
   if start < pl.minx then
   begin
@@ -744,6 +841,16 @@ begin
   end;
 
   x := intrl;
+  pi := @pl.top[x];
+  while x < intrh do
+  begin
+    if pi^ = iVISEND then
+      inc(x, 2)
+    else
+      break;
+    inc(pi);
+  end;
+
   while x <= intrh do
   begin
     if pl.top[x] <> VISEND then
@@ -770,6 +877,12 @@ end;
 // R_MakeSpans
 //
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_MakeSpans
+//
+//==============================================================================
 procedure R_MakeSpans(x, t1, b1, t2, b2: integer; const func: mapplanefunc_t);
 var
   x1: integer;
@@ -816,6 +929,12 @@ end;
 // At the end of each frame.
 //
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_DrawPlanes
+//
+//==============================================================================
 procedure R_DrawPlanes; // JVAL: 3d Floors
 var
   i: integer;
@@ -831,6 +950,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DoDrawPlane
+//
+//==============================================================================
 procedure R_DoDrawPlane(const pl: Pvisplane_t); // JVAL: 3d Floors
 var
   light: integer;
@@ -951,7 +1075,8 @@ begin
   // regular flat
   R_GetDSs(pl.picnum);
 
-  planeheight := abs(pl.height - viewz);
+  planeheightz := pl.height - viewz;
+  planeheight := abs(planeheightz);
   light := _SHR(pl.lightlevel, LIGHTSEGSHIFT) + extralight;
 
   if light >= LIGHTLEVELS then
@@ -997,10 +1122,10 @@ begin
   begin
     ds_anglex := pl.anglex;
     ds_angley := pl.angley;
-    ds_sine := sin(-ds_angle / ANGLE_MAX * 2 * pi);   // JVAL: 20200225 - Texture angle
-    ds_cosine := cos(ds_angle / ANGLE_MAX * 2 * pi);  // JVAL: 20200225 - Texture angle
-    ds_viewsine := sin((viewangle - ds_angle) / ANGLE_MAX * 2 * pi);    // JVAL: 20200225 - Texture angle
-    ds_viewcosine := cos((viewangle - ds_angle) / ANGLE_MAX * 2 * pi);  // JVAL: 20200225 - Texture angle
+    ds_sine := sin(-ds_angle * ANGLE_T_TO_RAD);   // JVAL: 20200225 - Texture angle
+    ds_cosine := cos(ds_angle * ANGLE_T_TO_RAD);  // JVAL: 20200225 - Texture angle
+    ds_viewsine := sin((viewangle - ds_angle) * ANGLE_T_TO_RAD);    // JVAL: 20200225 - Texture angle
+    ds_viewcosine := cos((viewangle - ds_angle) * ANGLE_T_TO_RAD);  // JVAL: 20200225 - Texture angle
     for x := pl.minx to stop do
     begin
       R_MakeSpans(x, pl.top[x - 1], pl.bottom[x - 1], pl.top[x], pl.bottom[x], @R_MapPlaneAngle);
@@ -1020,6 +1145,12 @@ end;
 {$ENDIF}
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_InitializeVisplanes
+//
+//==============================================================================
 procedure R_InitializeVisplanes;
 var
   i: integer;

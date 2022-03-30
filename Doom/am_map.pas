@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   AutoMap module.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,8 +45,6 @@ uses
   p_local,
   w_wad,
   m_cheat,
-  i_system,
-  dstrings,
   tables,
   m_fixed;
 
@@ -96,14 +94,17 @@ const
   AM_ZOOMINKEY2 = '+';
   AM_ZOOMOUTKEY = '-';
   AM_TONGLEKEY = KEY_TAB;
-  AM_GOBIGKEY = '0';
-  AM_FOLLOWKEY = 'f';
-  AM_GRIDKEY = 'g';
-  AM_ROTATEKEY = 'r';
-  AM_TEXTUREDAUTOMAP = 't';
-  AM_MARKKEY = 'm';
-  AM_CLEARMARKKEY = 'c';
 
+var
+  AM_GOBIGKEY: integer = Ord('o');
+  AM_FOLLOWKEY: integer = Ord('f');
+  AM_GRIDKEY: integer = Ord('g');
+  AM_ROTATEKEY: integer = Ord('r');
+  AM_TEXTUREDAUTOMAP: integer = Ord('t');
+  AM_MARKKEY: integer = Ord('m');
+  AM_CLEARMARKKEY: integer = Ord('c');
+
+const
   AM_NUMMARKPOINTS = 10;
 
 // scale on entry
@@ -119,18 +120,54 @@ const
   FRACTOMAPBITS = FRACBITS - MAPBITS;
   FRACTOMAPUNIT = 1 shl FRACTOMAPBITS;
 
-{ how much zoom-in per tic }
+//==============================================================================
+//
+// M_ZOOMIN
+//
+// How much zoom-in per tic
+//
+//==============================================================================
 function M_ZOOMIN: integer;
 
-{ how much zoom-out per tic }
+//==============================================================================
+//
+// M_ZOOMOUT
+//
+// How much zoom-out per tic
+//
+//==============================================================================
 function M_ZOOMOUT: integer;
 
-{ translates between frame-buffer and map distances }
+// Translates between frame-buffer and map distances
+
+//==============================================================================
+//
+// FTOM
+//
+//==============================================================================
 function FTOM(x: integer): integer;
+
+//==============================================================================
+//
+// MTOF
+//
+//==============================================================================
 function MTOF(x: integer): integer;
 
-{ translates between frame-buffer and map coordinates }
+// Translates between frame-buffer and map coordinates
+
+//==============================================================================
+//
+// CXMTOF
+//
+//==============================================================================
 function CXMTOF(x: integer): integer;
+
+//==============================================================================
+//
+// CYMTOF
+//
+//==============================================================================
 function CYMTOF(y: integer): integer;
 
 { the following is crap }
@@ -140,34 +177,34 @@ const
 
 type
   fpoint_t = record
-    x : integer;
-    y : integer;
+    x: integer;
+    y: integer;
   end;
   Pfpoint_t = ^fpoint_t;
 
   fline_t = record
-    a : fpoint_t;
-    b : fpoint_t;
+    a: fpoint_t;
+    b: fpoint_t;
   end;
   Pfline_t = ^fline_t;
 
   mpoint_t = record
-    x : fixed_t;
-    y : fixed_t;
+    x: fixed_t;
+    y: fixed_t;
   end;
   Pmpoint_t = ^mpoint_t;
 
   mline_t = record
-    a : mpoint_t;
-    b : mpoint_t;
+    a: mpoint_t;
+    b: mpoint_t;
   end;
   Pmline_t = ^mline_t;
   mline_tArray = packed array[0..$FFFF] of mline_t;
   Pmline_tArray = ^mline_tArray;
 
   islope_t = record
-    slp : fixed_t;
-    islp : fixed_t;
+    slp: fixed_t;
+    islp: fixed_t;
   end;
   Pislope_t = ^islope_t;
 
@@ -200,17 +237,23 @@ const
 var
   thintriangle_guy: array[0..NUMTHINTRIANGLEGUYLINES - 1] of mline_t;
 
+const
+  NUMTTRACEPLAYERLINES = 3;
+
+var
+  traceplayer_guy: array[0..NUMTTRACEPLAYERLINES - 1] of mline_t;
+
 type
   automapstate_t = (am_inactive, am_only, am_overlay, AM_NUMSTATES);
 
 var
   am_cheating: integer = 0;
   automapgrid: boolean = false;
+  automaptraceplayer: integer = 0;
 
   leveljuststarted: integer = 1;   // kluge until AM_LevelInit() is called
 
   amstate: automapstate_t = am_inactive; //boolean = false;
-
 
 // location of window on screen
   f_x: integer;
@@ -251,7 +294,6 @@ var
   min_w: fixed_t;
   min_h: fixed_t;
 
-
   min_scale_mtof: fixed_t; // used to tell when to stop zooming out
   max_scale_mtof: fixed_t; // used to tell when to stop zooming in
 
@@ -287,21 +329,51 @@ var
 
   stopped: boolean = true;
 
+//==============================================================================
+//
+// AM_Responder
+//
+//==============================================================================
 function AM_Responder(ev: Pevent_t): boolean;
 
+//==============================================================================
+// AM_Ticker
+//
 // Called by main loop.
+//
+//==============================================================================
 procedure AM_Ticker;
 
+//==============================================================================
+// AM_Drawer
+//
 // Called by main loop,
 // called instead of view drawer if automap active.
+//
+//==============================================================================
 procedure AM_Drawer;
 
+//==============================================================================
+//
+// AM_Init
+//
+//==============================================================================
 procedure AM_Init;
 
+//==============================================================================
+// AM_Stop
+//
 // Called to force the automap to quit
 // if the level is completed while it is up.
+//
+//==============================================================================
 procedure AM_Stop;
 
+//==============================================================================
+//
+// AM_Start
+//
+//==============================================================================
 procedure AM_Start;
 
 var
@@ -309,8 +381,18 @@ var
   allowautomaprotate: boolean;
   texturedautomap: boolean;
 
+//==============================================================================
+//
+// AM_rotate
+//
+//==============================================================================
 procedure AM_rotate(x: Pfixed_t; y: Pfixed_t; a: angle_t; xpos, ypos: fixed_t);
 
+//==============================================================================
+//
+// AM_ShutDown
+//
+//==============================================================================
 procedure AM_ShutDown;
 
 implementation
@@ -323,6 +405,9 @@ uses
   mt_utils,
   p_mobj_h,
   p_setup,
+  p_maputl,
+  p_playertrace,
+  p_tick,
   r_data,
 {$IFNDEF OPENGL}
   r_draw,
@@ -338,6 +423,11 @@ const
 // player radius
   PLAYERRADIUS = 16 * (1 shl MAPBITS);
 
+//==============================================================================
+//
+// CmdAllowautomapoverlay
+//
+//==============================================================================
 procedure CmdAllowautomapoverlay(const parm: string);
 begin
   allowautomapoverlay := C_BoolEval(parm, allowautomapoverlay);
@@ -345,41 +435,72 @@ begin
     amstate := am_inactive;
 end;
 
+//==============================================================================
+// M_ZOOMIN
+//
 // how much zoom-in per tic
+//
+//==============================================================================
 function M_ZOOMIN: integer;
 begin
   result := trunc(1.02 * FRACUNIT);
 end;
 
+//==============================================================================
+// M_ZOOMOUT
+//
 // how much zoom-out per tic
+//
+//==============================================================================
 function M_ZOOMOUT: integer;
 begin
   result := trunc(FRACUNIT / 1.02);
 end;
 
-function FTOM(x : integer): integer;
+//==============================================================================
+//
+// FTOM
+//
+//==============================================================================
+function FTOM(x: integer): integer;
 begin
   result := FixedMul(x * FRACUNIT, scale_ftom);
 end;
 
-function MTOF(x : integer): integer;
+//==============================================================================
+//
+// MTOF
+//
+//==============================================================================
+function MTOF(x: integer): integer;
 begin
   result := FixedInt64(FixedMul64(x, scale_mtof));
 end;
 
-function CXMTOF(x : integer): integer;
+//==============================================================================
+//
+// CXMTOF
+//
+//==============================================================================
+function CXMTOF(x: integer): integer;
 begin
   result := f_x + MTOF(x) - MTOF(m_x);
 end;
 
-function CYMTOF(y : integer): integer;
+//==============================================================================
+//
+// CYMTOF
+//
+//==============================================================================
+function CYMTOF(y: integer): integer;
 begin
   result := f_y + (f_h - MTOF(y) + MTOF(m_y));
 end;
 
+//==============================================================================
+// AM_getIslope
 //
-//
-//
+//==============================================================================
 procedure AM_getIslope(ml: Pmline_t; _is: Pislope_t);
 var
   dx, dy: integer;
@@ -408,9 +529,10 @@ begin
     _is.slp := FixedDiv(dy, dx);
 end;
 
+//==============================================================================
+// AM_activateNewScale
 //
-//
-//
+//==============================================================================
 procedure AM_activateNewScale;
 begin
   m_x := m_x + m_w div 2;
@@ -423,9 +545,10 @@ begin
   m_y2 := m_y + m_h;
 end;
 
+//==============================================================================
+// AM_saveScaleAndLoc
 //
-//
-//
+//==============================================================================
 procedure AM_saveScaleAndLoc;
 begin
   old_m_x := m_x;
@@ -434,9 +557,10 @@ begin
   old_m_h := m_h;
 end;
 
+//==============================================================================
+// AM_restoreScaleAndLoc
 //
-//
-//
+//==============================================================================
 procedure AM_restoreScaleAndLoc;
 begin
   m_w := old_m_w;
@@ -460,9 +584,12 @@ begin
   scale_ftom := FixedDiv(FRACUNIT, scale_mtof);
 end;
 
+//==============================================================================
+// AM_addMark
 //
 // adds a marker at the current location
 //
+//==============================================================================
 procedure AM_addMark;
 begin
   markpoints[markpointnum].x := m_x + m_w div 2;
@@ -470,10 +597,13 @@ begin
   markpointnum := (markpointnum + 1) mod AM_NUMMARKPOINTS;
 end;
 
+//==============================================================================
+// AM_findMinMaxBoundaries
 //
 // Determines bounding box of all vertices,
 // sets global variables controlling zoom range.
 //
+//==============================================================================
 procedure AM_findMinMaxBoundaries;
 var
   i: integer;
@@ -523,9 +653,10 @@ begin
   max_scale_mtof := FixedDiv(f_h * FRACUNIT, 2 * PLAYERRADIUS);
 end;
 
+//==============================================================================
+// AM_changeWindowLoc
 //
-//
-//
+//==============================================================================
 procedure AM_changeWindowLoc;
 begin
   if (m_paninc.x <> 0) or (m_paninc.y <> 0) then
@@ -557,6 +688,11 @@ end;
 var
   st_notify_AM_initVariables: event_t;
 
+//==============================================================================
+//
+// AM_initVariables
+//
+//==============================================================================
 procedure AM_initVariables;
 var
   pnum: integer;
@@ -606,7 +742,6 @@ begin
 
   AM_changeWindowLoc;
 
-
   // for saving & restoring
   //AM_saveScaleAndLoc;
   old_m_x := m_x;
@@ -618,9 +753,10 @@ begin
   ST_Responder(@st_notify_AM_initVariables);
 end;
 
+//==============================================================================
+// AM_loadPics
 //
-//
-//
+//==============================================================================
 procedure AM_loadPics;
 var
   i: integer;
@@ -634,6 +770,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// AM_unloadPics
+//
+//==============================================================================
 procedure AM_unloadPics;
 var
   i: integer;
@@ -642,6 +783,11 @@ begin
     Z_ChangeTag(marknums[i], PU_CACHE);
 end;
 
+//==============================================================================
+//
+// AM_clearMarks
+//
+//==============================================================================
 procedure AM_clearMarks;
 var
   i: integer;
@@ -651,10 +797,13 @@ begin
   markpointnum := 0;
 end;
 
+//==============================================================================
+// AM_LevelInit
 //
 // should be called at the start of every level
 // right now, i figure it out myself
 //
+//==============================================================================
 procedure AM_LevelInit;
 begin
   leveljuststarted := 0;
@@ -679,6 +828,11 @@ end;
 var
   st_notify_AM_Stop: event_t;
 
+//==============================================================================
+//
+// AM_Stop
+//
+//==============================================================================
 procedure AM_Stop;
 begin
   if not stopped then
@@ -698,6 +852,11 @@ var
   lastscreenwidth: integer = -1;
   lastscreenheight: integer = -1;
 
+//==============================================================================
+//
+// AM_Start
+//
+//==============================================================================
 procedure AM_Start;
 begin
   AM_Stop;
@@ -717,9 +876,12 @@ begin
   AM_loadPics;
 end;
 
+//==============================================================================
+// AM_minOutWindowScale
 //
 // set the window scale to the maximum size
 //
+//==============================================================================
 procedure AM_minOutWindowScale;
 begin
   scale_mtof := min_scale_mtof;
@@ -727,9 +889,12 @@ begin
   AM_activateNewScale;
 end;
 
+//==============================================================================
+// AM_maxOutWindowScale
 //
 // set the window scale to the minimum size
 //
+//==============================================================================
 procedure AM_maxOutWindowScale;
 begin
   scale_mtof := max_scale_mtof;
@@ -743,6 +908,11 @@ end;
 var
   bigstate: boolean = false;
 
+//==============================================================================
+//
+// AM_Responder
+//
+//==============================================================================
 function AM_Responder(ev: Pevent_t): boolean;
 var
   _message: string;
@@ -821,7 +991,9 @@ begin
               AM_Stop;
           end;
         end;
-      Ord(AM_GOBIGKEY):
+      else
+      begin
+        if ev.data1 = AM_GOBIGKEY then
         begin
           bigstate := not bigstate;
           if bigstate then
@@ -831,8 +1003,8 @@ begin
           end
           else
             AM_restoreScaleAndLoc;
-        end;
-      Ord(AM_FOLLOWKEY):
+        end
+        else if ev.data1 = AM_FOLLOWKEY then
         begin
           followplayer := not followplayer;
           f_oldloc.x := MAXINT;
@@ -840,45 +1012,44 @@ begin
             plr._message := AMSTR_FOLLOWON
           else
             plr._message := AMSTR_FOLLOWOFF;
-        end;
-      Ord(AM_GRIDKEY):
+        end
+        else if ev.data1 = AM_GRIDKEY then
         begin
           automapgrid := not automapgrid;
           if automapgrid then
             plr._message := AMSTR_GRIDON
           else
             plr._message := AMSTR_GRIDOFF;
-        end;
-      Ord(AM_ROTATEKEY):
+        end
+        else if ev.data1 = AM_ROTATEKEY then
         begin
           allowautomaprotate := not allowautomaprotate;
           if allowautomaprotate then
             plr._message := AMSTR_ROTATEON
           else
             plr._message := AMSTR_ROTATEOFF;
-        end;
-      Ord(AM_TEXTUREDAUTOMAP):
+        end
+        else if ev.data1 = AM_TEXTUREDAUTOMAP then
         begin
           texturedautomap := not texturedautomap;
           if texturedautomap then
             plr._message := 'TEXTURED AUTOMAP ON'
           else
             plr._message := 'TEXTURED AUTOMAP OFF';
-        end;
-      Ord(AM_MARKKEY):
+        end
+        else if ev.data1 = AM_MARKKEY then
         begin
           sprintf(_message, '%s %d', [AMSTR_MARKEDSPOT, markpointnum]);
           plr._message := _message;
           AM_addMark;
-        end;
-      Ord(AM_CLEARMARKKEY):
+        end
+        else if ev.data1 = AM_CLEARMARKKEY then
         begin
           AM_clearMarks;
           plr._message := AMSTR_MARKSCLEARED;
         end
-      else
-      begin
-        result := false;
+        else
+          result := false;
       end;
     end;
   end
@@ -918,9 +1089,12 @@ begin
 
 end;
 
+//==============================================================================
+// AM_changeWindowScale
 //
 // Zooming
 //
+//==============================================================================
 procedure AM_changeWindowScale;
 begin
   // Change the scaling multipliers
@@ -935,9 +1109,10 @@ begin
     AM_activateNewScale;
 end;
 
+//==============================================================================
+// AM_doFollowPlayer
 //
-//
-//
+//==============================================================================
 procedure AM_doFollowPlayer;
 begin
   if (f_oldloc.x <> plr.mo.x) or (f_oldloc.y <> plr.mo.y) then
@@ -962,6 +1137,11 @@ var
   litelevels: array[0..NUMLITELEVELS - 1] of integer = (0, 4, 7, 10, 12, 14, 15, 15);
   litelevelscnt: integer = 0;
 
+//==============================================================================
+//
+// AM_updateLightLev
+//
+//==============================================================================
 procedure AM_updateLightLev;
 begin
   // Change light level
@@ -973,6 +1153,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// AM_Ticker
+//
+//==============================================================================
 procedure AM_Ticker;
 begin
   if amstate = am_inactive then
@@ -1000,6 +1185,12 @@ end;
 // Clear automap frame buffer.
 //
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// AM_clearFB
+//
+//==============================================================================
 procedure AM_clearFB(color: integer);
 var
   c: LongWord;
@@ -1014,6 +1205,8 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+// AM_clipMline
 //
 // Automap clipping of lines.
 //
@@ -1021,14 +1214,15 @@ end;
 // faster reject and precalculated slopes.  If the speed is needed,
 // use a hash algorithm to handle  the common cases.
 //
-function AM_clipMline(ml:  Pmline_t; fl: Pfline_t): boolean;
+//==============================================================================
+function AM_clipMline(ml: Pmline_t; fl: Pfline_t): boolean;
 const
   LEFT = 1;
   RIGHT  = 2;
   BOTTOM = 4;
   TOP = 8;
 var
-  outcode1, outcode2, outside : integer;
+  outcode1, outcode2, outside: integer;
   tmp: fpoint_t;
   dx, dy: integer;
 
@@ -1158,9 +1352,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// AM_drawFline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
+//==============================================================================
 procedure AM_drawFline(fl: Pfline_t; color: integer);
 {$IFDEF OPENGL}
 begin
@@ -1265,15 +1462,23 @@ end;
 var
   fl: fline_t;
 
+//==============================================================================
+//
+// AM_drawMline
+//
+//==============================================================================
 procedure AM_drawMline(ml: Pmline_t; color: integer);
 begin
   if AM_clipMline(ml, @fl) then
     AM_drawFline(@fl, color); // draws it on frame buffer using fb coords
 end;
 
+//==============================================================================
+// AM_drawGrid
 //
 // Draws flat (floor/ceiling tile) aligned grid lines.
 //
+//==============================================================================
 procedure AM_drawGrid(color: integer);
 var
   x, y: fixed_t;
@@ -1350,11 +1555,13 @@ begin
   end;
 end;
 
-
+//==============================================================================
+// AM_rotate
 //
 // Rotation in 2D.
 // Used to rotate player arrow line character.
 //
+//==============================================================================
 procedure AM_rotate(x: Pfixed_t; y: Pfixed_t; a: angle_t; xpos, ypos: fixed_t);
 var
   tmpx: fixed_t;
@@ -1373,6 +1580,11 @@ begin
   x^ := tmpx;
 end;
 
+//==============================================================================
+//
+// AM_rotate_dbl
+//
+//==============================================================================
 procedure AM_rotate_dbl(x: Pfixed_t; y: Pfixed_t; a: angle_t; xpos, ypos: fixed_t);
 var
   tmpx: fixed_t;
@@ -1387,10 +1599,13 @@ begin
   x^ := tmpx;
 end;
 
+//==============================================================================
+// AM_drawWalls
 //
 // Determines visible lines, draws them.
 // This is LineDef based, not LineSeg based.
 //
+//==============================================================================
 procedure AM_drawWalls;
 var
   i: integer;
@@ -1463,7 +1678,11 @@ begin
   end;
 end;
 
-
+//==============================================================================
+//
+// AM_drawLineCharacter
+//
+//==============================================================================
 procedure AM_drawLineCharacter(lineguy: Pmline_tArray; lineguylines: integer;
   scale: fixed_t; angle: angle_t; color: integer;
   x: fixed_t; y: fixed_t);
@@ -1513,6 +1732,73 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// AM_drawPlayerTrace
+//
+//==============================================================================
+procedure AM_drawPlayerTrace(const p: Pplayer_t; const color1: Integer);
+const
+  PTRACECOLORRANGE = 8;
+var
+  i: integer;
+  x, y, x2, y2: fixed_t;
+  trace: Pplayertrace_t;
+  plrx, plry: fixed_t;
+  plra: angle_t;
+  traceline: mline_t;
+  color: integer;
+  colordiff: integer;
+begin
+  plrx := plr.mo.x div FRACTOMAPUNIT;
+  plry := plr.mo.y div FRACTOMAPUNIT;
+  plra := ANG90 - plr.mo.angle;
+
+  x2 := plrx;
+  y2 := plry;
+
+  automaptraceplayer := ibetween(automaptraceplayer, 0, NUMPLAYERTRACEHISTORY - 1);
+  for i := 1 to automaptraceplayer do
+  begin
+    trace := P_GetPlayerTraceAtPos(p, i);
+    if trace <> nil then
+    begin
+      x := trace.x div FRACTOMAPUNIT;
+      y := trace.y div FRACTOMAPUNIT;
+
+      if allowautomaprotate then
+        AM_rotate(@x, @y, plra, plrx, plry);
+
+      if P_AproxDistance(x - x2, y - y2) < (128 * FRACUNIT) div FRACTOMAPUNIT then
+      begin
+
+        colordiff := (i + leveltime div 4) and (2 * PTRACECOLORRANGE - 1);
+        if colordiff > PTRACECOLORRANGE then
+          colordiff := 2 * PTRACECOLORRANGE - colordiff;
+
+        color := color1 + colordiff;
+
+        AM_drawLineCharacter
+          (@traceplayer_guy, NUMTTRACEPLAYERLINES, 4 * FRACUNIT, trace.angle,
+           color, x, y);
+
+        traceline.a.x := x2 div 2 + x div 2;
+        traceline.a.y := y2 div 2 + y div 2;
+        traceline.b.x := x2;
+        traceline.b.y := y2;
+        AM_drawMline(@traceline, color);
+      end;
+      x2 := x;
+      y2 := y;
+    end;
+  end;
+end;
+
+//==============================================================================
+//
+// AM_drawPlayers
+//
+//==============================================================================
 procedure AM_drawPlayers;
 const
   their_colors: array[0..MAXPLAYERS - 1] of integer = (GREENS, GRAYS, BROWNS, REDS);
@@ -1532,6 +1818,7 @@ begin
       AM_drawLineCharacter
         (@player_arrow, NUMPLYRLINES, 0, plr.mo.angle,
         WHITE, plr.mo.x div FRACTOMAPUNIT, plr.mo.y div FRACTOMAPUNIT);
+    AM_drawPlayerTrace(plr, GREENS);
     exit;
   end;
 
@@ -1561,16 +1848,24 @@ begin
     AM_drawLineCharacter
       (@player_arrow, NUMPLYRLINES, 0, p.mo.angle,
        color, x div FRACTOMAPUNIT, y div FRACTOMAPUNIT);
+
+    AM_drawPlayerTrace(p, color);
   end;
 end;
 
-procedure AM_drawThings(colors: integer; colorrange: integer);
+//==============================================================================
+//
+// AM_drawThings
+//
+//==============================================================================
+procedure AM_drawThings;
 var
   i: integer;
   t: Pmobj_t;
   x, y: fixed_t;
   plrx, plry: fixed_t;
   plra: angle_t;
+  color: integer;
 begin
   plrx := plr.mo.x div FRACTOMAPUNIT;
   plry := plr.mo.y div FRACTOMAPUNIT;
@@ -1586,14 +1881,33 @@ begin
       if allowautomaprotate then
         AM_rotate(@x, @y, plra, plrx, plry);
 
-      AM_drawLineCharacter
-        (@thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
-        16 * FRACUNIT, t.angle, colors + lightlev, x, y);
+      if t.flags2_ex and MF2_EX_FRIEND <> 0 then
+        color := WHITE
+      else if t.flags and MF_SHOOTABLE <> 0 then
+        color := THINGCOLORS + lightlev
+      else if t.flags and MF_SPECIAL <> 0 then
+        color := BLUES
+      else
+        color := GRAYS;
+
+      if t.radius >= 40 * FRACUNIT then
+        AM_drawLineCharacter
+          (@triangle_guy, NUMTRIANGLEGUYLINES,
+          16 * FRACUNIT, t.angle, color, x, y)
+      else
+        AM_drawLineCharacter
+          (@thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
+          16 * FRACUNIT, t.angle, color, x, y);
       t := t.snext;
     end;
   end;
 end;
 
+//==============================================================================
+//
+// AM_drawMarks
+//
+//==============================================================================
 procedure AM_drawMarks;
 var
   i, fx, fy, w, h: integer;
@@ -1623,6 +1937,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// AM_drawCrosshair
+//
+//==============================================================================
 procedure AM_drawCrosshair(color: integer);
 begin
   {$IFNDEF OPENGL}
@@ -1636,6 +1955,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// AM_Drawer
+//
+//==============================================================================
 procedure AM_Drawer;
 begin
   if amstate = am_inactive then
@@ -1670,7 +1994,7 @@ begin
 
   AM_drawPlayers;
   if am_cheating = 2 then
-    AM_drawThings(THINGCOLORS, THINGRANGE);
+    AM_drawThings;
   AM_drawCrosshair(XHAIRCOLORS);
 
   {$IFDEF OPENGL}
@@ -1678,6 +2002,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// AM_Init
+//
+//==============================================================================
 procedure AM_Init;
 var
   pl: Pmline_t;
@@ -1865,6 +2194,26 @@ begin
   pl.b.y := round(-0.7 * MAPUNIT);
 
 ////////////////////////////////////////////////////////////////////////////////
+
+  pl := @traceplayer_guy[0];
+  pl.a.x := 0;
+  pl.a.y := round(-0.7 * MAPUNIT);
+  pl.b.x := round(0.7 * MAPUNIT);
+  pl.b.y := 0;
+
+  inc(pl);
+  pl.a.x := 0;
+  pl.a.y := round(0.7 * MAPUNIT);
+  pl.b.x := round(0.7 * MAPUNIT);
+  pl.b.y := 0;
+
+  inc(pl);
+  pl.a.x := 0;
+  pl.a.y := 0;
+  pl.b.x := round(0.7 * MAPUNIT);
+  pl.b.y := 0;
+
+////////////////////////////////////////////////////////////////////////////////
   cheat_amap.sequence := get_cheatseq_string(cheat_amap_seq);
   cheat_amap.p := get_cheatseq_string(0);
 
@@ -1881,6 +2230,11 @@ begin
   C_AddCmd('allowautomapoverlay', @CmdAllowautomapoverlay);
 end;
 
+//==============================================================================
+//
+// AM_ShutDown
+//
+//==============================================================================
 procedure AM_ShutDown;
 begin
   AM_ShutDownTextured;

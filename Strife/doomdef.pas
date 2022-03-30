@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -32,7 +32,7 @@
 //  key definitions, lots of other stuff.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -149,7 +149,7 @@ const
 // Deaf monsters/do not react to sound.
   MTF_AMBUSH = 32;
 // villsa [STRIFE] friendly to players
-  MTF_FRIEND = 64;
+  MTF_ALLY = 64;
 // villsa [STRIFE] TODO - identify
   MTF_UNKNOWN1 = 128;
 // villsa [STRIFE] thing is translucent - STRIFE-TODO: But how much?
@@ -162,6 +162,8 @@ const
   MTF_ONMIDSECTOR = 2048;
 // JVAL: Script Events
   MTF_DONOTTRIGGERSCRIPTS = 4096;
+  // Doom Friendly monsters
+  MTF_FRIEND = 8192; // JVAL: version 207
 
 type
   skill_t = (
@@ -385,13 +387,42 @@ const
   KEY_PAGEUP = $80 + $46;
   KEY_INS = $80 + $47;
 
-
   KEY_HOME = $80 + $48;
   KEY_END = $80 + $49;
   KEY_DELETE = $80 + $4a;
 
-
   KEY_LALT = KEY_RALT;
+
+const
+  TextKeyMessages: array[0..Ord(NUMCARDS) - 1] of string = (
+    'BASE KEY',
+    'GOVERNOR''S KEY',
+    'PASS CARD',
+    'ID CARD',
+    'PRISON KEY',
+    'SEVERED HAND',
+    'POWER KEY #1',
+    'POWER KEY #2',
+    'POWER KEY #3',
+    'GOLD KEY',
+    'ID BADGE',
+    'SILVER KEY',
+    'ORACLE KEY',
+    'MILITARY ID',
+    'ORDER KEY',
+    'WAREHOUSE KEY',
+    'BRASS KEY',
+    'RED CRYSTAL KEY',
+    'BLUE CRYSTAL KEY',
+    'CHAPEL KEY',
+    'CATACOMB KEY',
+    'SECURITY KEY',
+    'CORE KEY',
+    'MAULER KEY',
+    'FACTORY KEY',
+    'MINE KEY',
+    'NEW KEY 5'
+  );
 
 implementation
 

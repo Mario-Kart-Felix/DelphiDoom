@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Sky rendering.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,8 +45,15 @@ const
 var
   skyflatnum: integer;
   skytexture: integer;
+  skytexture1: integer;
+  skytexture2: integer;
   skytexturemid: integer;
 
+//==============================================================================
+//
+// R_InitSkyMap
+//
+//==============================================================================
 procedure R_InitSkyMap;
 
 implementation
@@ -54,10 +61,12 @@ implementation
 uses
   m_fixed; // Needed for FRACUNIT.
 
+//==============================================================================
 //
 // R_InitSkyMap
 // Called whenever the view size changes.
 //
+//==============================================================================
 procedure R_InitSkyMap;
 begin
   skytexturemid := 100 * FRACUNIT;

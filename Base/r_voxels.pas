@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Voxel stuff (software rendering)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -61,10 +61,25 @@ type
     property radius: fixed_t read fradius;
   end;
 
+//==============================================================================
+//
+// R_InitVoxels
+//
+//==============================================================================
 procedure R_InitVoxels;
 
+//==============================================================================
+//
+// R_VoxelsDone
+//
+//==============================================================================
 procedure R_VoxelsDone;
 
+//==============================================================================
+//
+// R_DrawVoxel
+//
+//==============================================================================
 procedure R_DrawVoxel(const vis: Pvissprite_t);
 
 implementation
@@ -75,14 +90,11 @@ uses
   g_game,
   mt_utils,
   r_renderstyle,
-  r_softgl,
   r_palette,
   r_utils,
   r_main,
   r_draw,
   r_things,
-  r_data,
-  r_bsp,
   r_segs,
   r_segs2,
   r_column,
@@ -94,16 +106,14 @@ uses
   r_intrpl,
   r_3dfloors, // JVAL: 3d Floors
   r_depthbuffer, // JVAL: 3d Floors
+  r_zbuffer,
   p_setup,
-  p_pspr,
   p_tick,
   tables,
   info_h,
   vx_base,
   i_system,
-  i_threads,
   sc_engine,
-  v_data,
   v_video,
   w_folders,
   w_pak,
@@ -165,19 +175,24 @@ type
     r, g, b: Byte;
   end;
 
+const
+  MAXMIP = 3;
+
+//==============================================================================
 //
 // JVAL
 // R_VoxelColumnFromBuffer()
 // Create a vertical column from a voxelbuffer
 //
+//==============================================================================
 function R_VoxelColumnFromBuffer(const buf: voxelbuffer2D_p; const size: integer; const mip: integer): voxelcolumn_p;
 var
   i, j: integer;
   rover: voxelcolumn_p;
   r1, parent: voxelcolumn_p;
   pal: palette_p;
-  source: array[0..MAXVOXELSIZE] of byte;
-  source32: array[0..MAXVOXELSIZE] of LongWord;
+  source: array[0..MAXMIP * MAXVOXELSIZE] of byte;
+  source32: array[0..MAXMIP * MAXVOXELSIZE] of LongWord;
   lastc: byte;
   col, last: voxelcolumn_p;
   buf2: voxelbuffer2D_p;
@@ -187,7 +202,7 @@ var
   _lo, _hi: integer;
   _r, _g, _b: LongWord;
   c: LongWord;
-  maxlistsize: byte;
+  maxlistsize: integer;
 begin
   pal := R_DefaultPalette;
 
@@ -285,8 +300,6 @@ begin
         inc(i);
         inc(j);
       end;
-      if j > 128 then
-        j := 128;
       rover.length := j * mip;
       rover.fixedlength := rover.length * FRACUNIT;
       rover.fixedheight := size * FRACUNIT;
@@ -339,6 +352,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_ClearVoxelBuffer
+//
+//==============================================================================
 procedure R_ClearVoxelBuffer(const voxelbuffer: voxelbuffer_p; const voxelsize: integer);
 var
   xx, yy, zz: integer;
@@ -372,6 +390,11 @@ type
   end;
   mt_struct1_p = ^mt_struct1_t;
 
+//==============================================================================
+//
+// _mt_prepare_optimize_voxel_buffer
+//
+//==============================================================================
 function _mt_prepare_optimize_voxel_buffer(r: mt_struct1_p): integer; stdcall;
 var
   xx, yy, zz: integer;
@@ -396,6 +419,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// R_OptimizeVoxelBuffer
+//
+//==============================================================================
 procedure R_OptimizeVoxelBuffer(const voxelbuffer: voxelbuffer_p; const voxelsize: integer);
 var
   xx, yy, zz: integer;
@@ -450,6 +478,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// _mt_prepare_voxel_columns
+//
+//==============================================================================
 function _mt_prepare_voxel_columns(r: mt_struct1_p): integer; stdcall;
 var
   xx, yy, zz: integer;
@@ -474,6 +507,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// R_PrepareVoxelColumns
+//
+//==============================================================================
 procedure R_PrepareVoxelColumns(const voxelbuffer: voxelbuffer_p; const voxelsize: integer);
 var
   xx, yy, zz: integer;
@@ -530,6 +568,11 @@ type
   distancetable_t = array[0..$1FFF] of distancetableitem_t;
   distancetable_p = ^distancetable_t;
 
+//==============================================================================
+//
+// R_QSortDistanceTable
+//
+//==============================================================================
 procedure R_QSortDistanceTable(const A: distancetable_p; const len: Integer);
 
   procedure qsorttbl(l, r: Integer);
@@ -567,6 +610,11 @@ begin
     qsorttbl(0, len - 1);
 end;
 
+//==============================================================================
+//
+// R_CreateVoxelMipSortOrderAngle
+//
+//==============================================================================
 function R_CreateVoxelMipSortOrderAngle(const mip: voxelmip_p; const an: integer): boolean;
 var
   i: integer;
@@ -647,6 +695,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// R_CreateVoxelMipSortOrder
+//
+//==============================================================================
 procedure R_CreateVoxelMipSortOrder(const mip: voxelmip_p);
 var
   i: integer;
@@ -658,6 +711,11 @@ begin
     R_CreateVoxelMipSortOrderAngle(mip, i);
 end;
 
+//==============================================================================
+//
+// R_VoxelColumnsFromBuffer
+//
+//==============================================================================
 function R_VoxelColumnsFromBuffer(const voxelbuffer: voxelbuffer_p; const voxelsize: integer; const offset, scale: fixed_t): voxelcolumns_p;
 var
   xx, yy, zz: integer;
@@ -940,6 +998,11 @@ begin
   memfree(Pointer(vbuf), SizeOf(voxelbuffer2D_t));
 end;
 
+//==============================================================================
+//
+// SwapRGB
+//
+//==============================================================================
 function SwapRGB(const c: LongWord): LongWord;
 var
   r, g, b: byte;
@@ -950,6 +1013,11 @@ begin
   result := b shl 16 + g shl 8 + r;
 end;
 
+//==============================================================================
+//
+// R_LoadDDVOX
+//
+//==============================================================================
 function R_LoadDDVOX(const fname: string; const offset, scale: fixed_t): voxelcolumns_p;
 var
   buf: TDStringList;
@@ -1026,6 +1094,11 @@ type
   ddmeshitem_a = array[0..$FFF] of ddmeshitem_t;
   ddmeshitem_pa = ^ddmeshitem_a;
 
+//==============================================================================
+//
+// R_LoadDDMESH
+//
+//==============================================================================
 function R_LoadDDMESH(const fname: string; const offset, scale: fixed_t): voxelcolumns_p;
 var
   strm: TPakStream;
@@ -1096,7 +1169,6 @@ begin
   result := R_VoxelColumnsFromBuffer(voxelbuffer, voxelsize, offset, scale);
 end;
 
-
 const
   MAXKVXSIZE = 256;
 
@@ -1113,6 +1185,11 @@ type
   end;
   kvxslab_p = ^kvxslab_t;
 
+//==============================================================================
+//
+// R_LoadKVX
+//
+//==============================================================================
 function R_LoadKVX(const fn: string; const offset, scale: fixed_t): voxelcolumns_p;
 var
   strm: TDStream;
@@ -1152,7 +1229,7 @@ begin
   begin
     strm.Free;
     s1 := fname(fn);
-    splitstring(s1, s2, s3, '.');
+    splitstring_ch(s1, s2, s3, '.');
     lump := W_CheckNumForName(s2, TYPE_VOXEL);
     if lump < 0 then
     begin
@@ -1306,7 +1383,6 @@ begin
         if kvxbuffer[xx - x1, yy - y1, zz - z1] <> $FFFF then
           voxelbuffer[xx, zz, voxelsize - yy - 1].color := pal[kvxbuffer[xx - x1, yy - y1, zz - z1]];
 
-
   R_OptimizeVoxelBuffer(voxelbuffer, voxelsize);
   R_PrepareVoxelColumns(voxelbuffer, voxelsize);
   result := R_VoxelColumnsFromBuffer(voxelbuffer, voxelsize, offset, scale);
@@ -1318,10 +1394,12 @@ begin
   memfree(pointer(voxdata), voxdatasize);
 end;
 
+//==============================================================================
 //
 // R_LoadSlab6VOX
 // JVAL 20191004 Support for slab6 VOX files
 //
+//==============================================================================
 function R_LoadSlab6VOX(const fn: string; const offset, scale: fixed_t): voxelcolumns_p;
 var
   strm: TDStream;
@@ -1451,6 +1529,11 @@ begin
   result := R_VoxelColumnsFromBuffer(voxelbuffer, voxelsize, offset, scale);
 end;
 
+//==============================================================================
+//
+// TVoxelModel.Create
+//
+//==============================================================================
 constructor TVoxelModel.Create(const name: string; const offset, scale: fixed_t; flags: LongWord);
 var
   ext: string;
@@ -1493,11 +1576,21 @@ begin
       fradius := voxelcolumns_p(frames.Numbers[i]).range;
 end;
 
+//==============================================================================
+//
+// TVoxelModel.Destroy
+//
+//==============================================================================
 destructor TVoxelModel.Destroy;
 begin
   frames.Free;
 end;
 
+//==============================================================================
+//
+// VX_RotatePoint
+//
+//==============================================================================
 procedure VX_RotatePoint(x: Pfixed_t; y: Pfixed_t; a: angle_t);
 var
   tmpx: fixed_t;
@@ -1521,6 +1614,11 @@ var
   vx_ceilingclip: fixed_t;
   vx_floorclip: fixed_t;
 
+//==============================================================================
+//
+// R_InitVoxels
+//
+//==============================================================================
 procedure R_InitVoxels;
 var
   size: integer;
@@ -1531,11 +1629,21 @@ begin
   memfree(pointer(vx_membuffer), size);
 end;
 
+//==============================================================================
+//
+// R_VoxelsDone
+//
+//==============================================================================
 procedure R_VoxelsDone;
 begin
   VX_VoxelsDone;
 end;
 
+//==============================================================================
+//
+// R_DrawThingVoxel
+//
+//==============================================================================
 procedure R_DrawThingVoxel(const thing: Pmobj_t; const vidx: integer; const depth: LongWord;
   const renderflags: LongWord);
 var
@@ -1601,6 +1709,11 @@ var
   tmp_top, tmp_bottom: fixed_t;
   vprojection, vprojectiony: fixed_t;
   voxelinfscale: fixed_t;
+  vx: integer;
+  vx_localsimpleclip: boolean;
+  vx_localceilingclip: fixed_t;
+  vx_localfloorclip: fixed_t;
+  dovoxelzbuffer: boolean;
 begin
   info := @voxelstates[vidx];
   voxelinf := @voxelmanager.items[info.voxelidx];
@@ -1671,7 +1784,6 @@ begin
         mip := @clms.mips[2];
     end;
 
-
     {$IFDEF HERETIC}
     if (thing.flags2 and MF2_FEETARECLIPPED <> 0) and (thing.z <= Psubsector_t(thing.subsector).sector.floorheight) then
       footclip := 10 * FRACUNIT
@@ -1682,8 +1794,13 @@ begin
     {$ENDIF}
 
     mscale := mip.mipscale;
-    // Obtain sorted back to front column list
-    mipcols := mip.columnssortorder[rot];
+
+    if depthbufferactive then
+      // Obtain sorted front to back column list
+      mipcols := mip.columnssortorder[(rot + 4) and 7]
+    else
+      // Obtain sorted back to front column list
+      mipcols := mip.columnssortorder[rot];
 
     floorz := thing.floorz;
     ceilz := thing.ceilingz;
@@ -1694,6 +1811,12 @@ begin
 
     mipscale := mscale * voxelinf.voxel.fscale;
     mipscale2 := mipscale div 2;
+
+    vx_localsimpleclip := vx_simpleclip;
+    vx_localceilingclip := vx_ceilingclip;
+    vx_localfloorclip := vx_floorclip;
+
+    dovoxelzbuffer := domaskedzbuffer and (renderflags and VSF_TRANSPARENCY = 0);
 
     // For each voxel column
     for i := 0 to mip.numcolumns - 1 do
@@ -1733,6 +1856,9 @@ begin
                 end
                 else
                   putpixelfunc(left, top);
+
+                if dovoxelzbuffer then
+                  R_DrawVoxelPixelToZBuffer(depth, left, top, thing);
               end;
 
           col := col.next;
@@ -1761,7 +1887,6 @@ begin
 
       a_x[3] := c_x_acos2 - c_y_asin2 + t_x;
       a_y[3] := c_x_asin2 + c_y_acos2 + t_y;
-
 
       tz := FixedMul(a_x[0], viewcos) + FixedMul(a_y[0], viewsin);
       if tz < MINZ then
@@ -1827,21 +1952,49 @@ begin
         right := aleftx;}
 //------------------------------------------------------
 
+      if right < left then
+        Continue;
+
       left := left + centerx;
       right := right + centerx;
       if left < 0 then
         left := 0
       else if left >= viewwidth then
-        left := viewwidth - 1;
+        Continue;
+
       if right >= viewwidth then
         right := viewwidth - 1
       else if right < 0 then
-        right := 0;
+        Continue;
 
       if vx_simpleclip then
       begin
         num_batch_columns := right - left;
         dc_x := left;
+      end
+      else
+      begin
+        vx_localsimpleclip := true;
+        vx_localceilingclip := mceilingclip[left];
+        vx_localfloorclip := mfloorclip[left];
+        for vx := left + 1 to right do
+        begin
+          if mceilingclip[vx] <> vx_localceilingclip then
+          begin
+            vx_localsimpleclip := False;
+            break;
+          end;
+          if mfloorclip[vx] <> vx_localfloorclip then
+          begin
+            vx_localsimpleclip := False;
+            break;
+          end;
+        end;
+        if vx_localsimpleclip then
+        begin
+          num_batch_columns := right - left;
+          dc_x := left;
+        end;
       end;
 
       // Proccess all fractions of the column
@@ -1918,26 +2071,32 @@ begin
         dc_color := col.dc_color;
         dc_source := @dc_color;
 
-        if vx_simpleclip then
+        if vx_localsimpleclip then
         begin
-          if top <= vx_ceilingclip then
-            dc_yl := vx_ceilingclip + 1
+          if top <= vx_localceilingclip then
+            dc_yl := vx_localceilingclip + 1
           else
             dc_yl := top;
-          if bottom >= vx_floorclip then
-            dc_yh := vx_floorclip - 1
+          if bottom >= vx_localfloorclip then
+            dc_yh := vx_localfloorclip - 1
           else
             dc_yh := bottom;
 
-          if depthbufferactive then
+          if dc_yl <= dc_yh then
           begin
-            if renderflags and VSF_TRANSPARENCY <> 0 then
-              R_DrawBatchColumnWithDepthBufferCheckOnly(batchcolfunc, depth)
+            if depthbufferactive then
+            begin
+              if renderflags and VSF_TRANSPARENCY <> 0 then
+                R_DrawBatchColumnWithDepthBufferCheckOnly(batchcolfunc, scaley0)
+              else
+                R_DrawBatchColumnWithDepthBufferCheckWrite(batchcolfunc, scaley0)
+            end
             else
-              R_DrawBatchColumnWithDepthBufferCheckWrite(batchcolfunc, depth)
-          end
-          else
-            batchcolfunc;
+              batchcolfunc;
+
+            if dovoxelzbuffer then
+              R_DrawBatchVoxelColumnToZBuffer(scaley0, thing);  // Use scaley0 instead of depth for better accuracy
+          end;
 
           col := col.next;
 
@@ -1971,15 +2130,21 @@ begin
             dc_yl := last_top;
             dc_yh := last_bot;
 
-            if depthbufferactive then
+            if dc_yl <= dc_yh then
             begin
-              if renderflags and VSF_TRANSPARENCY <> 0 then
-                R_DrawBatchColumnWithDepthBufferCheckOnly(batchcolfunc, depth)
+              if depthbufferactive then
+              begin
+                if renderflags and VSF_TRANSPARENCY <> 0 then
+                  R_DrawBatchColumnWithDepthBufferCheckOnly(batchcolfunc, scaley0)
+                else
+                  R_DrawBatchColumnWithDepthBufferCheckWrite(batchcolfunc, scaley0)
+              end
               else
-                R_DrawBatchColumnWithDepthBufferCheckWrite(batchcolfunc, depth)
-            end
-            else
-              batchcolfunc;
+                batchcolfunc;
+
+              if dovoxelzbuffer then
+                R_DrawBatchVoxelColumnToZBuffer(scaley0, thing);  // Use scaley0 instead of depth for better accuracy
+            end;
 
             last_top := cur_top;
             last_bot := cur_bot;
@@ -1995,15 +2160,21 @@ begin
           dc_yl := last_top;
           dc_yh := last_bot;
 
-          if depthbufferactive then
+          if dc_yl <= dc_yh then
           begin
-            if renderflags and VSF_TRANSPARENCY <> 0 then
-              R_DrawBatchColumnWithDepthBufferCheckOnly(batchcolfunc, depth)
+            if depthbufferactive then
+            begin
+              if renderflags and VSF_TRANSPARENCY <> 0 then
+                R_DrawBatchColumnWithDepthBufferCheckOnly(batchcolfunc, scaley0)
+              else
+                R_DrawBatchColumnWithDepthBufferCheckWrite(batchcolfunc, scaley0)
+            end
             else
-              R_DrawBatchColumnWithDepthBufferCheckWrite(batchcolfunc, depth)
-          end
-          else
-            batchcolfunc;
+              batchcolfunc;
+
+            if dovoxelzbuffer then
+              R_DrawBatchVoxelColumnToZBuffer(scaley0, thing);  // Use scaley0 instead of depth for better accuracy
+          end;
         end;
 
         col := col.next;
@@ -2014,6 +2185,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawThingVoxels
+//
+//==============================================================================
 procedure R_DrawThingVoxels(const thing: Pmobj_t; const depth: LongWord;
   const renderflags: LongWord);
 var
@@ -2023,6 +2199,11 @@ begin
     R_DrawThingVoxel(thing, thing.state.voxels.Numbers[i], depth, renderflags);
 end;
 
+//==============================================================================
+//
+// R_DrawVoxel
+//
+//==============================================================================
 procedure R_DrawVoxel(const vis: Pvissprite_t);
 var
   i: integer;
@@ -2030,6 +2211,7 @@ var
   x: integer;
   r1: integer;
   r2: integer;
+  cache: Pvisspritecache_t;
   scale: fixed_t;
   lowscale: fixed_t;
   silhouette: integer;
@@ -2049,7 +2231,16 @@ begin
   memsetsi(@clipbot[vis.vx1], -2, size);
   memsetsi(@cliptop[vis.vx1], -2, size);
 
-  R_GetDrawsegsForRange(vis.vx1, vis.vx2, fdrawsegs, fds_p);
+  if vis.cache <> nil then
+  begin
+    cache := vis.cache;
+    R_ExecuteSpriteCache(cache);
+    fdrawsegs := cache.fdrawsegs;
+    fds_p := cache.fds_p;
+  end
+  else
+    R_GetDrawsegsForRange(vis.vx1, vis.vx2, fdrawsegs, fds_p);
+
   // Scan drawsegs from end to start for obscuring segs.
   // The first drawseg that has a greater scale
   //  is the clip seg.
@@ -2057,9 +2248,7 @@ begin
   begin
     ds := fdrawsegs[i];
     // determine if the drawseg obscures the sprite
-    if (ds.x1 > vis.vx2) or
-       (ds.x2 < vis.vx1) or
-       ((ds.silhouette = 0) and (ds.maskedtexturecol = nil) and (ds.thicksidecol = nil)) then
+    if (ds.x1 > vis.vx2) or (ds.x2 < vis.vx1) or ds.maskedquery then
     begin
       // does not cover sprite
       continue;
@@ -2086,7 +2275,7 @@ begin
     end;
 
     if (scale < vis.scale) or
-       ((lowscale < vis.scale) and (not R_PointOnSegSide(vis.gx, vis.gy, ds.curline))) then
+       ((lowscale < vis.scale) and not R_PointOnSegSide(vis.gx, vis.gy, ds.curline)) then
     begin
       // masked mid texture?
       if ds.thicksidecol <> nil then        // JVAL: 3d Floors
@@ -2132,7 +2321,6 @@ begin
       end;
     end;
   end;
-
 
   {$IFDEF DOOM_OR_STRIFE}
   // killough 3/27/98:
@@ -2267,6 +2455,7 @@ begin
   begin
     batchcolfunc := batchtranscolfunc;
     dc_translation := PByteArray(integer(translationtables) - 256 +
+    {$IFDEF HEXEN}vis._class * ((MAXPLAYERS - 1) * 256) + {$ENDIF}
       (_SHR((vis.mobjflags and MF_TRANSLATION), (MF_TRANSSHIFT - 8))));
   end
   else if usetransparentsprites and (vis.mo <> nil) and (vis.mo.renderstyle = mrs_translucent) then

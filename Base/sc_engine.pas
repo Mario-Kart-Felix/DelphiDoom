@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -48,6 +48,7 @@ type
   private
     sc_String: PChar;
     sc_Integer: integer;
+    sc_Boolean: boolean;
     sc_Float: float;
     sc_Line: integer;
     sc_End: boolean;
@@ -61,9 +62,11 @@ type
     ScriptSize: integer;
     AlreadyGot: boolean;
     ignonelist: TDStringList;
+    fquotedtoken: boolean;
     faliases: TDStringList;
   protected
     function fToken: string;
+    function fuToken: string; // Upercase token
   public
     constructor Create(const tx: string); virtual;
     destructor Destroy; override;
@@ -78,12 +81,14 @@ type
     function GetStringEOLWithQuotes: string;
     function GetTokensEOL: TDStringList;
     function GetStringEOLUnChanged: string;
-    procedure MustGetString;
-    procedure MustGetStringName(const name: string);
+    function MustGetString: boolean;
+    function MustGetStringName(const name: string): boolean;
     function GetInteger: boolean;
-    procedure MustGetInteger;
+    function MustGetInteger: boolean;
     function GetFloat: boolean;
-    procedure MustGetFloat;
+    function MustGetFloat: boolean;
+    function GetBoolean: boolean;
+    function MustGetBoolean: boolean;
     procedure UnGet;
     function MatchString(const strs: TDStringList): integer; overload;
     function MatchString(const str: string): boolean; overload;
@@ -95,23 +100,55 @@ type
     property _Integer: integer read sc_Integer;
     property _Float: float read sc_Float;
     property _String: string read fToken;
+    property _Boolean: boolean read sc_boolean;
     property _Finished: boolean read sc_End;
     property _Line: integer read sc_Line;
     property NewLine: boolean read fNewLine;
     property BracketLevel: integer read fBracketLevel;
     property ParenthesisLevel: integer read fParenthesisLevel;
+    property QuotedToken: boolean read fquotedtoken;
   end;
 
+//==============================================================================
+//
+// SC_RemoveLineQuotes
+//
+//==============================================================================
 function SC_RemoveLineQuotes(const sctext: string): string;
 
+//==============================================================================
+//
+// SC_RemoveLineComments
+//
+//==============================================================================
 function SC_RemoveLineComments(const inp: string): string;
 
+//==============================================================================
+//
+// SC_FixParenthesisLevel
+//
+//==============================================================================
 function SC_FixParenthesisLevel(const inp: string): string;
 
+//==============================================================================
+//
+// SC_ParamsToList
+//
+//==============================================================================
 function SC_ParamsToList(inp: string): TDStringList;
 
+//==============================================================================
+//
+// SC_IsStringInQuotes
+//
+//==============================================================================
 function SC_IsStringInQuotes(const s: string): boolean;
 
+//==============================================================================
+//
+// SC_TokensToList
+//
+//==============================================================================
 function SC_TokensToList(const inp: string): TDStringList;
 
 implementation
@@ -124,8 +161,12 @@ const
   ASCII_COMMENT1 = '/';
   ASCII_COMMENT = $2F2F; // = '//'
 
-
+//==============================================================================
+// TScriptEngine.Create
+//
 // TScriptEngine
+//
+//==============================================================================
 constructor TScriptEngine.Create(const tx: string);
 begin
   Inherited Create;
@@ -138,6 +179,11 @@ begin
   SetText(tx);
 end;
 
+//==============================================================================
+//
+// TScriptEngine.Destroy
+//
+//==============================================================================
 destructor TScriptEngine.Destroy;
 begin
   Clear;
@@ -146,11 +192,21 @@ begin
   Inherited;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.AddIgnoreToken
+//
+//==============================================================================
 procedure TScriptEngine.AddIgnoreToken(const s: string);
 begin
   ignonelist.Add(strupper(s));
 end;
 
+//==============================================================================
+//
+// TScriptEngine.fToken
+//
+//==============================================================================
 function TScriptEngine.fToken: string;
 var
   idx: integer;
@@ -161,6 +217,26 @@ begin
     result := faliases.ValuesIdx[idx];
 end;
 
+//==============================================================================
+//
+// TScriptEngine.fuToken
+//
+//==============================================================================
+function TScriptEngine.fuToken: string; // Upercase token
+var
+  idx: integer;
+begin
+  result := strupper(StringVal(sc_String));
+  idx := faliases.IndexOfName(result);
+  if idx >= 0 then
+    result := faliases.ValuesIdx[idx];
+end;
+
+//==============================================================================
+//
+// TScriptEngine.Clear
+//
+//==============================================================================
 procedure TScriptEngine.Clear;
 begin
   if ScriptSize > 0 then
@@ -172,10 +248,16 @@ begin
   ScriptEndPtr := ScriptPtr + ScriptSize;
   sc_Line := 1;
   sc_End := false;
+  fquotedtoken := false;
   sc_String := @StringBuffer[0];
   AlreadyGot := false;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.SetText
+//
+//==============================================================================
 procedure TScriptEngine.SetText(const tx: string);
 var
   p: Pointer;
@@ -196,11 +278,21 @@ begin
   AlreadyGot := false;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.ScriptError
+//
+//==============================================================================
 procedure TScriptEngine.ScriptError(const err: string);
 begin
   I_Warning('%s'#13#10, [err]);
 end;
 
+//==============================================================================
+//
+// TScriptEngine.ScriptError
+//
+//==============================================================================
 procedure TScriptEngine.ScriptError(const fmt: string; const Args: array of const);
 var
   s: string;
@@ -209,6 +301,11 @@ begin
   ScriptError(s);
 end;
 
+//==============================================================================
+//
+// TScriptEngine.ScriptPrintLineError
+//
+//==============================================================================
 procedure TScriptEngine.ScriptPrintLineError(const lnno, offs: integer);
 var
   lst: TDStringList;
@@ -239,25 +336,42 @@ begin
   lst.Free;
 end;
 
-procedure TScriptEngine.MustGetString;
+//==============================================================================
+//
+// TScriptEngine.MustGetString
+//
+//==============================================================================
+function TScriptEngine.MustGetString: boolean;
 begin
-  if not GetString then
+  result := GetString;
+  if not result then
   begin
     ScriptError('TScriptEngine.MustGetString(): Missing string at Line %d', [sc_Line]);
     ScriptPrintLineError(sc_Line, 2);
   end;
 end;
 
-procedure TScriptEngine.MustGetStringName(const name: string);
+//==============================================================================
+//
+// TScriptEngine.MustGetStringName
+//
+//==============================================================================
+function TScriptEngine.MustGetStringName(const name: string): boolean;
 begin
-  MustGetString;
-  if not Compare(name) then
+  result := MustGetString;
+  if not result or not Compare(name) then
   begin
     ScriptError('TScriptEngine.MustGetStringName(): "%s" expected at Line %d', [name, sc_Line]);
     ScriptPrintLineError(sc_Line, 2);
+    result := false;
   end;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetInteger
+//
+//==============================================================================
 function TScriptEngine.GetInteger: boolean;
 var
   code: integer;
@@ -277,18 +391,29 @@ begin
     result := true;
   end
   else
-    result := true;
+    result := false;
 end;
 
-procedure TScriptEngine.MustGetInteger;
+//==============================================================================
+//
+// TScriptEngine.MustGetInteger
+//
+//==============================================================================
+function TScriptEngine.MustGetInteger: boolean;
 begin
-  if not GetInteger then
+  result := GetInteger;
+  if not result then
   begin
     ScriptError('TScriptEngine.MustGetInteger(): Missing integer at Line %d', [sc_Line]);
     ScriptPrintLineError(sc_Line, 2);
   end;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetFloat
+//
+//==============================================================================
 function TScriptEngine.GetFloat: boolean;
 var
   code: integer;
@@ -325,29 +450,81 @@ begin
     result := true;
   end
   else
-    result := true;
+    result := false;
 end;
 
-procedure TScriptEngine.MustGetFloat;
+//==============================================================================
+//
+// TScriptEngine.MustGetFloat
+//
+//==============================================================================
+function TScriptEngine.MustGetFloat: boolean;
 begin
-  if not GetFloat then
+  result := GetFloat;
+  if not result then
   begin
     ScriptError('TScriptEngine.MustGetFloat(): Missing float at Line %d', [sc_Line]);
     ScriptPrintLineError(sc_Line, 2);
   end;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetBoolean
+//
+//==============================================================================
+function TScriptEngine.GetBoolean: boolean;
+begin
+  if GetString then
+  begin
+    result := (strupper(sc_string) = 'TRUE') or (strupper(sc_string) = 'FALSE');
+    sc_boolean := strupper(sc_string) = 'TRUE';
+  end
+  else
+    result := false;
+end;
+
+//==============================================================================
+//
+// TScriptEngine.MustGetBoolean
+//
+//==============================================================================
+function TScriptEngine.MustGetBoolean: boolean;
+begin
+  result := GetBoolean;
+  if not result then
+  begin
+    ScriptError('TScriptEngine.MustGetBoolean(): Missing boolean at Line %d', [sc_Line]);
+    ScriptPrintLineError(sc_Line, 2);
+  end;
+end;
+
+//==============================================================================
+//
+// TScriptEngine.UnGet
+//
+//==============================================================================
 procedure TScriptEngine.UnGet;
 // Assumes there is a valid string in sc_String.
 begin
   AlreadyGot := true;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.MatchString
+//
+//==============================================================================
 function TScriptEngine.MatchString(const str: string): boolean;
 begin
   result := Compare(str);
 end;
 
+//==============================================================================
+//
+// TScriptEngine.MatchString
+//
+//==============================================================================
 function TScriptEngine.MatchString(const strs: TDStringList): integer;
 // Returns the index of the first match to sc_String from the passed
 // array of strings, or -1 if not found.
@@ -365,11 +542,21 @@ begin
   result := -1;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.MatchPosString
+//
+//==============================================================================
 function TScriptEngine.MatchPosString(const str: string): boolean;
 begin
   result := Pos(strupper(str), strupper(StringVal(sc_String))) > 0;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.MustMatchString
+//
+//==============================================================================
 function TScriptEngine.MustMatchString(strs: TDStringList): integer;
 var
   i: integer;
@@ -383,21 +570,41 @@ begin
   result := i;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.Compare
+//
+//==============================================================================
 function TScriptEngine.Compare(const txt: string): boolean;
 begin
-  result := strupper(txt) = strupper(fToken);
+  result := strupper(txt) = fuToken;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.AddAlias
+//
+//==============================================================================
 procedure TScriptEngine.AddAlias(const src, dest: string);
 begin
   faliases.Add(strupper(src + '=' + dest));
 end;
 
+//==============================================================================
+//
+// TScriptEngine.ClearAliases
+//
+//==============================================================================
 procedure TScriptEngine.ClearAliases;
 begin
   faliases.Clear;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetString
+//
+//==============================================================================
 function TScriptEngine.GetString: boolean;
 var
   txt: PChar;
@@ -409,6 +616,8 @@ begin
     result := true;
     exit;
   end;
+
+  fquotedtoken := false;
 
   fNewLine := false;
   foundToken := false;
@@ -503,6 +712,7 @@ begin
   txt := sc_String;
   if ScriptPtr^ = ASCII_QUOTE then
   begin // Quoted string
+    fquotedtoken := true;
     inc(ScriptPtr);
     while ScriptPtr^ <> ASCII_QUOTE do
     begin
@@ -518,7 +728,7 @@ begin
   else
   begin // Normal string
     while (ScriptPtr^ > Chr(32)) and (ScriptPtr < ScriptEndPtr) and
-          (PWord(ScriptPtr)^ <> ASCII_COMMENT) and (not (ScriptPtr^ in ['{', '}', '(', ')', ','])) do
+          (PWord(ScriptPtr)^ <> ASCII_COMMENT) and not (ScriptPtr^ in ['{', '}', '(', ')', ',']) do
     begin
       txt^ := ScriptPtr^;
       inc(txt);
@@ -536,6 +746,11 @@ begin
     Result := GetString;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetStringEOL
+//
+//==============================================================================
 function TScriptEngine.GetStringEOL: string;
 begin
   result := '';
@@ -560,6 +775,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetStringEOLWithQuotes
+//
+//==============================================================================
 function TScriptEngine.GetStringEOLWithQuotes: string;
 begin
   result := '';
@@ -584,6 +804,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetTokensEOL
+//
+//==============================================================================
 function TScriptEngine.GetTokensEOL: TDStringList;
 begin
   result := TDStringList.Create;
@@ -608,6 +833,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TScriptEngine.GetStringEOLUnChanged
+//
+//==============================================================================
 function TScriptEngine.GetStringEOLUnChanged: string;
 begin
   result := '';
@@ -633,6 +863,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_RemoveLineQuotes
+//
+//==============================================================================
 function SC_RemoveLineQuotes(const sctext: string): string;
 var
   stmp: string;
@@ -649,7 +884,7 @@ begin
       p := Pos('//', stmp);
       if p > 0 then
         stmp := Copy(stmp, 1, p - 1);
-      p := Pos(';', stmp);
+      p := CharPos(';', stmp);
       if p > 0 then
         stmp := Copy(stmp, 1, p - 1);
       if stmp <> '' then
@@ -660,6 +895,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_RemoveLineComments
+//
+//==============================================================================
 function SC_RemoveLineComments(const inp: string): string;
 var
   i: integer;
@@ -679,6 +919,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_FixParenthesisLevel
+//
+//==============================================================================
 function SC_FixParenthesisLevel(const inp: string): string;
 var
   i: integer;
@@ -704,6 +949,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_ParamsToList
+//
+//==============================================================================
 function SC_ParamsToList(inp: string): TDStringList;
 var
   stmp: string;
@@ -713,7 +963,7 @@ var
   allinparenthesis: boolean;
 begin
   result := TDStringList.Create;
-  inp := strtrim(inp);
+  trimproc(inp);
   if inp = '' then
     exit;
 
@@ -737,7 +987,7 @@ begin
     begin
       inp[1] := ' ';
       inp[length(inp)] := ' ';
-      inp := strtrim(inp);
+      trimproc(inp);
       if inp = '' then
         exit;
     end;
@@ -752,7 +1002,7 @@ begin
     if inp[i] = ',' then
       if not inquotes and (parenthesislevel = 0) then
       begin
-        stmp := strtrim(stmp);
+        trimproc(stmp);
         if stmp <> '' then
         begin
           result.Add(stmp);
@@ -771,14 +1021,20 @@ begin
         //I_Warning ....
         parenthesislevel := 0;
       end;
-    end else if inp[i] = '"' then
+    end
+    else if inp[i] = '"' then
       inquotes := not inquotes;
   end;
-  stmp := strtrim(stmp);
+  trimproc(stmp);
   if stmp <> '' then
     result.Add(stmp);
 end;
 
+//==============================================================================
+//
+// SC_IsStringInQuotes
+//
+//==============================================================================
 function SC_IsStringInQuotes(const s: string): boolean;
 var
   i: integer;
@@ -807,6 +1063,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// SC_TokensToList
+//
+//==============================================================================
 function SC_TokensToList(const inp: string): TDStringList;
 var
   sc: TScriptEngine;

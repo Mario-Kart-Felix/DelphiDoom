@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   Identify known wads
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,8 +33,18 @@ unit d_check;
 
 interface
 
+//==============================================================================
+//
+// D_CheckCustomWad
+//
+//==============================================================================
 procedure D_CheckCustomWad(const filename: string);
 
+//==============================================================================
+//
+// D_GetSavePath
+//
+//==============================================================================
 function D_GetSavePath: string;
 
 implementation
@@ -59,20 +69,23 @@ type
   end;
 
 const
-  NUMIWADDETECTITEMS = 12;
+  NUMIWADDETECTITEMS = 15;
   iwadtbl: array[0..NUMIWADDETECTITEMS - 1] of iwaddetect_t = (
     (crc32: '723e60f9'; numlumps: 2194; size: 11159840; version: exe_doom_1_9; customgame: cg_none; savepath: 'doom'),      // registered
     (crc32: 'bf0eaac0'; numlumps: 2306; size: 12408292; version: exe_ultimate; customgame: cg_none; savepath: 'doomu'),     // Ultimate
     (crc32: 'ff1ba733'; numlumps: 2318; size: 12538385; version: exe_ultimate; customgame: cg_none; savepath: 'doomx'),     // Ultimate X-box
     (crc32: '5efa677e'; numlumps: 2312; size: 12487824; version: exe_ultimate; customgame: cg_none; savepath: 'doombfg'),   // Ultimate BFG
     (crc32: '162b696a'; numlumps: 1264; size:  4196020; version: exe_ultimate; customgame: cg_none; savepath: 'doom1'),     // shareware 1.9
+    (crc32: '27eaae69'; numlumps: 2914; size: 14607420; version: exe_doom_1_8; customgame: cg_none; savepath: 'doom2f'),    // Doom2 1.8 french
     (crc32: 'ec8725db'; numlumps: 2919; size: 14604584; version: exe_doom_1_9; customgame: cg_none; savepath: 'doom2'),     // Doom2 1.9
     (crc32: '927a778a'; numlumps: 2935; size: 14691821; version: exe_doom_1_9; customgame: cg_bfg2; savepath: 'doom2bfg'),  // Doom2 BFG
     (crc32: '903dcc27'; numlumps: 3101; size: 18195736; version: exe_final2;   customgame: cg_none; savepath: 'tnt'),       // TNT
     (crc32: 'd4bb05c0'; numlumps: 3106; size: 18654796; version: exe_final2;   customgame: cg_none; savepath: 'tnt'),       // TNT
     (crc32: '7f572c1f'; numlumps: 3101; size: 18222568; version: exe_final2;   customgame: cg_none; savepath: 'tnt'),       // TNT
     (crc32: '48d1453c'; numlumps: 2984; size: 17420824; version: exe_final2;   customgame: cg_none; savepath: 'plutonia'),  // PLUTONIA
-    (crc32: '15cd1448'; numlumps: 2988; size: 18240172; version: exe_final2;   customgame: cg_none; savepath: 'plutonia')   // PLUTONIA
+    (crc32: '15cd1448'; numlumps: 2988; size: 18240172; version: exe_final2;   customgame: cg_none; savepath: 'plutonia'),  // PLUTONIA
+    (crc32: 'b95a03d2'; numlumps: 2649; size: 22102300; version: exe_hacx;     customgame: cg_hacx; savepath: 'hacx11'),    // HACX 1.1
+    (crc32: '72e3b8ac'; numlumps: 2784; size: 19321722; version: exe_hacx;     customgame: cg_hacx; savepath: 'hacx12')     // HACX 1.2
   );
 
 type
@@ -337,6 +350,11 @@ const
 var
   savepath: string = 'doom';
 
+//==============================================================================
+//
+// D_CheckCustomIWad
+//
+//==============================================================================
 function D_CheckCustomIWad(const filename: string): boolean;
 var
   sname: string;
@@ -361,10 +379,12 @@ begin
   else
     numlmps := wi.numlumps;
   f.Free;
+  crc32 := '';
   for i := 0 to NUMIWADDETECTITEMS - 1 do
     if (iwadtbl[i].size = size) and (iwadtbl[i].numlumps = numlmps) then
     begin
-      crc32 := GetCRC32(filename);
+      if crc32 = '' then
+        crc32 := GetCRC32(filename);
       if iwadtbl[i].crc32 = crc32 then
       begin
         gameversion := iwadtbl[i].version;
@@ -438,6 +458,13 @@ begin
     savepath := 'plutonia';
     exit;
   end;
+  // JVAL: DOOM2F
+  if sname = 'DOOM2F.WAD' then
+  begin
+    gameversion := exe_doom_1_8;
+    savepath := 'doom2f';
+    exit;
+  end;
   // JVAL: DOOM2
   if sname = 'DOOM2.WAD' then
   begin
@@ -468,6 +495,11 @@ begin
   result := false; // Well, not valid IWAD found
 end;
 
+//==============================================================================
+//
+// D_CheckCustomPWad
+//
+//==============================================================================
 function D_CheckCustomPWad(const filename: string): boolean;
 var
   crc32: string[8];
@@ -491,10 +523,12 @@ begin
   else
     numlmps := wi.numlumps;
   f.Free;
+  crc32 := '';
   for i := 0 to NUMPWADDETECTITEMS - 1 do
     if (pwadtbl[i].size = size) and (pwadtbl[i].numlumps = numlmps) then
     begin
-      crc32 := GetCRC32(filename);
+      if crc32 = '' then
+        crc32 := GetCRC32(filename);
       if pwadtbl[i].crc32 = crc32 then
       begin
         savepath := pwadtbl[i].savepath;
@@ -504,6 +538,11 @@ begin
   result := false;
 end;
 
+//==============================================================================
+//
+// D_CheckUnknownWad
+//
+//==============================================================================
 function D_CheckUnknownWad(const filename: string): boolean;
 const
   sNUMS = '0123456789';
@@ -521,7 +560,7 @@ begin
   wad.OpenWadFile(filename);
   numlumps := wad.NumEntries;
 
-  splitstring(fname(filename), name, s, '.');
+  splitstring_ch(fname(filename), name, s, '.');
   nummaps1 := 0;
   nummaps2 := 0;
 
@@ -553,6 +592,11 @@ begin
     savepath := name + '_' + crc;
 end;
 
+//==============================================================================
+//
+// D_CheckCustomWad
+//
+//==============================================================================
 procedure D_CheckCustomWad(const filename: string);
 begin
   if not D_CheckCustomIWad(filename) then
@@ -560,6 +604,11 @@ begin
       D_CheckUnknownWad(filename);
 end;
 
+//==============================================================================
+//
+// D_GetSavePath
+//
+//==============================================================================
 function D_GetSavePath: string;
 var
   s: string;

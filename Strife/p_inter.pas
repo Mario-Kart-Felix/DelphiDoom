@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //  Handling interactions (i.e., collisions).
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -42,10 +42,7 @@ interface
 
 uses
   doomdef,
-  dstrings,
-  d_englsh,
-  sounds,
-  doomstat,
+  sounddata,
   m_rnd,
   i_system,
   am_map,
@@ -54,10 +51,25 @@ uses
   s_sound,
   d_player;
 
+//==============================================================================
+//
+// P_GivePower
+//
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: integer): boolean;
 
+//==============================================================================
+//
+// P_TouchSpecialThing
+//
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 
+//==============================================================================
+//
+// P_DamageMobj
+//
+//==============================================================================
 procedure P_DamageMobj(target, inflictor, source: Pmobj_t; damage: integer);
 
 const
@@ -66,6 +78,11 @@ const
   maxammo: array[0..Ord(NUMAMMO) - 1] of integer = (250, 50, 25, 400, 100, 30, 16);
   clipammo: array[0..Ord(NUMAMMO) - 1] of integer = (10, 4, 2, 20, 4, 6, 4);
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 
 var
@@ -79,24 +96,54 @@ var
   p_greenarmorclass: integer = 1;
   p_bluearmorclass: integer = 2;
 
+//==============================================================================
+//
+// P_GiveCard
+//
+//==============================================================================
 function P_GiveCard(player: Pplayer_t; card: card_t): boolean;
 
+//==============================================================================
+//
+// P_GiveArmor
+//
+//==============================================================================
 function P_GiveArmor(player: Pplayer_t; armortype: integer): boolean;
 
+//==============================================================================
+//
+// P_GiveAmmo
+//
+//==============================================================================
 function P_GiveAmmo(player: Pplayer_t; ammo: ammotype_t; num: integer): boolean;
 
+//==============================================================================
+//
+// P_GiveWeapon
+//
+//==============================================================================
 function P_GiveWeapon(player: Pplayer_t; weapon: weapontype_t; dropped: boolean): boolean;
 
+//==============================================================================
+//
+// P_GiveBody
+//
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 
+//==============================================================================
+//
+// P_KillMobj
+//
+//==============================================================================
 procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 
 implementation
 
 uses
+  c_cmds,
   d_delphi,
   d_check,
-  c_cmds,
   deh_main,
   info_h,
   info,
@@ -105,9 +152,10 @@ uses
   m_fixed,
   d_items,
   g_game,
+  p_friends,
+  p_common,
   p_mobj,
   p_obituaries,
-  p_3dfloors,
   p_pspr,
   p_pspr_h,
   p_dialog,
@@ -119,21 +167,22 @@ uses
   ps_main, // JVAL: Script Events
   r_defs,
   r_main,
+  udmf_spec,
   tables;
 
 const
   BONUSADD = 6;
 
+//==============================================================================
 //
 // GET STUFF
-//
-
 //
 // P_GiveAmmo
 // Num is the number of clip loads,
 // not the individual count (0= 1/2 clip).
 // Returns false if the ammo can't be picked up at all
 //
+//==============================================================================
 function P_GiveAmmo(player: Pplayer_t; ammo: ammotype_t; num: integer): boolean;
 var
   oldammo: integer;
@@ -164,7 +213,6 @@ begin
     // you'll need in nightmare
     num := num * 2
   end;
-
 
   oldammo := player.ammo[Ord(ammo)];
   player.ammo[Ord(ammo)] := player.ammo[Ord(ammo)] + num;
@@ -222,12 +270,14 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveWeapon
 // The weapon name may have a MF_DROPPED flag ored in.
 //
 // villsa [STRIFE] some stuff has been changed/moved around
 //
+//==============================================================================
 function P_GiveWeapon(player: Pplayer_t; weapon: weapontype_t; dropped: boolean): boolean;
 var
   gaveammo: boolean;
@@ -300,12 +350,14 @@ begin
   result := gaveweapon or gaveammo;
 end;
 
+//==============================================================================
 //
 // P_GiveBody
 // Returns false if the body isn't needed at all
 //
 // villsa [STRIFE] a lot of changes have been added for stamina
 //
+//==============================================================================
 function P_GiveBody(player: Pplayer_t; num: integer): boolean;
 var
   maxhealth: integer;
@@ -376,6 +428,7 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveArmor
 // Returns false if the armor is worse
@@ -383,6 +436,7 @@ end;
 //
 // [STRIFE] Modified for Strife armor items
 //
+//==============================================================================
 function P_GiveArmor(player: Pplayer_t; armortype: integer): boolean;
 var
   hits: integer;
@@ -412,11 +466,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GiveCard
 //
 // [STRIFE] Modified to use larger bonuscount
 //
+//==============================================================================
 function P_GiveCard(player: Pplayer_t; card: card_t): boolean;
 begin
   if player.cards[Ord(card)] then
@@ -431,11 +487,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_GivePower
 //
 // [STRIFE] Modifications for new powerups
 //
+//==============================================================================
 function P_GivePower(player: Pplayer_t; power: integer): boolean;
 begin
   // haleyjd 09/14/10: [STRIFE] moved to top, exception for Shadow Armor
@@ -521,9 +579,11 @@ begin
   player.powers[power] := 1;
 end;
 
+//==============================================================================
 //
 // P_TouchSpecialThing
 //
+//==============================================================================
 procedure P_TouchSpecialThing(special: Pmobj_t; toucher: Pmobj_t);
 var
   player: Pplayer_t;
@@ -692,6 +752,11 @@ begin
         if not P_GiveWeapon(player, wp_sigil, special.flags and MF_DROPPED <> 0) then
         begin
           player.sigiltype := special.frame;
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
         end;
 
@@ -701,7 +766,14 @@ begin
         player.pendingweapon := wp_sigil;
         player.st_update := true;
         if deathmatch <> 0 then
+        begin
+          if special.special <> 0 then
+          begin
+            P_ExecuteActorSpecial(special.special, @special.args, toucher);
+            special.special := 0;
+          end;
           exit;
+        end;
         sound := Ord(sfx_wpnup);
       end;
 
@@ -712,7 +784,6 @@ begin
         begin
           for i := 0 to Ord(NUMAMMO) - 1 do
             player.maxammo[i] := player.maxammo[i] * 2;
-
           player.backpack := true;
         end;
         for i := 0 to Ord(NUMAMMO) - 1 do
@@ -843,6 +914,12 @@ begin
       player.questflags := player.questflags or _SHLW(1, (special.info.speed - 1) and 31);
   end;
 
+  if special.special <> 0 then
+  begin
+    P_ExecuteActorSpecial(special.special, @special.args, toucher);
+    special.special := 0;
+  end;
+
   P_RemoveMobj(special);
   player.bonuscount := player.bonuscount + BONUSADD;
   player._message := pickupmsg;
@@ -850,9 +927,12 @@ begin
     S_StartSound(nil, sound);
 end;
 
+//==============================================================================
+// P_KillMobj
 //
 // KillMobj
 //
+//==============================================================================
 procedure P_KillMobj(source: Pmobj_t; target: Pmobj_t);
 var
   item: integer;
@@ -873,6 +953,8 @@ begin
 
   target.flags := target.flags or (MF_CORPSE or MF_DROPOFF);
   target.height := FRACUNIT;  // villsa [STRIFE] set to fracunit instead of >>= 2
+
+  P_ExecuteActorSpecial(target.special, @target.args, target);
 
   if (source <> nil) and (source.player <> nil) then
   begin
@@ -1186,6 +1268,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_DamageMobj
 // Damages both enemies and players
@@ -1197,11 +1280,11 @@ end;
 // Source can be NULL for slime, barrel explosions
 // and other environmental stuff.
 //
-//
 // P_IsMobjBoss
 //
 // villsa [STRIFE] new function
 //
+//==============================================================================
 function P_IsMobjBoss(typ: integer): boolean;
 begin
   case typ of
@@ -1219,6 +1302,7 @@ begin
   result := mobjinfo[typ].flags_ex and MF_EX_BOSS <> 0;
 end;
 
+//==============================================================================
 //
 // P_DamageMobj
 // Damages both enemies and players
@@ -1233,6 +1317,7 @@ end;
 // [STRIFE] Extensive changes for spectrals, fire damage, disintegration, and
 //  a plethora of mobjtype-specific hacks.
 //
+//==============================================================================
 procedure P_DamageMobj(target, inflictor, source: Pmobj_t; damage: integer);
 var
   ang: angle_t;
@@ -1240,6 +1325,7 @@ var
   tp, player: Pplayer_t;
   thrust: fixed_t;
   mass: integer;
+  ignore: boolean;
 begin
   if target.flags and MF_SHOOTABLE = 0 then
   begin
@@ -1282,7 +1368,6 @@ begin
   player := target.player;
   if (player <> nil) and (gameskill = sk_baby) then
     damage := damage div 2; // take half damage in trainer mode
-
 
   if (inflictor <> nil) and (target.flags_ex and MF_EX_FIRERESIST <> 0) then
   begin
@@ -1456,14 +1541,19 @@ begin
 
   if source <> nil then
     if (target._type <> Ord(MT_PROGRAMMER)) and
-       ((target.threshold = 0) or (target._type = Ord(MT_ENTITY))) and
+       ((target.threshold = 0) or (target.flags4_ex and MF4_EX_NOTHRESHOLD <> 0)) and
        (source <> target) and
-       (source._type <> Ord(MT_ENTITY)) and
+       (source.flags4_ex and MF4_EX_DMGIGNORED = 0) and
        ((source.flags and MF_ALLY) <> (target.flags and MF_ALLY)) then
     begin
       // if not intent on another player,
       // chase after this one
-      if target.flags2_ex and MF2_EX_DONTINFIGHTMONSTERS = 0 then
+      if G_PlayingEngineVersion >= VERSION207 then
+        ignore := P_BothFriends(target, source) or P_InfightingImmune(target, source)
+      else
+        ignore := false;
+
+      if (target.flags2_ex and MF2_EX_DONTINFIGHTMONSTERS = 0) and not ignore then
       begin
         target.target := source;
         target.threshold := BASETHRESHOLD;
@@ -1475,6 +1565,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// P_CmdSuicide
+//
+//==============================================================================
 procedure P_CmdSuicide;
 begin
   if demoplayback then

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //    Stand alone script compiler
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 unit dd_compiler;
@@ -253,6 +253,11 @@ uses
   ps_utils,
   ps_defs;
 
+//==============================================================================
+//
+// DD_InitDoomEngine
+//
+//==============================================================================
 procedure DD_InitDoomEngine;
 begin
   ThousandSeparator := #0;
@@ -266,6 +271,11 @@ begin
   SC_ParseStatedefLump;
 end;
 
+//==============================================================================
+//
+// DD_ShutDownDoomEngine
+//
+//==============================================================================
 procedure DD_ShutDownDoomEngine;
 begin
   SC_ShutDown;
@@ -274,12 +284,16 @@ begin
   PS_ShutDownProcLists;
 end;
 
+//==============================================================================
+//
+// DD_Compile
+//
+//==============================================================================
 function DD_Compile(const _inp: string; var _out: string; var _msgs: string): boolean;
 var
   c: TDoomCompiler;
   i: integer;
 begin
-  DD_InitDoomEngine;
   try
     c := TDoomCompiler.CreateDoomCompiler;
     try
@@ -296,7 +310,6 @@ begin
       c.Free;
     end;
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -339,6 +352,11 @@ begin
   _msgssize := _lmsgssize;
 end;
 
+//==============================================================================
+//
+// DD_CopyStringToPChar
+//
+//==============================================================================
 procedure DD_CopyStringToPChar(const inps: string; var _out: PChar; var _outsize: Integer);
 var
   i: integer;
@@ -357,6 +375,11 @@ begin
     _out[i - 1] := inps[i];
 end;
 
+//==============================================================================
+//
+// DD_CopyPCharToString
+//
+//==============================================================================
 procedure DD_CopyPCharToString(const _inp: PChar; const _inpsize: Integer; var outstr: string);
 var
   i: integer;
@@ -382,12 +405,10 @@ procedure dd_getavailableunits_strife(
 var
   unitnames: string;
 begin
-  PS_InitProcLists;
   try
     unitnames := (PS_ImportUnits as TStringList).Text;
     DD_CopyStringToPChar(unitnames, _out, _outsize);
   finally
-    PS_ShutDownProcLists;
   end;
 end;
 
@@ -411,7 +432,6 @@ var
   funcdecls: string;
   idx: integer;
 begin
-  PS_InitProcLists;
   try
     DD_CopyPCharToString(_inp, _inpsize, unitname);
     lst := PS_ImportUnits as TStringList;
@@ -427,10 +447,14 @@ begin
       funcdecls := (lst.Objects[idx] as TProcedureList).GetDeclarations;
     DD_CopyStringToPChar(funcdecls, _out, _outsize);
   finally
-    PS_ShutDownProcLists;
   end;
 end;
 
+//==============================================================================
+//
+// IfRVariantStringValue
+//
+//==============================================================================
 function IfRVariantStringValue(const p: PIfRVariant): string;
 var
   i: integer;
@@ -503,6 +527,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// IfBaseTypeToString
+//
+//==============================================================================
 function IfBaseTypeToString(const b: byte): string;
 begin
   case b of
@@ -586,6 +615,11 @@ var
   ctypes: string;
   cclasses: string;
 
+//==============================================================================
+//
+// PS_ScriptOnUsesEx
+//
+//==============================================================================
 function PS_ScriptOnUsesEx(Sender: TPSPascalCompiler; const Name: string): Boolean;
 var
   i: integer;
@@ -624,6 +658,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// PS_ScriptOnUsesExClasses
+//
+//==============================================================================
 function PS_ScriptOnUsesExClasses(Sender: TPSPascalCompiler; const Name: string): Boolean;
 var
   i, j: integer;
@@ -684,7 +723,6 @@ begin
   end;
 end;
 
-
 {$IFDEF DOOM}
 procedure dd_getconstants_doom(
 {$ENDIF}
@@ -702,7 +740,6 @@ var
   pcode: string;
   c: TDoomCompiler;
 begin
-  DD_InitDoomEngine;
   try
     c := TDoomCompiler.CreateDoomCompiler;
     c.OnUses := PS_ScriptOnUsesEx;
@@ -713,7 +750,6 @@ begin
       c.Free;
     end;
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -734,7 +770,6 @@ var
   pcode: string;
   c: TDoomCompiler;
 begin
-  DD_InitDoomEngine;
   try
     c := TDoomCompiler.CreateDoomCompiler;
     c.OnUses := PS_ScriptOnUsesEx;
@@ -745,7 +780,6 @@ begin
       c.Free;
     end;
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -766,7 +800,6 @@ var
   pcode: string;
   c: TDoomCompiler;
 begin
-  DD_InitDoomEngine;
   try
     c := TDoomCompiler.CreateDoomCompiler;
     c.OnUses := PS_ScriptOnUsesEx;
@@ -777,7 +810,6 @@ begin
       c.Free;
     end;
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -798,7 +830,6 @@ var
   pcode: string;
   c: TDoomCompiler;
 begin
-  DD_InitDoomEngine;
   try
     c := TDoomCompiler.CreateDoomCompiler;
     c.OnUses := PS_ScriptOnUsesExClasses;
@@ -809,7 +840,6 @@ begin
       c.Free;
     end;
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -832,7 +862,6 @@ var
   i: integer;
   disasm: string;
 begin
-  DD_InitDoomEngine;
   try
     SetLength(pcode, _inpsize);
     for i := 0 to _inpsize - 1 do
@@ -840,12 +869,10 @@ begin
     if not IFPS3DataToText(pcode, disasm) then
     begin
       _outsize := 0;
-      DD_ShutDownDoomEngine;
       Exit;
     end;
     DD_CopyStringToPChar(disasm, _out, _outsize);
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -889,14 +916,12 @@ var
   afstr: string;
   i: integer;
 begin
-  DD_InitDoomEngine;
   try
     afstr := '';
     for i := 0 to DEHNUMACTIONS - 1 do
       afstr := afstr + deh_actions[i].decl + #13#10;
     DD_CopyStringToPChar(afstr, _out, _outsize);
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -917,14 +942,12 @@ var
   csvstr: string;
   lst: TDStringList;
 begin
-  DD_InitDoomEngine;
   try
     lst := DEH_MobjInfoCSV;
     csvstr := lst.Text;
     lst.Free;
     DD_CopyStringToPChar(csvstr, _out, _outsize);
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -945,14 +968,12 @@ var
   csvstr: string;
   lst: TDStringList;
 begin
-  DD_InitDoomEngine;
   try
     lst := DEH_StatesCSV;
     csvstr := lst.Text;
     lst.Free;
     DD_CopyStringToPChar(csvstr, _out, _outsize);
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -973,14 +994,12 @@ var
   csvstr: string;
   lst: TDStringList;
 begin
-  DD_InitDoomEngine;
   try
     lst := DEH_SpritesCSV;
     csvstr := lst.Text;
     lst.Free;
     DD_CopyStringToPChar(csvstr, _out, _outsize);
   finally
-    DD_ShutDownDoomEngine;
   end;
 end;
 
@@ -1000,7 +1019,6 @@ procedure dd_getactordef_strife(
 var
   actorstr: string;
 begin
-  Info_Init(true);
   try
     if IsIntegerInRange(m, 0, Ord(DO_NUMMOBJTYPES) - 1) then
     begin
@@ -1010,9 +1028,14 @@ begin
     else
       _outsize := 0;
   finally
-    Info_ShutDown;
   end;
 end;
+
+initialization
+  DD_InitDoomEngine;
+
+finalization
+  DD_ShutDownDoomEngine;
 
 end.
 

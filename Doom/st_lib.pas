@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   The status bar widget code.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -125,48 +125,108 @@ type
     //  stating whether to update icon
     _on: PBoolean;
 
-
     p: Ppatch_t;   // icon
     data: integer; // user data
   end;
   Pst_binicon_t = ^st_binicon_t;
 
+//==============================================================================
+// STlib_init
 //
 // Widget creation, access, and update routines
 //
-
 // Initializes widget library.
 // More precisely, initialize STMINUS,
 //  everything else is done somewhere else.
 //
+//==============================================================================
 procedure STlib_init;
 
+//==============================================================================
+// STlib_initNum
+//
 // Number widget routines
+//
+//==============================================================================
 procedure STlib_initNum(n: Pst_number_t; x, y: integer; pl: Ppatch_tPArray;
   num: PInteger; _on: PBoolean; width: integer);
 
+//==============================================================================
+//
+// STlib_updateNum
+//
+//==============================================================================
 procedure STlib_updateNum(n: Pst_number_t; transparent: boolean);
 
+//==============================================================================
+// STlib_initPercent
+//
 // Percent widget routines
+//
+//==============================================================================
 procedure STlib_initPercent(p: Pst_percent_t; x, y: integer; pl: Ppatch_tPArray;
   num: PInteger; _on: PBoolean; percent: Ppatch_t);
 
+//==============================================================================
+//
+// STlib_updatePercent
+//
+//==============================================================================
 procedure STlib_updatePercent(per: Pst_percent_t; refresh: boolean; transparent: boolean);
 
+//==============================================================================
+// STlib_initMultIcon
+//
 // Multiple Icon widget routines
+//
+//==============================================================================
 procedure STlib_initMultIcon(i: Pst_multicon_t; x, y: integer; il: Ppatch_tPArray;
   inum: PInteger; _on: PBoolean);
 
+//==============================================================================
+//
+// STlib_updateMultIcon
+//
+//==============================================================================
 procedure STlib_updateMultIcon(mi: Pst_multicon_t; refresh: boolean);
 
+//==============================================================================
+// STlib_initBinIcon
+//
 // Binary Icon widget routines
+//
+//==============================================================================
 procedure STlib_initBinIcon(b: Pst_binicon_t; x, y: integer; i: Ppatch_t;
   val: PBoolean; _on: PBoolean);
 
+//==============================================================================
+//
+// STlib_updateBinIcon
+//
+//==============================================================================
 procedure STlib_updateBinIcon(bi: Pst_binicon_t; refresh: boolean);
+
+//==============================================================================
+//
+// ST_DrawPatch
+//  Draws status bar patches, depending on 426x200 or 320x200 statusbar width
+//
+//==============================================================================
+procedure ST_DrawPatch(const x, y: Integer; const p: Ppatch_t); overload;
+
+//==============================================================================
+//
+// ST_DrawPatch
+//  Draws status bar patches, depending on 426x200 or 320x200 statusbar width
+//
+//==============================================================================
+procedure ST_DrawPatch(const x, y: Integer; const lump: integer); overload;
 
 var
   largeammo: integer = 1994; // means "n/a"
+
+var
+  wide_stbar: integer = 320;
 
 implementation
 
@@ -177,7 +237,7 @@ uses
   v_video,
   i_system,
   w_wad,
-  st_stuff;  // automapactive
+  st_stuff;
 
 //
 // Hack display negative frags.
@@ -186,6 +246,11 @@ uses
 var
   sttminus: Ppatch_t;
 
+//==============================================================================
+//
+// STlib_init
+//
+//==============================================================================
 procedure STlib_init;
 var
   lump: integer;
@@ -200,7 +265,12 @@ begin
     sttminus := W_CacheLumpNum(lump, PU_STATIC);
 end;
 
+//==============================================================================
+// STlib_initNum
+//
 // ?
+//
+//==============================================================================
 procedure STlib_initNum(n: Pst_number_t; x, y: integer; pl: Ppatch_tPArray;
   num: PInteger; _on: PBoolean; width: integer);
 begin
@@ -213,11 +283,14 @@ begin
   n.p := pl;
 end;
 
+//==============================================================================
+// STlib_drawNum
 //
 // A fairly efficient way to draw a number
 //  based on differences from the old number.
 // Note: worth the trouble?
 //
+//==============================================================================
 procedure STlib_drawNum(n: Pst_number_t; transparent: boolean);
 var
   numdigits: integer;
@@ -253,10 +326,10 @@ begin
   if n.y - ST_Y < 0 then
     I_Error('STlib_drawNum() : n.y - ST_Y < 0');
 
-  if transparent then
+{  if transparent then
     V_CopyRectTransparent(x, n.y - ST_Y, SCN_ST, w * numdigits, h, x, n.y, SCN_FG, true)
   else
-    V_CopyRect(x, n.y - ST_Y, SCN_ST, w * numdigits, h, x, n.y, SCN_FG, true);
+    V_CopyRect(x, n.y - ST_Y, SCN_ST, w * numdigits, h, x, n.y, SCN_FG, true);}
 
   // if non-number, do not draw it
   if num = largeammo then
@@ -266,30 +339,36 @@ begin
 
   // in the special case of 0, you draw 0
   if num = 0 then
-    V_DrawPatch(x - w, n.y - ST_Y, SCN_ST, n.p[0], false);
+    ST_DrawPatch(x - w, n.y - ST_Y, n.p[0]);
 
   // draw the new number
   while (num <> 0) and (numdigits <> 0) do
   begin
     x := x - w;
-    V_DrawPatch(x, n.y - ST_Y, SCN_ST, n.p[num mod 10], false);
+    ST_DrawPatch(x, n.y - ST_Y, n.p[num mod 10]);
     num := num div 10;
     dec(numdigits);
   end;
 
   // draw a minus sign if necessary
   if neg then
-    V_DrawPatch(x - 8, n.y - ST_Y, SCN_ST, sttminus, false);
+    ST_DrawPatch(x - 8, n.y - ST_Y, sttminus);
 end;
 
+//==============================================================================
+// STlib_updateNum
 //
+//==============================================================================
 procedure STlib_updateNum(n: Pst_number_t; transparent: boolean);
 begin
   if n._on^ then
     STlib_drawNum(n, transparent);
 end;
 
+//==============================================================================
+// STlib_initPercent
 //
+//==============================================================================
 procedure STlib_initPercent(p: Pst_percent_t; x, y: integer; pl: Ppatch_tPArray;
   num: PInteger; _on: PBoolean; percent: Ppatch_t);
 begin
@@ -297,25 +376,40 @@ begin
   p.p := percent;
 end;
 
+//==============================================================================
+//
+// STlib_updatePercent
+//
+//==============================================================================
 procedure STlib_updatePercent(per: Pst_percent_t; refresh: boolean;transparent: boolean);
 begin
   if refresh and per.n._on^ then
-    V_DrawPatch(per.n.x, per.n.y - ST_Y, SCN_ST, per.p, false);
+    ST_DrawPatch(per.n.x, per.n.y - ST_Y, per.p);
 
   STlib_updateNum(@per.n, transparent);
 end;
 
+//==============================================================================
+//
+// STlib_initMultIcon
+//
+//==============================================================================
 procedure STlib_initMultIcon(i: Pst_multicon_t; x, y: integer; il: Ppatch_tPArray;
   inum: PInteger; _on: PBoolean);
 begin
-  i.x  := x;
-  i.y  := y;
+  i.x := x;
+  i.y := y;
   i.oldinum := -1;
   i.inum := inum;
   i._on := _on;
   i.p := il;
 end;
 
+//==============================================================================
+//
+// STlib_updateMultIcon
+//
+//==============================================================================
 procedure STlib_updateMultIcon(mi: Pst_multicon_t; refresh: boolean);
 var
   y: integer;
@@ -330,22 +424,32 @@ begin
         I_Error('STlib_updateMultIcon(): y - ST_Y < 0');
 
     end;
-    V_DrawPatch(mi.x, mi.y - ST_Y, SCN_ST, mi.p[mi.inum^], false);
+    ST_DrawPatch(mi.x, mi.y - ST_Y, mi.p[mi.inum^]);
     mi.oldinum := mi.inum^;
   end;
 end;
 
+//==============================================================================
+//
+// STlib_initBinIcon
+//
+//==============================================================================
 procedure STlib_initBinIcon(b: Pst_binicon_t; x, y: integer; i: Ppatch_t;
   val: PBoolean; _on: PBoolean);
 begin
-  b.x  := x;
-  b.y  := y;
+  b.x := x;
+  b.y := y;
   b.oldval := false;
   b.val := val;
   b._on := _on;
   b.p := i;
 end;
 
+//==============================================================================
+//
+// STlib_updateBinIcon
+//
+//==============================================================================
 procedure STlib_updateBinIcon(bi: Pst_binicon_t; refresh: boolean);
 var
   y: integer;
@@ -358,10 +462,53 @@ begin
       I_Error('STlib_updateBinIcon(): y - ST_Y < 0');
 
     if bi.val^ then
-      V_DrawPatch(bi.x, bi.y - ST_Y, SCN_ST, bi.p, false);
+      ST_DrawPatch(bi.x, bi.y - ST_Y, bi.p);
 
     bi.oldval := bi.val^;
   end;
+end;
+
+//==============================================================================
+//
+// ST_DrawPatch
+//  Draws status bar patches, depending on 426x200 or 320x200 statusbar width
+//
+//==============================================================================
+procedure ST_DrawPatch(const x, y: Integer; const p: Ppatch_t);
+var
+  x1: integer;
+begin
+  if wide_stbar = 426 then
+  begin
+    if st_drawoptions = stdo_small then
+    begin
+      if x < 160 then
+        x1 := x
+      else
+        x1 := 426 - (320 - x);
+
+      V_DrawPatch(x1, y, SCN_ST426, p, false);
+    end
+    else
+      V_DrawPatch(x + (426 - 320) div 2, y, SCN_ST426, p, false);
+  end
+  else
+    V_DrawPatch(x, y, SCN_ST, p, false);
+end;
+
+//==============================================================================
+//
+// ST_DrawPatch
+//  Draws status bar patches, depending on 426x200 or 320x200 statusbar width
+//
+//==============================================================================
+procedure ST_DrawPatch(const x, y: Integer; const lump: integer); overload;
+var
+  p: Ppatch_t;
+begin
+  p := W_CacheLumpNum(lump, PU_STATIC);
+  ST_DrawPatch(x, y, p);
+  Z_ChangeTag(p, PU_CACHE);
 end;
 
 end.

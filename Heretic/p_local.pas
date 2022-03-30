@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Play functions, animation, global header.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -75,7 +75,6 @@ const
   USETHINGRANGE = USETHINGRANGEINT * FRACUNIT;
   MELEERANGE = 64 * FRACUNIT;
   MISSILERANGE = (32 * 64) * FRACUNIT;
-
 
 // follow a player exlusively for 3 seconds
   BASETHRESHOLD = 100;
@@ -138,30 +137,41 @@ const
   PT_EARLYOUT = 4;
 
 const
-  USE_GWND_AMMO_1 = 1;
-  USE_GWND_AMMO_2 = 1;
-  USE_CBOW_AMMO_1 = 1;
-  USE_CBOW_AMMO_2 = 1;
-  USE_BLSR_AMMO_1 = 1;
-  USE_BLSR_AMMO_2 = 5;
-  USE_SKRD_AMMO_1 = 1;
-  USE_SKRD_AMMO_2 = 5;
-  USE_PHRD_AMMO_1 = 1;
-  USE_PHRD_AMMO_2 = 1;
-  USE_MACE_AMMO_1 = 1;
-  USE_MACE_AMMO_2 = 5;
-
-const
   FOOTCLIPSIZE = 10 * FRACUNIT;
 
+//==============================================================================
+//
+// MapBlockInt
+//
+//==============================================================================
 function MapBlockInt(const x: integer): integer;
 
+//==============================================================================
+//
+// MapBlockIntX
+//
+//==============================================================================
 function MapBlockIntX(const x: int64): integer;
 
+//==============================================================================
+//
+// MapBlockIntY
+//
+//==============================================================================
 function MapBlockIntY(const y: int64): integer;
 
+//==============================================================================
+//
+// MapToFrac
+//
+//==============================================================================
 function MapToFrac(const x: integer): integer;
 
+//==============================================================================
+//
+// HITDICE
+//
+//==============================================================================
 function HITDICE(a: integer): integer;
 
 implementation
@@ -170,11 +180,21 @@ uses
   m_rnd,
   p_setup;
 
+//==============================================================================
+//
+// MapBlockInt
+//
+//==============================================================================
 function MapBlockInt(const x: integer): integer; assembler;
 asm
   sar eax, MAPBLOCKSHIFT
 end;
 
+//==============================================================================
+//
+// MapBlockIntX
+//
+//==============================================================================
 function MapBlockIntX(const x: int64): integer;
 begin
   result := x shr MAPBLOCKSHIFT;
@@ -182,6 +202,11 @@ begin
     result := result and $1FF;
 end;
 
+//==============================================================================
+//
+// MapBlockIntY
+//
+//==============================================================================
 function MapBlockIntY(const y: int64): integer;
 begin
   result := y shr MAPBLOCKSHIFT;
@@ -189,11 +214,21 @@ begin
     result := result and $1FF;
 end;
 
+//==============================================================================
+//
+// MapToFrac
+//
+//==============================================================================
 function MapToFrac(const x: integer): integer; assembler;
 asm
   sar eax, MAPBTOFRAC
 end;
 
+//==============================================================================
+//
+// HITDICE
+//
+//==============================================================================
 function HITDICE(a: integer): integer;
 begin
   result :=  (1 + (P_Random and 7)) * a;

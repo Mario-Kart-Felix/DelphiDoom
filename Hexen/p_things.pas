@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -148,17 +148,47 @@ const
     MT_WRAITHFX2          // T_SPARK_DRIP
   );
 
-function EV_ThingActivate(tid: integer): boolean;
+//==============================================================================
+//
+// EVH_ThingActivate
+//
+//==============================================================================
+function EVH_ThingActivate(tid: integer): boolean;
 
-function EV_ThingDeactivate(tid: integer): boolean;
+//==============================================================================
+//
+// EVH_ThingDeactivate
+//
+//==============================================================================
+function EVH_ThingDeactivate(tid: integer): boolean;
 
-function EV_ThingRemove(tid: integer): boolean;
+//==============================================================================
+//
+// EVH_ThingRemove
+//
+//==============================================================================
+function EVH_ThingRemove(tid: integer): boolean;
 
-function EV_ThingDestroy(tid: integer): boolean;
+//==============================================================================
+//
+// EVH_ThingDestroy
+//
+//==============================================================================
+function EVH_ThingDestroy(tid: integer): boolean;
 
-function EV_ThingProjectile(args: PByteArray; gravity: boolean): boolean;
+//==============================================================================
+//
+// EVH_ThingProjectile
+//
+//==============================================================================
+function EVH_ThingProjectile(args: PByteArray; gravity: boolean): boolean;
 
-function EV_ThingSpawn(args: PByteArray; fog: boolean): boolean;
+//==============================================================================
+//
+// EVH_ThingSpawn
+//
+//==============================================================================
+function EVH_ThingSpawn(args: PByteArray; fog: boolean): boolean;
 
 implementation
 
@@ -173,17 +203,16 @@ uses
   p_map,
   p_inter,
   tables,
-  sounds,
-  s_sound,
-  doomdef;
+  sounddata,
+  udmf_telept,
+  s_sound;
 
-//==========================================================================
+//==============================================================================
 //
-// EV_ThingProjectile
+// EVH_ThingProjectile
 //
-//==========================================================================
-
-function EV_ThingProjectile(args: PByteArray; gravity: boolean): boolean;
+//==============================================================================
+function EVH_ThingProjectile(args: PByteArray; gravity: boolean): boolean;
 var
   tid: integer;
   angle: angle_t;
@@ -229,13 +258,12 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
-// EV_ThingSpawn
+// EVH_ThingSpawn
 //
-//==========================================================================
-
-function EV_ThingSpawn(args: PByteArray; fog: boolean): boolean;
+//==============================================================================
+function EVH_ThingSpawn(args: PByteArray; fog: boolean): boolean;
 var
   tid: integer;
   angle: angle_t;
@@ -283,12 +311,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_ActivateThing
 //
-//==========================================================================
-
+//==============================================================================
 function P_ActivateThing(mobj: Pmobj_t): boolean;
 begin
   if mobj.flags and MF_COUNTKILL <> 0 then
@@ -393,13 +420,12 @@ begin
   result := true;
 end;
 
-//==========================================================================
+//==============================================================================
 //
-// EV_ThingActivate
+// EVH_ThingActivate
 //
-//==========================================================================
-
-function EV_ThingActivate(tid: integer): boolean;
+//==============================================================================
+function EVH_ThingActivate(tid: integer): boolean;
 var
   mobj: Pmobj_t;
   searcher: integer;
@@ -411,12 +437,11 @@ begin
       result := true;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // P_DeactivateThing
 //
-//==========================================================================
-
+//==============================================================================
 function P_DeactivateThing(mobj: Pmobj_t): boolean;
 begin
   if mobj.flags and MF_COUNTKILL <> 0 then
@@ -497,14 +522,12 @@ begin
   result := true;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
-// EV_ThingDeactivate
+// EVH_ThingDeactivate
 //
-//==========================================================================
-
-function EV_ThingDeactivate(tid: integer): boolean;
+//==============================================================================
+function EVH_ThingDeactivate(tid: integer): boolean;
 var
   mobj: Pmobj_t;
   searcher: integer;
@@ -516,13 +539,12 @@ begin
       result := true;
 end;
 
-//==========================================================================
+//==============================================================================
 //
-// EV_ThingRemove
+// EVH_ThingRemove
 //
-//==========================================================================
-
-function EV_ThingRemove(tid: integer): boolean;
+//==============================================================================
+function EVH_ThingRemove(tid: integer): boolean;
 var
   mobj: Pmobj_t;
   searcher: integer;
@@ -541,13 +563,12 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
-// EV_ThingDestroy
+// EVH_ThingDestroy
 //
-//==========================================================================
-
-function EV_ThingDestroy(tid: integer): boolean;
+//==============================================================================
+function EVH_ThingDestroy(tid: integer): boolean;
 var
   mobj: Pmobj_t;
   searcher: integer;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //    External MD2 model support
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -153,6 +153,11 @@ type
     ofs_end: Integer;
   end;
 
+//==============================================================================
+//
+// TMD2Model.Create
+//
+//==============================================================================
 constructor TMD2Model.Create(const name: string;
   const xoffset, yoffset, zoffset: float;
   const xscale, yscale, zscale: float;
@@ -330,8 +335,11 @@ begin
 
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.MergeFrames
+//
+//==============================================================================
 function TMD2Model.MergeFrames(const m: TBaseModel): boolean;
 var
   i: integer;
@@ -377,8 +385,11 @@ begin
   Result := True;
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.Destroy
+//
+//==============================================================================
 destructor TMD2Model.Destroy;
 var
   i: integer;
@@ -399,8 +410,11 @@ begin
   Inherited;
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.Draw
+//
+//==============================================================================
 procedure TMD2Model.Draw(const frm1, frm2: integer; const offset: float);
 var
   w2: float;
@@ -445,8 +459,11 @@ begin
   glEnd;
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.DrawSimple
+//
+//==============================================================================
 procedure TMD2Model.DrawSimple(const frm: integer);
 var
   i: integer;
@@ -471,8 +488,11 @@ begin
   end;
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.StartFrame
+//
+//==============================================================================
 function TMD2Model.StartFrame(const i: integer): integer;
 begin
   result := -1;
@@ -481,8 +501,11 @@ begin
       result := (frameNames.Objects[i] as TFrameIndexInfo).StartFrame;
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.EndFrame
+//
+//==============================================================================
 function TMD2Model.EndFrame(const i: integer): integer;
 begin
   result := -1;
@@ -491,8 +514,11 @@ begin
       result := (frameNames.Objects[i] as TFrameIndexInfo).EndFrame;
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.StartFrame
+//
+//==============================================================================
 function TMD2Model.StartFrame(const frame: string): integer;
 begin
   result := StartFrame(frameNames.IndexOf(frame));
@@ -500,8 +526,11 @@ begin
     result := StartFrame(frameNames.IndexOf(strupper(frame)));
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.EndFrame
+//
+//==============================================================================
 function TMD2Model.EndFrame(const frame: string): integer;
 begin
   result := EndFrame(frameNames.IndexOf(frame));
@@ -509,8 +538,11 @@ begin
     result := EndFrame(frameNames.IndexOf(strupper(frame)));
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.FrameName
+//
+//==============================================================================
 function TMD2Model.FrameName(const i: integer): string;
 begin
   if IsIntegerInRange(i, 0, frameNames.Count - 1) then
@@ -519,8 +551,11 @@ begin
     result := '';
 end;
 
-//------------------------------------------------------------------------------
-
+//==============================================================================
+//
+// TMD2Model.FrameIndex
+//
+//==============================================================================
 function TMD2Model.FrameIndex(const frame: string): integer;
 begin
   result := frameNames.IndexOf(frame);

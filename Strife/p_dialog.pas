@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //    Dialog Engine for Strife
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -58,20 +58,60 @@ var
 var
   mission_objective: string;
 
+//==============================================================================
+//
+// M_InitDialogs
+//
+//==============================================================================
 procedure M_InitDialogs;
 
+//==============================================================================
+//
+// P_GiveItemToPlayer
+//
+//==============================================================================
 function P_GiveItemToPlayer(player: Pplayer_t; sprnum: integer; _type: mobjtype_t): boolean;
 
+//==============================================================================
+//
+// P_GiveVoiceObjective
+//
+//==============================================================================
 procedure P_GiveVoiceObjective(const voice, log: string; const minlumpnum: integer);
 
+//==============================================================================
+//
+// P_DialogStartP1
+//
+//==============================================================================
 procedure P_DialogStartP1;
 
+//==============================================================================
+//
+// P_DialogStart
+//
+//==============================================================================
 procedure P_DialogStart(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_PlayerHasItem
+//
+//==============================================================================
 function P_PlayerHasItem(player: Pplayer_t; _type: mobjtype_t): integer;
 
+//==============================================================================
+//
+// P_GiveObjective
+//
+//==============================================================================
 procedure P_GiveObjective(const x: string; const minlumpnum: integer);
 
+//==============================================================================
+//
+// P_GiveInventoryItem
+//
+//==============================================================================
 function P_GiveInventoryItem(player: Pplayer_t; sprnum: integer; _type: mobjtype_t): boolean;
 
 const
@@ -84,7 +124,6 @@ const
   MDLG_TEXTLEN = 320;
   MDLG_MAXCHOICES = 5;
   MDLG_MAXITEMS = 3;
-
 
 type
   mapdlgchoice_t = packed record
@@ -129,9 +168,18 @@ type
   oldmapdialog_a = array[0..255] of oldmapdialog_t;
   oldmapdialog_pa = ^oldmapdialog_a;
 
-
+//==============================================================================
+//
+// P_DialogFind
+//
+//==============================================================================
 function P_DialogFind(_type: mobjtype_t; jumptoconv: integer): mapdialog_p;
 
+//==============================================================================
+//
+// P_DialogLoad
+//
+//==============================================================================
 procedure P_DialogLoad;
 
 implementation
@@ -159,11 +207,12 @@ uses
   p_spec,
   p_map,
   p_user,
+  p_tick,
   info,
   r_defs,
   r_main,
   tables,
-  sounds,
+  sounddata,
   s_sound,
   v_data,
   v_video;
@@ -506,10 +555,13 @@ const
     (id: 343; teaser1: 0; teaser2: 0)
   );
 
+//==============================================================================
 //
 // P_IdFromXlat
 //
 // JVAL: Support for old teasers
+//
+//==============================================================================
 function P_IdFromXlat(const id: integer): integer;
 var
   i: integer;
@@ -545,21 +597,28 @@ begin
 
 end;
 
-
+//==============================================================================
 //
 // P_GiveObjective
 //
 // villsa - convenient macro for giving objective logs to player
+//
+//==============================================================================
 procedure P_GiveObjective(const x: string; const minlumpnum: integer);
 var
   obj_ln: integer;
 begin
-  obj_ln  := W_CheckNumForName(DEH_GetString(x));
+  obj_ln := W_CheckNumForName(DEH_GetString(x));
   if obj_ln > minlumpnum then
     mission_objective := W_TextLumpNum(obj_ln);
 end;
 
+//==============================================================================
+// P_GiveVoiceObjective
+//
 // haleyjd - voice and objective in one
+//
+//==============================================================================
 procedure P_GiveVoiceObjective(const voice, log: string; const minlumpnum: integer);
 var
   obj_ln: integer;
@@ -622,7 +681,6 @@ var
 
 // Health based on gameskill given by the front's medic
   healthamounts: array[Ord(sk_baby)..Ord(sk_nightmare)] of integer = ( -100 , -75, -50, -50, -100 );
-
 
 //=============================================================================
 //
@@ -843,7 +901,6 @@ var
     )
   );
 
-
 //=============================================================================
 //
 // Dialog Menu Structure
@@ -874,8 +931,6 @@ var
 //
 // Routines
 //
-
-//
 // P_ParseDialogLump
 //
 // haleyjd 09/02/10: This is an original function added to parse out the
@@ -883,6 +938,8 @@ var
 // pointer. This avoids problems with structure packing.
 //
 // JVAL: changed to support the old demo format.
+//
+//==============================================================================
 procedure P_ParseDialogLump(const lumpname: string; const tag: integer; var dialogs: mapdialog_pa; var numdialogs: integer);
 var
   i, j, k: integer;
@@ -963,6 +1020,7 @@ begin
     W_ReadLump(lumpnum, dialogs);
 end;
 
+//==============================================================================
 //
 // P_DialogLoad
 //
@@ -971,6 +1029,8 @@ end;
 // SCRIPT00 if it has not yet been loaded.
 //
 // JVAL: simplified :)
+//
+//==============================================================================
 procedure P_DialogLoad;
 begin
   // load the SCRIPTxy lump corresponding to MAPxy, if it exists.
@@ -983,6 +1043,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_PlayerHasItem
 //
@@ -990,6 +1051,7 @@ end;
 // haleyjd 09/02/10: Checks for inventory items, quest flags, etc. for dialogs.
 // Returns the amount possessed, or 0 if none.
 //
+//==============================================================================
 function P_PlayerHasItem(player: Pplayer_t; _type: mobjtype_t): integer;
 var
   i: integer;
@@ -1035,6 +1097,7 @@ begin
   result := 0;
 end;
 
+//==============================================================================
 //
 // P_DialogFind
 //
@@ -1042,6 +1105,7 @@ end;
 // haleyjd 09/03/10: Looks for a dialog definition matching the given
 // Script ID # for an mobj.
 //
+//==============================================================================
 function P_DialogFind(_type: mobjtype_t; jumptoconv: integer): mapdialog_p;
 var
   i: integer;
@@ -1071,6 +1135,7 @@ begin
   result := @script0dialogs[0];
 end;
 
+//==============================================================================
 //
 // P_DialogGetStates
 //
@@ -1078,6 +1143,7 @@ end;
 // haleyjd 09/03/10: Find the set of special dialog states (greetings, yes, no)
 // for a particular thing type.
 //
+//==============================================================================
 function P_DialogGetStates(const _type: mobjtype_t): dialogstateset_p;
 var
   i: integer;
@@ -1094,6 +1160,7 @@ begin
   result := @dialogstatesets[0];
 end;
 
+//==============================================================================
 //
 // P_DialogGetMsg
 //
@@ -1101,6 +1168,7 @@ end;
 // haleyjd 09/03/10: Redirects dialog messages when the script indicates that
 // the actor should use a random message stored in the executable instead.
 //
+//==============================================================================
 function P_DialogGetMsg(const _message: string): string;
 var
   i: integer;
@@ -1127,6 +1195,7 @@ begin
   result := _message;
 end;
 
+//==============================================================================
 //
 // P_GiveInventoryItem
 //
@@ -1134,6 +1203,7 @@ end;
 // haleyjd 09/03/10: Give an inventory item to the player, if possible.
 // villsa 09/09/10: Fleshed out routine
 //
+//==============================================================================
 function P_GiveInventoryItem(player: Pplayer_t; sprnum: integer; _type: mobjtype_t): boolean;
 var
   curinv, i: integer;
@@ -1167,9 +1237,9 @@ begin
         begin
           for i := player.numinventory downto curinv + 1 do
           begin
-            invtail[1].sprite   := invtail[0].sprite;
-            invtail[1]._type    := invtail[0]._type;
-            invtail[1].amount   := invtail[0].amount;
+            invtail[1].sprite := invtail[0].sprite;
+            invtail[1]._type := invtail[0]._type;
+            invtail[1].amount := invtail[0].amount;
             invtail := Pinventory_a(integer(invtail) - SizeOf(inventory_t));
           end;
         end;
@@ -1205,6 +1275,7 @@ begin
     inc(player.inventory[curinv].amount);
 end;
 
+//==============================================================================
 //
 // P_GiveItemToPlayer
 //
@@ -1213,6 +1284,7 @@ end;
 // Not strictly just for inventory items.
 // villsa 09/09/10: Fleshed out function
 //
+//==============================================================================
 function P_GiveItemToPlayer(player: Pplayer_t; sprnum: integer; _type: mobjtype_t): boolean;
 var
   i: integer;
@@ -1623,12 +1695,14 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_TakeDialogItem
 //
 // [STRIFE] New function
 // haleyjd 09/03/10: Removes needed items from the player's inventory.
 //
+//==============================================================================
 procedure P_TakeDialogItem(player: Pplayer_t; _type: integer; amount: integer);
 var
   i, j: integer;
@@ -1680,6 +1754,7 @@ begin
   end;    // end for
 end;
 
+//==============================================================================
 //
 // P_DialogDoChoice
 //
@@ -1687,6 +1762,7 @@ end;
 // haleyjd 09/05/10: Handles making a choice in a dialog. Installed as the
 // callback for all items in the dialogmenu structure.
 //
+//==============================================================================
 procedure P_DialogDoChoice(choice: integer);
 var
   i, nextdialog: integer;
@@ -1770,12 +1846,13 @@ begin
     P_DialogStart(dialogplayer);
 end;
 
-
+//==============================================================================
 //
 // P_DialogDrawer
 //
 // This function is set as the drawer callback for the dialog menu.
 //
+//==============================================================================
 procedure P_DialogDrawer;
 var
   angle: angle_t;
@@ -1863,22 +1940,26 @@ begin
   V_CopyRectTransparent(0, 0, SCN_TMP, 320, 200, 0, 0, SCN_FG, true);
 end;
 
+//==============================================================================
 //
 // P_DialogStartP1
 //
 // [STRIFE] New function
 // haleyjd 09/13/10: This is a hack used by the finale system.
 //
+//==============================================================================
 procedure P_DialogStartP1;
 begin
   P_DialogStart(@players[0]);
 end;
 
+//==============================================================================
 //
 // P_DialogStart
 //
 // villsa [STRIFE] New function
 //
+//==============================================================================
 procedure P_DialogStart(player: Pplayer_t);
 var
   i: integer;
@@ -1925,6 +2006,8 @@ begin
   // face towards NPC's direction
   // JVAL: use DelphiDoom's P_PlayerFaceMobj function, turn towards dialogtalker in half second
   P_PlayerFaceMobj(player, dialogtalker, TICRATE div 2);
+
+  player.nextfire := leveltime + TICRATE div 2;
 
   // set pointer to player talking
   dialogplayer := player;
@@ -2028,7 +2111,11 @@ begin
   sprintf(dialoglastmsgbuffer, '%d) %s', [i + 1, byetext]);
 end;
 
-
+//==============================================================================
+//
+// M_InitDialogs
+//
+//==============================================================================
 procedure M_InitDialogs;
 var
   i: integer;

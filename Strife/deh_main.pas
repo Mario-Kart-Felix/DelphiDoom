@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -43,14 +43,35 @@ interface
 
 uses
   d_delphi,
-  d_think;
+  d_think,
+  info_h;
 
+//==============================================================================
+//
+// DEH_Parse
+//
+//==============================================================================
 procedure DEH_Parse(const s: TDStringList);
 
+//==============================================================================
+//
+// DEH_CurrentSettings
+//
+//==============================================================================
 function DEH_CurrentSettings: TDStringList;
 
+//==============================================================================
+//
+// DEH_Init
+//
+//==============================================================================
 procedure DEH_Init;
 
+//==============================================================================
+//
+// DEH_ShutDown
+//
+//==============================================================================
 procedure DEH_ShutDown;
 
 const
@@ -64,7 +85,11 @@ type
     action: actionf_t;
     originalname: string;
     name: string;
-    {$IFDEF DLL}decl: string;{$ENDIF}
+    argcount: integer;
+    default_args: array[0..MAX_STATE_ARGS - 1] of integer; // mbf21
+    {$IFDEF DLL}
+    decl: string;
+    {$ENDIF}
   end;
   Pdeh_action_t = ^deh_action_t;
 
@@ -91,21 +116,43 @@ var
   mobj_flags2_ex: TDTextList;
   mobj_flags3_ex: TDTextList;
   mobj_flags4_ex: TDTextList;
+  mobj_flags5_ex: TDTextList;
+  mobj_flags6_ex: TDTextList;
+  mobj_flags_mbf21: TDTextList; // MBF21
   state_tokens: TDTextList;
   state_flags_ex: TDTextList;
+  state_flags_mbf21: TDTextList;  // MBF21
   ammo_tokens: TDTextList;
   weapon_tokens: TDTextList;
+  weapon_flags_mbf21: TDTextList; // MBF21
   sound_tokens: TDTextList;
   renderstyle_tokens: TDTextList;
   misc_tokens: TDTextList;
   weapontype_tokens: TDTextList;
   ammotype_tokens: TDTextList;
+  // MBF21
+  infighting_groups: TDTextList;
+  projectile_groups: TDTextList;
+  splash_groups: TDTextList;
 
   deh_actions: array[0..DEHMAXACTIONS - 1] of deh_action_t;
   deh_strings: deh_strings_t;
 
+var
+  ismbf21: boolean = false; // MBF21
+
+//==============================================================================
+//
+// Deh_ActionName
+//
+//==============================================================================
 function Deh_ActionName(action: actionf_t): string;
 
+//==============================================================================
+//
+// DEH_GetString
+//
+//==============================================================================
 function DEH_GetString(const s: string): string;
 
 implementation
@@ -121,17 +168,14 @@ uses
   dstrings,
   e_endoom,
   f_finale,
-  g_game,
   hu_stuff,
   i_system,
-  info_h,
   info,
   info_common,
   m_argv,
   m_fixed,
   ps_main,
   p_mobj,
-  p_mobj_h,
   p_enemy,
   p_extra,
   p_common,
@@ -143,14 +187,13 @@ uses
   p_simpledialog,
   psi_overlay,
   r_renderstyle,
+  r_translations,
+  sounddata,
   sounds,
   sc_params,
   sc_engine,
   sc_states,
-  v_data,
-  w_wad,
-  w_folders,
-  w_pak;
+  v_data;
 
 var
   mobj_tokens_hash: TDEHStringsHashTable;
@@ -159,11 +202,18 @@ var
   mobj_flags2_ex_hash: TDEHStringsHashTable;
   mobj_flags3_ex_hash: TDEHStringsHashTable;
   mobj_flags4_ex_hash: TDEHStringsHashTable;
-
+  mobj_flags5_ex_hash: TDEHStringsHashTable;
+  mobj_flags6_ex_hash: TDEHStringsHashTable;
+  mobj_flags_mbf21_hash: TDEHStringsHashTable;
 
 var
   stringhash: array[0..255] of TDNumberList;
 
+//==============================================================================
+//
+// loselose
+//
+//==============================================================================
 function loselose(const s: string): byte;
 var
   i: integer;
@@ -173,6 +223,11 @@ begin
     result := result + Ord(s[i]);
 end;
 
+//==============================================================================
+//
+// DEH_AddString
+//
+//==============================================================================
 procedure DEH_AddString(deh_strings: Pdeh_strings_t; pstr: PString; const name: string);
 begin
   if deh_strings.numstrings = deh_strings.realnumstrings then
@@ -194,6 +249,11 @@ end;
 var
   deh_initialized: boolean = false;
 
+//==============================================================================
+//
+// DEH_Parse
+//
+//==============================================================================
 procedure DEH_Parse(const s: TDStringList);
 var
   i, j: integer;
@@ -204,6 +264,7 @@ var
   token3: string;
   token4: string;
   token5: string;
+  group: integer; // MBF21
   fw: string;
   settext: string;
   mustnextline: boolean;
@@ -230,12 +291,16 @@ var
   weapon_no: integer;
   weapon_idx: integer;
   weapon_val: integer;
+  weapon_flag: integer;
 
   sound_no: integer;
   sound_idx: integer;
   sound_val: integer;
 
   music_idx: integer;
+
+  sprite_idx: integer;
+  sprite_val: integer;
 
   misc_idx: integer;
   misc_val: integer;
@@ -271,7 +336,7 @@ begin
         break;
     mustnextline := true;
 
-    splitstring(str, token1, token2);
+    splitstring_ch(str, token1, token2);
 
     ////////////////////////////////////////////////////////////////////////////
     if (token1 = 'THING') or (token1 = 'NEWTHING') then
@@ -316,14 +381,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         token2 := RemoveQuotesFromString(token2);
         mobj_idx := mobj_tokens_hash.IndexOf(token1);
 
@@ -336,9 +401,9 @@ begin
 
         mobj_val := atoi(token2, -1);
 
-        if mobj_idx in [1, 3, 7, 10, 11, 12, 13, 23, 38, 40, 41] then
+        if mobj_idx in [1, 3, 7, 10, 11, 12, 13, 23, 38, 40, 41, 74] then
         begin
-          stmp := firstword(token2);
+          stmp := firstword_ch(token2);
           if (stmp = 'NEWFRAME') or (stmp = 'NEWSTATE') then  // JVAL: a new defined state
           begin
             mobj_val := atoi(secondword(token2), -1);
@@ -377,13 +442,15 @@ begin
           13: mobjinfo[mobj_no].xdeathstate := mobj_val;
           14: mobjinfo[mobj_no].deathsound := S_GetSoundNumForName(token2);
           15: mobjinfo[mobj_no].speed := mobj_val;
-          16: mobjinfo[mobj_no].radius := mobj_val;
+          16,
+          76: mobjinfo[mobj_no].radius := mobj_val;
           17: mobjinfo[mobj_no].height := mobj_val;
           18: mobjinfo[mobj_no].mass := mobj_val;
           19: mobjinfo[mobj_no].damage := mobj_val;
-          20: mobjinfo[mobj_no].activesound := S_GetSoundNumForName(token2);
+          20,
+          75: mobjinfo[mobj_no].activesound := S_GetSoundNumForName(token2);
           21: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags := mobj_val
                 else
                 begin
@@ -413,8 +480,8 @@ begin
               end;
           23: mobjinfo[mobj_no].raisestate := mobj_val;
           24: begin
-                if mobj_val >= 0 then
-                  mobjinfo[mobj_no].flags_ex := mobj_val  // DelphiDoom specific (lighting, transparency, etc)
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].flags_ex := mobj_val  // DelphiStrife specific (lighting, transparency, etc)
                 else
                 begin
                   mobj_setflag := -1;
@@ -471,12 +538,13 @@ begin
                 end;
               end;
           35: mobjinfo[mobj_no].alpha := mobj_val;
-          36: mobjinfo[mobj_no].dropitem := Info_GetMobjNumForName(token2);
+          36,
+          79: mobjinfo[mobj_no].dropitem := Info_GetMobjNumForName(token2);
           37: mobjinfo[mobj_no].missiletype := Info_GetMobjNumForName(token2);
           38: mobjinfo[mobj_no].healstate := mobj_val;
           39: begin
-                if mobj_val >= 0 then
-                  mobjinfo[mobj_no].flags2_ex := mobj_val  // DelphiDoom specific
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].flags2_ex := mobj_val  // DelphiStrife specific
                 else
                 begin
                   mobj_setflag := -1;
@@ -517,7 +585,7 @@ begin
           46: mobjinfo[mobj_no].scale := DEH_FixedOrFloat(token2, 64);
           47: mobjinfo[mobj_no].gravity := DEH_FixedOrFloat(token2, 64);
           48: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags3_ex := mobj_val  // DelphiDoom specific
                 else
                 begin
@@ -542,7 +610,7 @@ begin
                 end;
               end;
           49: begin
-                if mobj_val >= 0 then
+                if itoa(mobj_val) = token2 then
                   mobjinfo[mobj_no].flags4_ex := mobj_val  // DelphiDoom specific
                 else
                 begin
@@ -599,12 +667,111 @@ begin
           64: mobjinfo[mobj_no].friction := DEH_FixedOrFloat(token2, 64);
           65: mobjinfo[mobj_no].spriteDX := DEH_FixedOrFloat(token2, 256);
           66: mobjinfo[mobj_no].spriteDY := DEH_FixedOrFloat(token2, 256);
+          67: begin
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].flags5_ex := mobj_val  // DelphiDoom specific
+                else
+                begin
+                  mobj_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    mobj_flag := mobj_flags5_ex_hash.IndexOf('MF5_EX_' + token3);
+                    if mobj_flag = -1 then
+                      mobj_flag := mobj_flags5_ex_hash.IndexOf(token3);
+                    if mobj_flag >= 0 then
+                    begin
+                      if mobj_setflag = -1 then
+                        mobj_setflag := 0;
+                      mobj_flag := _SHL(1, mobj_flag);
+                      mobj_setflag := mobj_setflag or mobj_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if mobj_setflag <> -1 then
+                    mobjinfo[mobj_no].flags5_ex := mobj_setflag;
+
+                end;
+              end;
+          68: begin
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].flags6_ex := mobj_val  // DelphiDoom specific
+                else
+                begin
+                  mobj_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    mobj_flag := mobj_flags6_ex_hash.IndexOf('MF6_EX_' + token3);
+                    if mobj_flag = -1 then
+                      mobj_flag := mobj_flags6_ex_hash.IndexOf(token3);
+                    if mobj_flag >= 0 then
+                    begin
+                      if mobj_setflag = -1 then
+                        mobj_setflag := 0;
+                      mobj_flag := _SHL(1, mobj_flag);
+                      mobj_setflag := mobj_setflag or mobj_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if mobj_setflag <> -1 then
+                    mobjinfo[mobj_no].flags6_ex := mobj_setflag;
+
+                end;
+              end;
+          69: begin // .mbf21flags
+                ismbf21 := true;
+                if itoa(mobj_val) = token2 then
+                  mobjinfo[mobj_no].mbf21bits := mobj_val
+                else
+                begin
+                  mobj_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    if Pos('MF2_', token3) = 1 then
+                      Delete(token3, 1, 4);
+                    if Pos('MBM21_', token3) = 1 then
+                      Delete(token3, 1, 6);
+                    if token3 <> '' then
+                    begin
+                      mobj_flag := mobj_flags_mbf21_hash.IndexOf(token3);
+                      if mobj_flag >= 0 then
+                      begin
+                        if mobj_setflag = -1 then
+                          mobj_setflag := 0;
+                        mobj_flag := _SHL(1, mobj_flag);
+                        mobj_setflag := mobj_setflag or mobj_flag;
+                      end;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if mobj_setflag <> -1 then
+                    mobjinfo[mobj_no].mbf21bits := mobj_setflag;
+                end;
+              end;
+          70: begin // .infighting_group (MBF21)
+                group := Info_InfightingGroupToInt(token2);
+                if group <> IG_INVALID then
+                  mobjinfo[mobj_no].infighting_group := group;
+              end;
+          71: begin // .projectile_group (MBF21)
+                group := Info_ProjectileGroupToInt(token2);
+                if group <> PG_INVALID then
+                  mobjinfo[mobj_no].projectile_group := group;
+              end;
+          72: begin // .splash_group (MBF21)
+                group := Info_SplashGroupToInt(token2);
+                if group <> SG_INVALID then
+                  mobjinfo[mobj_no].splash_group := group;
+              end;
+          73: mobjinfo[mobj_no].ripsound := S_GetSoundNumForName(token2); // .ripsound (MBF21)
+          74: mobjinfo[mobj_no].crushstate := mobj_val;
+          77: mobjinfo[mobj_no].bloodcolor := R_GetBloodTranslationIdForName(token2);
+          78: mobjinfo[mobj_no].translationname := strupper(token2);
+          80: mobjinfo[mobj_no].meleethreshold := mobj_val;
         end;
       end;
 
+      P_ResolveMBF21Flags(@mobjinfo[mobj_no]);
     end
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = 'FRAME') or (token1 = 'STATE') then
@@ -612,7 +779,7 @@ begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse a frame ///////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
       begin
         I_Warning('DEH_Parse(): State number unspecified after %s keyword'#13#10, [token1]);
@@ -627,7 +794,7 @@ begin
         state_no := atoi(stmp, -1);
         if stmp = '' then
         begin
-          I_Warning('DEH_Parse(): New state number unspecified after %s keyword'#13#10, [firstword(token2)]);
+          I_Warning('DEH_Parse(): New state number unspecified after %s keyword'#13#10, [firstword_ch(token2)]);
           continue;
         end;
         if state_no < 0 then
@@ -661,13 +828,13 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         state_idx := state_tokens.IndexOf(token1);
 
         if state_idx = -1 then
@@ -683,7 +850,7 @@ begin
            0: states[state_no].sprite := Info_GetSpriteNumForName(token2);
            1:
             begin
-              if firstword(token2) = 'BRIGHT' then
+              if firstword_ch(token2) = 'BRIGHT' then
                 states[state_no].frame := FF_FULLBRIGHT + atoi(secondword(token2))
               else
                 states[state_no].frame := state_val;
@@ -691,7 +858,7 @@ begin
            2: states[state_no].tics := state_val;
            3:
             begin
-              fw := firstword(token2);
+              fw := firstword_ch(token2);
               if (fw = 'ORIGINALSTATE') or (fw = 'ORIGINALFRAME') or (fw = 'ORIGINAL') then
               begin
                 state_val := atoi(secondword(token2));
@@ -742,6 +909,8 @@ begin
 
                 if foundaction then
                 begin
+                  if states[state_no].params <> nil then
+                    states[state_no].params.Free;
                   if token4 <> '' then
                     states[state_no].params := TCustomParamList.Create(SC_FixParenthesisLevel(token4));
                 end
@@ -752,7 +921,7 @@ begin
            5: states[state_no].misc1 := state_val;
            6: states[state_no].misc2 := state_val;
            7: begin
-                if state_val >= 0 then
+                if itoa(state_val) = token2 then
                   states[state_no].flags_ex := state_val  // DelphiDoom specific (lighting, transparency, etc)
                 else
                 begin
@@ -780,12 +949,68 @@ begin
               end;
            8: Info_AddStateOwner(@states[state_no], Info_GetMobjNumForName(token2));
            9: states[state_no].tics2 := state_val;
+          10: begin
+                states[state_no].args[0] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG1_DEFINED;
+              end;
+          11: begin
+                states[state_no].args[1] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG2_DEFINED;
+              end;
+          12: begin
+                states[state_no].args[2] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG3_DEFINED;
+              end;
+          13: begin
+                states[state_no].args[3] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG4_DEFINED;
+              end;
+          14: begin
+                states[state_no].args[4] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG5_DEFINED;
+              end;
+          15: begin
+                states[state_no].args[5] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG6_DEFINED;
+              end;
+          16: begin
+                states[state_no].args[6] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG7_DEFINED;
+              end;
+          17: begin
+                states[state_no].args[7] := state_val;  // MBF21
+                states[state_no].argsdefined := states[state_no].argsdefined or ARG8_DEFINED;
+              end;
+          18: begin // MBF21
+                if itoa(state_val) = token2 then
+                  states[state_no].mbf21bits := state_val
+                else
+                begin
+                  state_setflag := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    state_flag := state_flags_mbf21.IndexOf(token3);
+                    if state_flag >= 0 then
+                    begin
+                      if state_setflag = -1 then
+                        state_setflag := 0;
+                      state_flag := _SHL(1, state_flag);
+                      state_setflag := state_setflag or state_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if state_setflag <> -1 then
+                    states[state_no].mbf21bits := state_setflag;
+
+                end;
+              end;
         end;
       end;
+
+      // MBF21
+      if states[state_no].mbf21bits <> 0 then
+        ismbf21 := true;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'TEXT' then
@@ -794,7 +1019,7 @@ begin
     // Parse a text ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
       stmp := token2;
-      splitstring(stmp, token1, token2);
+      splitstring_ch(stmp, token1, token2);
 
       len1 := atoi(token1, -1);
       if len1 <= 0 then
@@ -870,10 +1095,10 @@ begin
                     Chr(sprnames[j] shr 24 and $FF);
             if stmp = token1 then
             begin
-              sprnames[j] := Ord(token2[1]) +
-                             Ord(token2[2]) shl 8 +
-                             Ord(token2[3]) shl 16 +
-                             Ord(token2[4]) shl 24;
+              sprnames[j] := Ord(toupper(token2[1])) +
+                             Ord(toupper(token2[2])) shl 8 +
+                             Ord(toupper(token2[3])) shl 16 +
+                             Ord(toupper(token2[4])) shl 24;
               foundtext := true;
               break;
             end;
@@ -885,9 +1110,6 @@ begin
         I_Warning('DEH_Parse(): Can not find setable text "%s" - should be changed to "%s"'#13#10, [settext, token2]);
 
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'POINTER' then
@@ -902,7 +1124,7 @@ begin
         continue;
 
       SetLength(stmp, length(stmp) - 1);
-      splitstring(stmp, token1, token2);
+      splitstring_ch(stmp, token1, token2);
       if token1 <> 'FRAME' then
         continue;
 
@@ -913,13 +1135,13 @@ begin
       if not DEH_NextLine(s, str, i) then
         break;
 
-      if Pos('=', str) = 0 then
+      if CharPos('=', str) = 0 then
       begin
         mustnextline := false; // Already got line
         continue;
       end;
 
-      splitstring(str, token1, token2, '=');
+      splitstring_ch(str, token1, token2, '=');
       if token1 <> 'CODEP FRAME' then
       begin
         mustnextline := false; // Already got line
@@ -939,16 +1161,13 @@ begin
         I_Warning('DEH_Parse(): Invalid state number "%s" while parsing CODEP FRAME'#13#10, [token2]);
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'SOUND' then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse a sound ///////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
         continue;
 
@@ -972,14 +1191,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         sound_idx := sound_tokens.IndexOf(token1);
 
         if sound_idx = -1 then
@@ -999,16 +1218,13 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'AMMO' then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse ammo //////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
         continue;
 
@@ -1024,13 +1240,13 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         ammo_idx := ammo_tokens.IndexOf(token1);
 
         if ammo_idx = -1 then
@@ -1050,16 +1266,13 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'WEAPON' then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse weapon ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
-      stmp := firstword(token2);
+      stmp := firstword_ch(token2);
       if stmp = '' then
         continue;
 
@@ -1078,14 +1291,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
         weapon_idx := weapon_tokens.IndexOf(token1);
 
         if weapon_idx = -1 then
@@ -1108,7 +1321,7 @@ begin
         begin
           if weapon_idx in [1, 2, 3, 4, 5, 6] then
           begin
-            stmp := firstword(token2);
+            stmp := firstword_ch(token2);
             if (stmp = 'NEWFRAME') or (stmp = 'NEWSTATE') then  // JVAL: a new defined state
             begin
               weapon_val := atoi(secondword(token2), -1);
@@ -1129,12 +1342,11 @@ begin
               end;
             end;
           end
-          else
+          else if weapon_idx = 7 then
           begin
-            I_Warning('DEH_Parse(): Invalid state number (%s) (Weapon number = %d)'#13#10, [token2, weapon_no]);
+            I_Warning('DEH_Parse(): Positive number expected after keyword (%s) - (%s) (Weapon number = %d)'#13#10, [token1, token2, weapon_no]);
             continue;
           end;
-
         end;
 
         case weapon_idx of
@@ -1145,24 +1357,121 @@ begin
            4: weaponinfo[weapon_no].atkstate := weapon_val;
            6: weaponinfo[weapon_no].holdatkstate := weapon_val;
            5: weaponinfo[weapon_no].flashstate := weapon_val;
+           7: begin
+                weaponinfo[weapon_no].ammopershot := weapon_val;  // MBF21
+                weaponinfo[weapon_no].intflags := weaponinfo[weapon_no].intflags or WIF_ENABLEAPS;
+              end;
+           8: begin // MBF21
+                if itoa(weapon_val) = token2 then
+                  weaponinfo[weapon_no].mbf21bits := weapon_val
+                else
+                begin
+                  weapon_val := -1;
+                  repeat
+                    splitstring(token2, token3, token4, [' ', '|', ',', '+']);
+                    weapon_flag := weapon_flags_mbf21.IndexOf(token3);
+                    if weapon_flag >= 0 then
+                    begin
+                      if weapon_val = -1 then
+                        weapon_val := 0;
+                      weapon_flag := _SHL(1, weapon_flag);
+                      weapon_val := weapon_val or weapon_flag;
+                    end;
+                    token2 := token4;
+                  until token2 = '';
+                  if weapon_val <> -1 then
+                    weaponinfo[weapon_no].mbf21bits := weapon_val;
+
+                end;
+              end;
+
         end;
       end;
 
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
-    else if token1 = 'SPRITE' then
+    else if (token1 = '[SPRITES]') or (token1 = 'SPRITES') then
     begin
     ////////////////////////////////////////////////////////////////////////////
     // Parse sprite ////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
+      while true do
+      begin
+        if not DEH_NextLine(s, str, i) then
+          break;
+
+        if CharPos('=', str) = 0 then
+        begin
+          mustnextline := false; // Already got line
+          break;
+        end;
+
+        splitstring_ch(str, token1, token2, '=');
+
+        sprite_idx := -1;
+        sprite_val := atoi(token1, -1);
+        if IsIntegerInRange(sprite_val, 0, Ord(DO_NUMSPRITES) - 1) then
+        begin
+          sprite_idx := sprite_val;
+          token1 := DO_sprnames[sprite_idx];
+        end
+        else if (numsprites >= Ord(DO_NUMSPRITES)) and IsIntegerInRange(sprite_val, Ord(DO_NUMSPRITES), numsprites) then
+        begin
+          sprite_idx := sprite_val;
+          token1 := Chr(sprnames[sprite_idx] and $FF) +
+                    Chr(sprnames[sprite_idx] shr 8 and $FF) +
+                    Chr(sprnames[sprite_idx] shr 16 and $FF) +
+                    Chr(sprnames[sprite_idx] shr 24 and $FF);
+        end;
+
+        if length(token1) <> 4 then
+        begin
+          I_Warning('DEH_Parse(): Sprite name with %d characters = %s'#13#10, [length(token1), token1]);
+          Continue;
+        end;
+
+        if length(token2) <> 4 then
+        begin
+          I_Warning('DEH_Parse(): Sprite name with %d characters = %s'#13#10, [length(token2), token2]);
+          Continue;
+        end;
+
+        strupperproc(token1);
+        strupperproc(token2);
+
+        // JVAL: Check the original sprite names (https://eternity.youfailit.net/wiki/DeHackEd_/_BEX_Reference/Eternity_Extension:_SPRITES_Block)
+        if sprite_idx < 0 then
+        begin
+          for j := 0 to Ord(DO_NUMSPRITES) - 1 do
+            if DO_sprnames[j] = token1 then
+            begin
+              sprite_idx := j;
+              break;
+            end;
+          if sprite_idx < 0 then
+            for j := Ord(DO_NUMSPRITES) to numsprites - 1 do
+              if Chr(sprnames[j] and $FF) + Chr(sprnames[j] shr 8 and $FF) +
+                Chr(sprnames[j] shr 16 and $FF) + Chr(sprnames[j] shr 24 and $FF) = token1 then
+              begin
+                sprite_idx := j;
+                break;
+              end;
+        end;
+
+        if sprite_idx < 0 then
+        begin
+          I_Warning('DEH_Parse(): Can not find sprite = %s'#13#10, [token1]);
+          Continue;
+        end;
+
+        sprnames[sprite_idx] :=
+          Ord(token2[1]) +
+          Ord(token2[2]) shl 8 +
+          Ord(token2[3]) shl 16 +
+          Ord(token2[4]) shl 24;
+      end;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'CHEAT' then
@@ -1171,9 +1480,6 @@ begin
     // Parse cheat /////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if token1 = 'MISC' then
@@ -1186,14 +1492,14 @@ begin
         if not DEH_NextLine(s, str, i) then
           break;
 
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
       // Retrieve current think field index
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
 
         misc_idx := misc_tokens.IndexOf(token1);
 
@@ -1227,9 +1533,6 @@ begin
 
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[STRINGS]') or (token1 = 'STRINGS') then // BEX
     begin
@@ -1240,7 +1543,7 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
@@ -1254,7 +1557,7 @@ begin
           str := str + stmp;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
 
         for j := 0 to deh_strings.numstrings - 1 do
           if deh_strings._array[j].name = token1 then
@@ -1264,9 +1567,6 @@ begin
           end;
       end;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[CODEPTR]') or (token1 = 'CODEPTR') then // BEX
@@ -1278,14 +1578,14 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, stmp, token3, '=');
-        splitstring(stmp, token1, token2);
+        splitstring_ch(str, stmp, token3, '=');
+        splitstring_ch(stmp, token1, token2);
 
         if token1 <> 'FRAME' then
           continue;
@@ -1318,14 +1618,13 @@ begin
               end;
           end;
 
+          if states[state_no].params <> nil then
+            states[state_no].params.Free;
           if token5 <> '' then
             states[state_no].params := TCustomParamList.Create(SC_FixParenthesisLevel(token5));
         end;
       end;
     end
-
-
-
 
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[MUSIC]') or (token1 = 'MUSIC') then // BEX
@@ -1337,14 +1636,14 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
-        token2 := firstword(token2);
+        splitstring_ch(str, token1, token2, '=');
+        token2 := firstword_ch(token2);
 
         music_idx := atoi(token1, -1);
         if (music_idx >= 1) and (music_idx < nummusic) then
@@ -1374,9 +1673,6 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = '[SOUND]') or (token1 = '[SOUNDS]') then // BEX
     begin
@@ -1387,13 +1683,13 @@ begin
       begin
         if not DEH_NextLine(s, str, i) then
           break;
-        if Pos('=', str) = 0 then
+        if CharPos('=', str) = 0 then
         begin
           mustnextline := false; // Already got line
           break;
         end;
 
-        splitstring(str, token1, token2, '=');
+        splitstring_ch(str, token1, token2, '=');
 
         sound_idx := atoi(token1, -1);
         if (sound_idx >= 1) and (sound_idx < numsfx) then
@@ -1419,9 +1715,6 @@ begin
       end;
     end
 
-
-
-
     ////////////////////////////////////////////////////////////////////////////
     else if (token1 = 'SUBMITNEWSTATES') or (token1 = 'SUBMITNEWFRAMES') then // DelphiDoom specific
     begin
@@ -1443,6 +1736,11 @@ begin
   memfree(pointer(code_ptrs), numstates * SizeOf(actionf_t));
 end;
 
+//==============================================================================
+//
+// DEH_CurrentSettings
+//
+//==============================================================================
 function DEH_CurrentSettings: TDStringList;
 var
   i, j: integer;
@@ -1627,9 +1925,49 @@ begin
     result.Add('%s = %d', [capitalizedstring(mobj_tokens[65]), mobjinfo[i].spriteDX]);
     result.Add('%s = %d', [capitalizedstring(mobj_tokens[66]), mobjinfo[i].spriteDY]);
 
+    str := '';
+    for j := 0 to mobj_flags5_ex.Count - 1 do
+    begin
+      if mobjinfo[i].flags5_ex and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + mobj_flags5_ex[j];
+      end;
+    end;
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(mobj_tokens[67])])
+    else
+      result.Add('%s = %s', [capitalizedstring(mobj_tokens[67]), str]);
+
+    str := '';
+    for j := 0 to mobj_flags6_ex.Count - 1 do
+    begin
+      if mobjinfo[i].flags6_ex and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + mobj_flags6_ex[j];
+      end;
+    end;
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(mobj_tokens[68])])
+    else
+      result.Add('%s = %s', [capitalizedstring(mobj_tokens[68]), str]);
+
+    // MBF21
+    // JVAL: 20220105 - Ignore mbf21bits since they are merged into flagsXX
+    result.Add('%s = %s', [capitalizedstring(mobj_tokens[70]), Info_InfightingGroupToString(mobjinfo[i].infighting_group)]);
+    result.Add('%s = %s', [capitalizedstring(mobj_tokens[71]), Info_ProjectileGroupToString(mobjinfo[i].projectile_group)]);
+    result.Add('%s = %s', [capitalizedstring(mobj_tokens[72]), Info_SplashGroupToString(mobjinfo[i].splash_group)]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[73]), mobjinfo[i].ripsound]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[74]), mobjinfo[i].crushstate]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[77]), mobjinfo[i].bloodcolor]);
+    result.Add('%s = "%s"', [capitalizedstring(mobj_tokens[78]), mobjinfo[i].translationname]);
+    result.Add('%s = %d', [capitalizedstring(mobj_tokens[80]), mobjinfo[i].meleethreshold]);
+
     result.Add('');
   end;
-
 
   result.Add('');
   result.Add('# States');
@@ -1675,17 +2013,33 @@ begin
         str := str + state_flags_ex[j];
       end;
     end;
+
+    if i = 1 then
+      result.Add('# Flags_ex is DelphiStrife specific and declares transparency and light effects');
+
     if str = '' then
       result.Add('%s = 0', [capitalizedstring(state_tokens[7])])
     else
       result.Add('%s = %s', [capitalizedstring(state_tokens[7]), str]);
 
-    if i = 1 then
-      result.Add('# Flags_ex declares transparency and light effects');
+    // MBF21
+    str := '';
+    for j := 0 to state_flags_mbf21.Count - 1 do
+    begin
+      if states[i].mbf21bits and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + state_flags_mbf21[j];
+      end;
+    end;
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(state_tokens[18])])
+    else
+      result.Add('%s = %s', [capitalizedstring(state_tokens[18]), str]);
 
     result.Add('');
   end;
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Add Weapons
@@ -1704,10 +2058,44 @@ begin
     result.Add('%s = %d', [capitalizedstring(weapon_tokens[4]), weaponinfo[i].atkstate]);
     result.Add('%s = %d', [capitalizedstring(weapon_tokens[6]), weaponinfo[i].holdatkstate]);
     result.Add('%s = %d', [capitalizedstring(weapon_tokens[5]), weaponinfo[i].flashstate]);
+    result.Add('%s = %d', [capitalizedstring(weapon_tokens[7]), weaponinfo[i].ammopershot]);
+
+    // MBF
+    str := '';
+    for j := 0 to weapon_flags_mbf21.Count - 1 do
+    begin
+      if weaponinfo[i].mbf21bits and _SHL(1, j) <> 0 then
+      begin
+        if str <> '' then
+          str := str + ', ';
+        str := str + weapon_flags_mbf21[j];
+      end;
+    end;
+
+    // MBF
+    if str = '' then
+      result.Add('%s = 0', [capitalizedstring(weapon_tokens[8])])
+    else
+      result.Add('%s = %s', [capitalizedstring(weapon_tokens[8]), str]);
 
     result.Add('');
   end;
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Add Ammo
+  //////////////////////////////////////////////////////////////////////////////
+  result.Add('');
+  result.Add('# Ammo');
+  result.Add('');
+  for i := 0 to Ord(NUMAMMO) - 1 do
+  begin
+    result.Add('Ammo %d', [i]);
+
+    result.Add('%s = %d', [capitalizedstring(ammo_tokens[0]), maxammo[i]]);
+    result.Add('%s = %d', [capitalizedstring(ammo_tokens[1]), clipammo[i]]);
+
+    result.Add('');
+  end;
 
   //////////////////////////////////////////////////////////////////////////////
   // Add Misc
@@ -1728,7 +2116,6 @@ begin
   result.Add('%s = %d', [capitalizedstring(misc_tokens[7]), p_greenarmorclass]);
   result.Add('%s = %d', [capitalizedstring(misc_tokens[8]), p_bluearmorclass]);
   result.Add('');
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Add strings
@@ -1768,18 +2155,19 @@ begin
     result.Add('%d = %s', [i, S_sfx[i].name]);
   result.Add('');
 
-
   result.Add(StringOfChar('#', 80));
   result.Add('# End of file');
   result.Add(StringOfChar('#', 80));
 end;
 
+//==============================================================================
 //
 // DEH_Init
 //
 // JVAL
 // Initializing DEH tokens
 //
+//==============================================================================
 procedure DEH_Init;
 var
   i: integer;
@@ -1863,10 +2251,23 @@ begin
   mobj_tokens.Add('FRICTION');           // .Friction                 // 64
   mobj_tokens.Add('SPRITE DX');          // .spriteDX                 // 65
   mobj_tokens.Add('SPRITE DY');          // .spriteDY                 // 66
+  mobj_tokens.Add('FLAGS5_EX');          // .flags5_ex (DelphiDoom)   // 67
+  mobj_tokens.Add('FLAGS6_EX');          // .flags6_ex (DelphiDoom)   // 68
+  mobj_tokens.Add('MBF21 BITS');         // .mbf21flags               // 69
+  mobj_tokens.Add('INFIGHTING GROUP');   // .infighting_group         // 70
+  mobj_tokens.Add('PROJECTILE GROUP');   // .projectile_group         // 71
+  mobj_tokens.Add('SPLASH GROUP');       // .splash_group             // 72
+  mobj_tokens.Add('RIP SOUND');          // .ripsound                 // 73
+  mobj_tokens.Add('CRUSH FRAME');        // .crushstate (DelphiDoom)  // 74
+  mobj_tokens.Add('ACTIVE SOUND');       // .activesound              // 75 - Alias for 20
+  mobj_tokens.Add('RADIUS');             // .radius                   // 76 - Alias for 16
+  mobj_tokens.Add('BLOOD COLOR');        // .bloodcolor               // 77
+  mobj_tokens.Add('TRANSLATION');        // .translationname          // 78
+  mobj_tokens.Add('DROPPED ITEM');       // .dropitem                 // 79 - Alias for 36
+  mobj_tokens.Add('MELEE THRESHOLD');    // .meleethreshold           // 80
 
   mobj_tokens_hash := TDEHStringsHashTable.Create;
   mobj_tokens_hash.AssignList(mobj_tokens);
-
 
   mobj_flags := TDTextList.Create;
   mobj_flags.Add('MF_SPECIAL');
@@ -1905,7 +2306,6 @@ begin
   mobj_flags_hash := TDEHStringsHashTable.Create;
   mobj_flags_hash.AssignList(mobj_flags);
 
-
   mobj_flags_ex := TDTextList.Create;
   mobj_flags_ex.Add('MF_EX_TRANSPARENT');
   mobj_flags_ex.Add('MF_EX_WHITELIGHT');
@@ -1942,7 +2342,6 @@ begin
   mobj_flags_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags_ex_hash.AssignList(mobj_flags_ex);
 
-
   mobj_flags2_ex := TDTextList.Create;
   mobj_flags2_ex.Add('MF2_EX_MEDIUMGRAVITY');
   mobj_flags2_ex.Add('MF2_EX_NOHITFLOOR');
@@ -1974,17 +2373,17 @@ begin
   mobj_flags2_ex.Add('MF2_EX_MISSILEHURTSPECIES');
   mobj_flags2_ex.Add('MF2_EX_JUMPUP');
   mobj_flags2_ex.Add('MF2_EX_DONTBLOCKPLAYER');
+  mobj_flags2_ex.Add('MF2_EX_FRIEND'); // JVAL: VERSION 207
 
   mobj_flags2_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags2_ex_hash.AssignList(mobj_flags2_ex);
-
 
   mobj_flags3_ex := TDTextList.Create;
   mobj_flags3_ex.Add('MF3_EX_FLOORBOUNCE');
   mobj_flags3_ex.Add('MF3_EX_CEILINGBOUNCE');
   mobj_flags3_ex.Add('MF3_EX_WALLBOUNCE');
   mobj_flags3_ex.Add('MF3_EX_NOMAXMOVE');
-  mobj_flags3_ex.Add('MF3_EX_NOCRASH');
+  mobj_flags3_ex.Add('MF3_EX_NOCRUSH');
   mobj_flags3_ex.Add('MF3_EX_BLOODIGNOREDAMAGE');
   // JVAL: VERSION 206
   mobj_flags3_ex.Add('MF3_EX_NORENDERINTERPOLATION');
@@ -2003,6 +2402,7 @@ begin
   mobj_flags3_ex.Add('MF3_EX_NOTAUTOAIMED');
   mobj_flags3_ex.Add('MF3_EX_SLIDE');
   mobj_flags3_ex.Add('MF3_EX_SLIDEONWALLS');
+  // JVAL: VERSION 207
   mobj_flags3_ex.Add('MF3_EX_ABSOLUTEDAMAGE');
   mobj_flags3_ex.Add('MF3_EX_SETGRAVITYONDEATH');
   mobj_flags3_ex.Add('MF3_EX_FREEZEDAMAGE');
@@ -2010,19 +2410,88 @@ begin
   mobj_flags3_ex.Add('MF3_EX_FREEZEDAMAGERESIST');
   mobj_flags3_ex.Add('MF3_EX_FLAMEDAMAGE');
   mobj_flags3_ex.Add('MF3_EX_NOFLAMEDAMAGE');
+  mobj_flags3_ex.Add('MF3_EX_MELEECHECKZ');
 
   mobj_flags3_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags3_ex_hash.AssignList(mobj_flags3_ex);
-
 
   mobj_flags4_ex := TDTextList.Create;
   mobj_flags4_ex.Add('MF4_EX_FLAMEDAMAGERESIST');
   mobj_flags4_ex.Add('MF4_EX_THRUMONSTERS');
   mobj_flags4_ex.Add('MF4_EX_ABSOLUTEDROPITEMPOS');
+  mobj_flags4_ex.Add('MF4_EX_CANNOTSTEP');
+  mobj_flags4_ex.Add('MF4_EX_CANNOTDROPOFF');
+  mobj_flags4_ex.Add('MF4_EX_FORCERADIUSDMG');
+  mobj_flags4_ex.Add('MF4_EX_SHORTMRANGE');
+  mobj_flags4_ex.Add('MF4_EX_DMGIGNORED');
+  mobj_flags4_ex.Add('MF4_EX_HIGHERMPROB');
+  mobj_flags4_ex.Add('MF4_EX_RANGEHALF');
+  mobj_flags4_ex.Add('MF4_EX_NOTHRESHOLD');
+  mobj_flags4_ex.Add('MF4_EX_LONGMELEERANGE');
+  mobj_flags4_ex.Add('MF4_EX_RIP');
+  mobj_flags4_ex.Add('MF4_EX_TRACEDEFINED');
+  mobj_flags4_ex.Add('MF4_EX_MAP07BOSS1');
+  mobj_flags4_ex.Add('MF4_EX_MAP07BOSS2');
+  mobj_flags4_ex.Add('MF4_EX_SELFAPPLYINGLIGHT');
+  mobj_flags4_ex.Add('MF4_EX_FULLVOLRIP');
+  mobj_flags4_ex.Add('MF4_EX_RANDOMRIPSOUND');
+  mobj_flags4_ex.Add('MF4_EX_ALWAYSFINISHSOUND');
+  mobj_flags4_ex.Add('MF4_EX_NEVERFINISHSOUND');
+  mobj_flags4_ex.Add('MF4_EX_DONTGIB');
+  mobj_flags4_ex.Add('MF4_EX_BACKINGMELEE');
+  mobj_flags4_ex.Add('MF4_EX_WINDTHRUST');
 
   mobj_flags4_ex_hash := TDEHStringsHashTable.Create;
   mobj_flags4_ex_hash.AssignList(mobj_flags4_ex);
 
+  mobj_flags5_ex := TDTextList.Create;
+  mobj_flags5_ex.Add('MF5_EX_PUSHWALL');
+  mobj_flags5_ex.Add('MF5_EX_MCROSS');
+  mobj_flags5_ex.Add('MF5_EX_PCROSS');
+  mobj_flags5_ex.Add('MF5_EX_IMPACT');
+
+  mobj_flags5_ex_hash := TDEHStringsHashTable.Create;
+  mobj_flags5_ex_hash.AssignList(mobj_flags5_ex);
+
+  mobj_flags6_ex := TDTextList.Create;
+
+  mobj_flags6_ex_hash := TDEHStringsHashTable.Create;
+  mobj_flags6_ex_hash.AssignList(mobj_flags6_ex);
+
+  // MBF21
+  mobj_flags_mbf21 := TDTextList.Create;
+  mobj_flags_mbf21.Add('LOGRAV');
+  mobj_flags_mbf21.Add('SHORTMRANGE');
+  mobj_flags_mbf21.Add('DMGIGNORED');
+  mobj_flags_mbf21.Add('NORADIUSDMG');
+  mobj_flags_mbf21.Add('FORCERADIUSDMG');
+  mobj_flags_mbf21.Add('HIGHERMPROB');
+  mobj_flags_mbf21.Add('RANGEHALF');
+  mobj_flags_mbf21.Add('NOTHRESHOLD');
+  mobj_flags_mbf21.Add('LONGMELEE');
+  mobj_flags_mbf21.Add('BOSS');
+  mobj_flags_mbf21.Add('MAP07BOSS1');
+  mobj_flags_mbf21.Add('MAP07BOSS2');
+  mobj_flags_mbf21.Add('E1M8BOSS');
+  mobj_flags_mbf21.Add('E2M8BOSS');
+  mobj_flags_mbf21.Add('E3M8BOSS');
+  mobj_flags_mbf21.Add('E4M6BOSS');
+  mobj_flags_mbf21.Add('E4M8BOSS');
+  mobj_flags_mbf21.Add('RIP');
+  mobj_flags_mbf21.Add('FULLVOLSOUNDS');
+
+  mobj_flags_mbf21_hash := TDEHStringsHashTable.Create;
+  mobj_flags_mbf21_hash.AssignList(mobj_flags_mbf21);
+
+  infighting_groups := TDTextList.Create;
+  infighting_groups.Add('IG_DEFAULT');
+
+  projectile_groups := TDTextList.Create;
+  projectile_groups.Add('PG_DEFAULT');
+  projectile_groups.Add('PG_BARON');
+
+  splash_groups := TDTextList.Create;
+  splash_groups.Add('SG_DEFAULT');
 
   // JVAL: 20200330 - State flags
   state_flags_ex := TDTextList.Create;
@@ -2035,6 +2504,9 @@ begin
   state_flags_ex.Add('MF_EX_STATE_RANDOM_SELECT');
   state_flags_ex.Add('MF_EX_STATE_RANDOM_RANGE');
 
+  state_flags_mbf21 := TDTextList.Create; // MBF21
+  state_flags_mbf21.Add('STATEF_SKILL5FAST'); // MBF21
+
   state_tokens := TDTextList.Create;
   state_tokens.Add('SPRITE NUMBER');    // 0 //.sprite
   state_tokens.Add('SPRITE SUBNUMBER'); // 1 //.frame
@@ -2046,6 +2518,15 @@ begin
   state_tokens.Add('FLAGS_EX');         // 7 //.flags_ex (DelphiDoom)
   state_tokens.Add('OWNER');            // 8 //.Add an owner (DelphiDoom)
   state_tokens.Add('DURATION 2');       // 9 //.tics2
+  state_tokens.Add('ARGS1');            // 10 // .args[0]
+  state_tokens.Add('ARGS2');            // 11 // .args[1]
+  state_tokens.Add('ARGS3');            // 12 // .args[2]
+  state_tokens.Add('ARGS4');            // 13 // .args[3]
+  state_tokens.Add('ARGS5');            // 14 // .args[4]
+  state_tokens.Add('ARGS6');            // 15 // .args[5]
+  state_tokens.Add('ARGS7');            // 16 // .args[6]
+  state_tokens.Add('ARGS8');            // 17 // .args[7]
+  state_tokens.Add('MBF21 BITS');       // 18 // .mbf21bits
 
   deh_actions[0].action.acp1 := nil;
   deh_actions[0].name := 'NULL';
@@ -2455,6 +2936,60 @@ begin
   DEH_AddAction(@A_ActiveSound1, 'A_ActiveSound()'); // 399
   DEH_AddAction(@A_MatchTargetZ, 'A_MatchTargetZ(zspeed: integer; threshold: integer; maxmomz: integer)'); // 400
   DEH_AddAction(@A_SimpleDialog, 'A_SimpleDialog(dialog1: string; [dialog2...])'); // 401
+  DEH_AddAction(@A_SetMasterCustomParam, 'A_SetMasterCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_AddMasterCustomParam, 'A_AddMasterCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_SubtractMasterCustomParam, 'A_SubtractMasterCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_JumpIfMasterCustomParam, 'A_JumpIfMasterCustomParam(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfMasterCustomParamLess, 'A_JumpIfMasterCustomParamLess(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfMasterCustomParamGreater, 'A_JumpIfMasterCustomParamGreater(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_GoToIfMasterCustomParam, 'A_GoToIfMasterCustomParam(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfMasterCustomParamLess, 'A_GoToIfMasterCustomParamLess(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfMasterCustomParamGreater, 'A_GoToIfMasterCustomParamGreater(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_SetTracerCustomParam, 'A_SetTracerCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_AddTracerCustomParam, 'A_AddTracerCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_SubtractTracerCustomParam, 'A_SubtractTracerCustomParam(param: string, value: integer)');
+  DEH_AddAction(@A_JumpIfTracerCustomParam, 'A_JumpIfTracerCustomParam(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfTracerCustomParamLess, 'A_JumpIfTracerCustomParamLess(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_JumpIfTracerCustomParamGreater, 'A_JumpIfTracerCustomParamGreater(param: string, value: integer, offset: integer)');
+  DEH_AddAction(@A_GoToIfTracerCustomParam, 'A_GoToIfTracerCustomParam(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfTracerCustomParamLess, 'A_GoToIfTracerCustomParamLess(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_GoToIfTracerCustomParamGreater, 'A_GoToIfTracerCustomParamGreater(param: string, value: integer, state: state_t)');
+  DEH_AddAction(@A_RipSound1, 'A_RipSound()');
+  DEH_AddAction(@A_ChangeSpriteFlip, 'A_ChangeSpriteFlip(propability: integer)');
+  DEH_AddAction(@A_SpawnObject, 'A_SpawnObject(dehackedtyp: integer; anglefixeddeg: integer; xoffs, yoffs, zoffs: integer; xvel, yvel, zvel: integer)', [0, 0, 0, 0, 0, 0, 0, 0]);
+  DEH_AddAction(@A_MonsterProjectile, 'A_MonsterProjectile(dehackedtyp: integer; anglefixeddeg: integer; pitchfixeddeg: integer; xyoffs, zoffs: integer)', [0, 0, 0, 0, 0]);
+  DEH_AddAction(@A_MonsterBulletAttack, 'A_MonsterBulletAttack(anglefixed_hspread, anglefixed_vspread: integer; nbullets: integer; basedamage: integer; damagemod: integer)', [0, 0, 1, 3, 5]);
+  DEH_AddAction(@A_MonsterMeleeAttack, 'A_MonsterMeleeAttack(basedamage: integer; damagemod: integer; soundid: integer; fixxedrange: integer);', [3, 8, 0, 0]);
+  DEH_AddAction(@A_RadiusDamage, 'A_RadiusDamage(damage: integer; radius: integer);', [0, 0]);
+  DEH_AddAction(@A_HealChase, 'A_HealChase(state: state_t; sound: sound_t);', [0, 0]);
+  DEH_AddAction(@A_SeekTracer, 'A_SeekTracer(anglefixed_threshold: integer; anglefixed_maxturn: integer)', [0, 0]);
+  DEH_AddAction(@A_FindTracer, 'A_FindTracer(anglefixed_fov: integer; mapblocks: integer);', [0, 10]);
+  DEH_AddAction(@A_ClearTracer, 'A_ClearTracer();');
+  DEH_AddAction(@A_JumpIfHealthBelow, 'A_JumpIfHealthBelow(state: state_t; health_threshold: integer)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTargetInSight, 'A_JumpIfTargetInSight(state: state_t; anglefixed_fov: integer)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTargetCloser, 'A_JumpIfTargetCloser(state: state_t; distance: fixed_t)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTracerInSight, 'A_JumpIfTracerInSight(state: state_t; anglefixed_fov: integer)', [0, 0]);
+  DEH_AddAction(@A_JumpIfTracerCloserMBF21, 'A_JumpIfTracerCloserMBF21(state: state_t; distance: fixed_t)', [0, 0]);
+  DEH_AddAction(@A_RandomRipSound, 'A_RandomRipSound();');
+  DEH_AddAction(@A_JumpIfFlagsSet, 'A_JumpIfFlagsSet(state: state_t; bits, mbf21bits: integer);', [0, 0, 0]);
+  DEH_AddAction(@A_AddFlags, 'A_AddFlags(bits, mbf21bits: integer);', [0, 0]);
+  DEH_AddAction(@A_RemoveFlags, 'A_RemoveFlags(bits, mbf21bits: integer);', [0, 0]);
+  DEH_AddAction(@A_WeaponProjectile, 'A_WeaponProjectile(typ: integer; anglefixed_ang: integer; anglefixed_pitch: integer; offs_xy: fixed_t; offs_z: fixed_t);', [0, 0, 0, 0, 0]);
+  DEH_AddAction(@A_WeaponBulletAttack, 'A_WeaponBulletAttack(anglefixed_hspread, anglefixed_vspread: integer; numbullets: integer; attackdamage, attackmod: integer);', [0, 0, 1, 5, 3]);
+  DEH_AddAction(@A_WeaponMeleeAttack, 'A_WeaponMeleeAttack(attackdamage, attackmod: integer; bersekdamagemul: fixed_t; sound: sound_t; range: fixed_t);', [2, 10, 1 * FRACUNIT, 0, 0]);
+  DEH_AddAction(@A_WeaponSound, 'A_WeaponSound(sound: sound_t; fullvolume: integer);', [0, 0]);
+  DEH_AddAction(@A_WeaponAlert, 'A_WeaponAlert();');
+  DEH_AddAction(@A_WeaponJump, 'A_WeaponJump(statenum: integer; chance: integer);', [0, 0]);
+  DEH_AddAction(@A_ConsumeAmmo, 'A_ConsumeAmmo(ammo: integer);', [0]);
+  DEH_AddAction(@A_CheckAmmo, 'A_CheckAmmo(state: integer; minammo: integer);', [0, 0]);
+  DEH_AddAction(@A_RefireTo, 'A_RefireTo(state: integer; skipammo: integer);', [0, 0]);
+  DEH_AddAction(@A_GunFlashTo, 'A_GunFlashTo(state: integer; noplayerstatechange: integer);', [0, 0]);
+  DEH_AddAction(@A_SetProjectileGroup, 'A_SetProjectileGroup(group: string);');
+  DEH_AddAction(@A_SetInfightingGroup, 'A_SetInfightingGroup(group: string);');
+  DEH_AddAction(@A_SetSplashGroup, 'A_SetSplashGroup(group: string);');
+  DEH_AddAction(@A_Delayfire, 'A_Delayfire(tics: integer = TICRATE);');
+  DEH_AddAction(@A_SetTranslation, 'A_SetTranslation(trans: string);');
+  DEH_AddAction(@A_SetBloodColor, 'A_SetBloodColor(color: string);');
 
   for i := 0 to dehnumactions - 1 do
     DEH_AddActionToHash(deh_actions[i].name, i);
@@ -2653,12 +3188,10 @@ begin
   DEH_AddString(@deh_strings, @GGSAVED, 'GGSAVED');
   DEH_AddString(@deh_strings, @SAVEGAMENAME, 'SAVEGAMENAME');
 
-
   ammo_tokens := TDTextList.Create;
 
   ammo_tokens.Add('MAX AMMO');
   ammo_tokens.Add('PER AMMO');
-
 
   weapon_tokens := TDTextList.Create;
 
@@ -2669,7 +3202,17 @@ begin
   weapon_tokens.Add('SHOOTING FRAME');// .atkstate
   weapon_tokens.Add('FIRING FRAME');  // .flashstate
   weapon_tokens.Add('HOLD SHOOTING FRAME');// .holdatkstate
+  weapon_tokens.Add('AMMO PER SHOT'); // .ammopershot (MBF21)
+  weapon_tokens.Add('MBF21 BITS');    // .mbf21bits (MBF21)
 
+  // MBF21
+  weapon_flags_mbf21 := TDTextList.Create;
+  weapon_flags_mbf21.Add('NOTHRUST');
+  weapon_flags_mbf21.Add('SILENT');
+  weapon_flags_mbf21.Add('NOAUTOFIRE');
+  weapon_flags_mbf21.Add('FLEEMELEE');
+  weapon_flags_mbf21.Add('AUTOSWITCHFROM');
+  weapon_flags_mbf21.Add('NOAUTOSWITCHTO');
 
   sound_tokens := TDTextList.Create;
 
@@ -2677,14 +3220,12 @@ begin
   sound_tokens.Add('VALUE');
   sound_tokens.Add('NAME'); // DelphiDoom specific
 
-
   renderstyle_tokens := TDTextList.Create;
 
   renderstyle_tokens.Add('NORMAL');
   renderstyle_tokens.Add('TRANSLUCENT');
   renderstyle_tokens.Add('ADD');
   renderstyle_tokens.Add('SUBTRACT');
-
 
   misc_tokens := TDTextList.Create;
 
@@ -2698,7 +3239,6 @@ begin
   misc_tokens.Add('GREEN ARMOR CLASS');   // p_greenarmorclass
   misc_tokens.Add('BLUE ARMOR CLASS');    // p_bluearmorclass
 
-
   C_AddCmd('DEH_ParseFile, BEX_ParseFile', @DEH_ParseFile);
   C_AddCmd('DEH_ParseLump, BEX_ParseLump', @DEH_ParseLumpName);
   C_AddCmd('DEH_PrintCurrentSettings, DEH_PrintSettings, BEX_PrintCurrentSettings, BEX_PrintSettings', @DEH_PrintCurrentSettings);
@@ -2709,6 +3249,11 @@ begin
   C_AddCmd('DEH_PrintActions, DEH_ShowActions, BEX_PrintActions, BEX_ShowActions', @DEH_PrintActions);
 end;
 
+//==============================================================================
+//
+// DEH_ShutDown
+//
+//==============================================================================
 procedure DEH_ShutDown;
 var
   i: integer;
@@ -2722,15 +3267,24 @@ begin
   FreeAndNil(mobj_flags2_ex);
   FreeAndNil(mobj_flags3_ex);
   FreeAndNil(mobj_flags4_ex);
+  FreeAndNil(mobj_flags5_ex);
+  FreeAndNil(mobj_flags6_ex);
+  FreeAndNil(mobj_flags_mbf21); // MBF21
   FreeAndNil(state_flags_ex);
+  FreeAndNil(state_flags_mbf21);  // MBF21
   FreeAndNil(state_tokens);
   FreeAndNil(ammo_tokens);
   FreeAndNil(weapon_tokens);
+  FreeAndNil(weapon_flags_mbf21); // MBF21
   FreeAndNil(sound_tokens);
   FreeAndNil(renderstyle_tokens);
   FreeAndNil(misc_tokens);
   FreeAndNil(weapontype_tokens);
   FreeAndNil(ammotype_tokens);
+  // MBF21
+  FreeAndNil(infighting_groups);
+  FreeAndNil(projectile_groups);
+  FreeAndNil(splash_groups);
 
   FreeAndNil(mobj_tokens_hash);
   FreeAndNil(mobj_flags_hash);
@@ -2738,6 +3292,9 @@ begin
   FreeAndNil(mobj_flags2_ex_hash);
   FreeAndNil(mobj_flags3_ex_hash);
   FreeAndNil(mobj_flags4_ex_hash);
+  FreeAndNil(mobj_flags5_ex_hash);
+  FreeAndNil(mobj_flags6_ex_hash);
+  FreeAndNil(mobj_flags_mbf21_hash); // MBF21
 
   DEH_ShutDownActionsHash;
 
@@ -2747,6 +3304,11 @@ begin
     stringhash[i].Free;
 end;
 
+//==============================================================================
+//
+// Deh_ActionName
+//
+//==============================================================================
 function Deh_ActionName(action: actionf_t): string;
 var
   i: integer;
@@ -2762,7 +3324,12 @@ begin
   result := '';
 end;
 
+//==============================================================================
+// DEH_GetString
+//
 // JVAL: 20190919 working
+//
+//==============================================================================
 function DEH_GetString(const s: string): string;
 var
   i: integer;

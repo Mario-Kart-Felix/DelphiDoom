@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -52,9 +52,10 @@ const
   SCN_320x200 = -1;
   SCN_FG = 0;
   SCN_BG = 1;
-  SCN_CON = 2;  // Console Screen Buffer
-  SCN_TMP = 3;  // Temporary Screen Buffer 320x200
-  SCN_ST = 4;   // Status Bar Screen Buffer (320x200)
+  SCN_CON = 2;    // Console Screen Buffer
+  SCN_TMP426 = 3; // Temporary Screen Buffer 426x200
+  SCN_TMP = 4;    // Temporary Screen Buffer 320x200
+  SCN_ST = 5;     // Status Bar Screen Buffer (320x200)
 
 var
 // Screen 0 is the screen updated by I_Update screen.
@@ -91,6 +92,7 @@ const
     (width:  -1; height:  -1; depth: 1),
     (width:  -1; height:  -1; depth: 1),
     {$ENDIF}
+    (width: 426; height: 200; depth: 1),
     (width: 320; height: 200; depth: 1),
     (width: 320; height: 200; depth: 1)
   );
@@ -101,6 +103,11 @@ var
 const
   PLAYPAL = 'PLAYPAL';
 
+//==============================================================================
+//
+// V_ReadPalette
+//
+//==============================================================================
 function V_ReadPalette(tag: integer): PByteArray;
 
 var
@@ -121,8 +128,13 @@ uses
 const
   playpalnum: integer = -2;
 
+//==============================================================================
+// V_ReadPalette
+//
 // JVAL
 // Reads the 'PLAYPAL' lump, optimized, keep lump number
+//
+//==============================================================================
 function V_ReadPalette(tag: integer): PByteArray;
 begin
   if playpalnum < 0 then

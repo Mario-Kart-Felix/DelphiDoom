@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Scripting consts
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -34,12 +34,32 @@ unit sc_consts;
 
 interface
 
+//==============================================================================
+//
+// SC_InitConsts
+//
+//==============================================================================
 procedure SC_InitConsts;
 
+//==============================================================================
+//
+// SC_ShutDownConsts
+//
+//==============================================================================
 procedure SC_ShutDownConsts;
 
+//==============================================================================
+//
+// SC_AddConst
+//
+//==============================================================================
 function SC_AddConst(const name: string; const value: integer): boolean;
 
+//==============================================================================
+//
+// SC_GetConst
+//
+//==============================================================================
 function SC_GetConst(const name: string; var value: integer): boolean;
 
 implementation
@@ -48,6 +68,7 @@ uses
   d_delphi,
   doomdef,
   i_system,
+  info_common,
   p_aaptr,
   p_common;
 
@@ -57,11 +78,24 @@ const
 var
   constshashtable: array[0..CONSTSHASHSIZE - 1] of TDStringList;
 
+//==============================================================================
+//
+// _hash
+//
+//==============================================================================
 function _hash(const s: string): integer;
+var
+  len: integer;
 begin
-  result := (Ord(s[1]) + Ord(s[Length(s)])) and (CONSTSHASHSIZE - 1);
+  len := Length(s);
+  result := (len + Ord(s[1]) + Ord(s[len])) and (CONSTSHASHSIZE - 1);
 end;
 
+//==============================================================================
+//
+// SC_InitConsts
+//
+//==============================================================================
 procedure SC_InitConsts;
 var
   i: integer;
@@ -193,8 +227,30 @@ begin
   SC_AddConst('SK_MEDIUM', Ord(sk_medium));
   SC_AddConst('SK_HARD', Ord(sk_hard));
   SC_AddConst('SK_NIGHTMARE', Ord(sk_nightmare));
+
+  // infighting groups
+  SC_AddConst('IG_INVALID', IG_INVALID);
+  SC_AddConst('IG_DEFAULT', IG_DEFAULT);
+  SC_AddConst('IG_END', IG_END);
+  // projectile groups
+  SC_AddConst('PG_INVALID', PG_INVALID);
+  SC_AddConst('PG_GROUPLESS', PG_GROUPLESS);
+  SC_AddConst('PG_DEFAULT', PG_DEFAULT);
+  {$IFDEF  DOOM}
+  SC_AddConst('PG_BARON', PG_BARON);
+  {$ENDIF}
+  SC_AddConst('PG_END', PG_END);
+  // Splash groups
+  SC_AddConst('SG_INVALID', SG_INVALID);
+  SC_AddConst('SG_DEFAULT', SG_DEFAULT);
+  SC_AddConst('SG_END', SG_END);
 end;
 
+//==============================================================================
+//
+// SC_ShutDownConsts
+//
+//==============================================================================
 procedure SC_ShutDownConsts;
 var
   i, j: integer;
@@ -207,6 +263,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_AddConst
+//
+//==============================================================================
 function SC_AddConst(const name: string; const value: integer): boolean;
 var
   uToken: string;
@@ -232,6 +293,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// SC_GetConst
+//
+//==============================================================================
 function SC_GetConst(const name: string; var value: integer): boolean;
 var
   uToken: string;

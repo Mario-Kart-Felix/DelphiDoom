@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //   DirectX DOOM graphics
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,26 +39,71 @@ uses
   Windows,
   d_delphi;
 
+//==============================================================================
+// I_InitGraphics
+//
 // Called by D_DoomMain,
 // determines the hardware configuration
 // and sets up the video mode
+//
+//==============================================================================
 procedure I_InitGraphics;
 
+//==============================================================================
+//
+// I_ChangeFullScreen
+//
+//==============================================================================
 procedure I_ChangeFullScreen(const newmode: integer);
 
+//==============================================================================
+//
+// I_ShutDownGraphics
+//
+//==============================================================================
 procedure I_ShutDownGraphics;
 
+//==============================================================================
+// I_SetPalette
+//
 // Takes full 8 bit values.
+//
+//==============================================================================
 procedure I_SetPalette(const palette: PByteArray);
 
+//==============================================================================
+//
+// IV_SetPalette
+//
+//==============================================================================
 procedure IV_SetPalette(const palette: PByteArray);
 
+//==============================================================================
+//
+// I_BlitBuffer
+//
+//==============================================================================
 procedure I_BlitBuffer;
 
+//==============================================================================
+//
+// I_FinishUpdate
+//
+//==============================================================================
 procedure I_FinishUpdate;
 
+//==============================================================================
+//
+// I_ReadScreen32
+//
+//==============================================================================
 procedure I_ReadScreen32(dest: pointer);
 
+//==============================================================================
+//
+// I_SetPalette64
+//
+//==============================================================================
 procedure I_SetPalette64;
 
 var
@@ -98,11 +143,21 @@ var
   screen: PLongWordArray;
   oscreen: pointer;
 
+//==============================================================================
+//
+// I_RestoreWindowPos
+//
+//==============================================================================
 procedure I_RestoreWindowPos(const mode: integer);
 begin
   SetWindowPos(hMainWnd, HWND_TOP, 0, 0, WINDOWWIDTH, WINDOWHEIGHT, SWP_SHOWWINDOW)
 end;
 
+//==============================================================================
+//
+// I_DisableAltTab
+//
+//==============================================================================
 procedure I_DisableAltTab;
 var
   old: Boolean;
@@ -123,6 +178,11 @@ begin
   s_alttab_disabled := true;
 end;
 
+//==============================================================================
+//
+// I_EnableAltTab
+//
+//==============================================================================
 procedure I_EnableAltTab;
 var
   old: Boolean;
@@ -144,25 +204,15 @@ begin
 end;
 
 var
-  fu8_64a, fu8_64b, fu8_64c, fu8_64d, fu8_64e, fu8_64f, fu8_64g: TDThread;
-
-var
   allocscreensize: integer;
 
+//==============================================================================
+//
+// I_ShutDownGraphics
+//
+//==============================================================================
 procedure I_ShutDownGraphics;
 begin
-  fu8_64a.Free;
-  fu8_64b.Free;
-  fu8_64c.Free;
-  if fu8_64d <> nil then
-    fu8_64d.Free;
-  if fu8_64e <> nil then
-    fu8_64e.Free;
-  if fu8_64f <> nil then
-    fu8_64f.Free;
-  if fu8_64g <> nil then
-    fu8_64g.Free;
-
   I_ClearInterface(IInterface(g_pDDScreen));
   I_ClearInterface(IInterface(g_pDDSPrimary));
   I_ClearInterface(IInterface(g_pDD));
@@ -185,9 +235,12 @@ type
 var
   curpal64: array[0..$FFFF] of Int64;
 
+//==============================================================================
+// I_SetPalette64
 //
 // JVAL: Create extended pallete of int64 values for fast update in 8 bid color mode
 //
+//==============================================================================
 procedure I_SetPalette64;
 var
   idx: twobytes_t;
@@ -207,9 +260,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// I_FinishUpdate8
 //
 // I_FinishUpdate
 //
+//==============================================================================
 procedure I_FinishUpdate8(parms: Pfinishupdateparms_t);
 var
   dest: PLongWord;
@@ -247,6 +303,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_FinishUpdate8_64
+//
+//==============================================================================
 procedure I_FinishUpdate8_64;
 var
   dest: PInt64;
@@ -271,6 +332,11 @@ type
   end;
   Pfinishupdate8param_t = ^finishupdate8param_t;
 
+//==============================================================================
+//
+// I_FinishUpdate8_64a
+//
+//==============================================================================
 function I_FinishUpdate8_64a(p: pointer): integer; stdcall;
 var
   dest: PInt64;
@@ -290,12 +356,22 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// I_Thr_FinishUpdate8
+//
+//==============================================================================
 function I_Thr_FinishUpdate8(parms: pointer): integer; stdcall;
 begin
   I_FinishUpdate8(Pfinishupdateparms_t(parms));
   result := 0;
 end;
 
+//==============================================================================
+//
+// I_FinishUpdate16
+//
+//==============================================================================
 procedure I_FinishUpdate16;
 var
   i: integer;
@@ -318,9 +394,13 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_BlitBuffer
+//
+//==============================================================================
 procedure I_BlitBuffer;
 var
-  h1: integer;
   parms1, parms2: finishupdateparms_t;
   p1, p2, p3, p4, p5, p6, p7, p8: finishupdate8param_t;
 begin
@@ -350,9 +430,10 @@ begin
           p1.finish := (SCREENWIDTH * SCREENHEIGHT div 2) and not 3;
           p2.start := p1.finish + 1;
           p2.finish := SCREENWIDTH * SCREENHEIGHT - 1;
-          fu8_64a.Activate(@p1);
-          I_FinishUpdate8_64a(@p2);
-          fu8_64a.Wait;
+          MT_Execute(
+            @I_FinishUpdate8_64a, @p1,
+            @I_FinishUpdate8_64a, @p2
+          );
         end
         else if I_GetNumCPUs <= 4 then
         begin
@@ -362,15 +443,11 @@ begin
           p2.finish := (2 * SCREENWIDTH * SCREENHEIGHT div 3) and not 3;
           p3.start := p2.finish + 1;
           p3.finish := SCREENWIDTH * SCREENHEIGHT - 1;
-          fu8_64a.Activate(@p1);
-          fu8_64b.Activate(@p2);
-          I_FinishUpdate8_64a(@p3);
-          while not fu8_64a.CheckJobDone do
-          begin
-            fu8_64b.CheckJobDone;
-            I_Sleep(0);
-          end;
-          fu8_64b.Wait;
+          MT_Execute(
+            @I_FinishUpdate8_64a, @p1,
+            @I_FinishUpdate8_64a, @p2,
+            @I_FinishUpdate8_64a, @p3
+          );
         end
         else if I_GetNumCPUs <= 6 then
         begin
@@ -382,18 +459,12 @@ begin
           p3.finish := (3 * SCREENWIDTH * SCREENHEIGHT div 4) and not 3;
           p4.start := p3.finish + 1;
           p4.finish := SCREENWIDTH * SCREENHEIGHT - 1;
-          fu8_64a.Activate(@p1);
-          fu8_64b.Activate(@p2);
-          fu8_64c.Activate(@p3);
-          I_FinishUpdate8_64a(@p4);
-          while not fu8_64a.CheckJobDone do
-          begin
-            fu8_64b.CheckJobDone;
-            fu8_64c.CheckJobDone;
-            I_Sleep(0);
-          end;
-          fu8_64b.Wait;
-          fu8_64c.Wait;
+          MT_Execute(
+            @I_FinishUpdate8_64a, @p1,
+            @I_FinishUpdate8_64a, @p2,
+            @I_FinishUpdate8_64a, @p3,
+            @I_FinishUpdate8_64a, @p4
+          );
         end
         else
         begin
@@ -413,30 +484,16 @@ begin
           p7.finish := (7 * SCREENWIDTH * SCREENHEIGHT div 8) and not 3;
           p8.start := p7.finish + 1;
           p8.finish := SCREENWIDTH * SCREENHEIGHT - 1;
-          fu8_64a.Activate(@p1);
-          fu8_64b.Activate(@p2);
-          fu8_64c.Activate(@p3);
-          fu8_64d.Activate(@p4);
-          fu8_64e.Activate(@p5);
-          fu8_64f.Activate(@p6);
-          fu8_64g.Activate(@p7);
-          I_FinishUpdate8_64a(@p8);
-          while not fu8_64a.CheckJobDone do
-          begin
-            fu8_64b.CheckJobDone;
-            fu8_64c.CheckJobDone;
-            fu8_64d.CheckJobDone;
-            fu8_64e.CheckJobDone;
-            fu8_64f.CheckJobDone;
-            fu8_64g.CheckJobDone;
-            I_Sleep(0);
-          end;
-          fu8_64b.Wait;
-          fu8_64c.Wait;
-          fu8_64d.Wait;
-          fu8_64e.Wait;
-          fu8_64f.Wait;
-          fu8_64g.Wait;
+          MT_Execute(
+            @I_FinishUpdate8_64a, @p1,
+            @I_FinishUpdate8_64a, @p2,
+            @I_FinishUpdate8_64a, @p3,
+            @I_FinishUpdate8_64a, @p4,
+            @I_FinishUpdate8_64a, @p5,
+            @I_FinishUpdate8_64a, @p6,
+            @I_FinishUpdate8_64a, @p7,
+            @I_FinishUpdate8_64a, @p8
+          );
         end
       end
       else
@@ -450,9 +507,10 @@ begin
         parms1.stop := SCREENWIDTH * SCREENHEIGHT div 2;
         parms2.start := parms1.stop + 1;
         parms2.stop := SCREENWIDTH * SCREENHEIGHT - 1;
-        h1 := I_CreateProcess(@I_Thr_FinishUpdate8, @parms2, false);
-        I_FinishUpdate8(@parms1);
-        I_WaitForProcess(h1, 1000);
+        MT_Execute(
+          @I_Thr_FinishUpdate8, @parms1,
+          @I_Thr_FinishUpdate8, @parms2
+        );
       end
       else
       begin
@@ -463,6 +521,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_FinishUpdate
+//
+//==============================================================================
 procedure I_FinishUpdate;
 var
   srcrect: TRect;
@@ -524,13 +587,13 @@ begin
 
 end;
 
+//==============================================================================
 //
 // Palette stuff.
 //
-
-//
 // I_SetPalette
 //
+//==============================================================================
 procedure I_SetPalette(const palette: PByteArray);
 var
   dest: PLongWord;
@@ -552,6 +615,11 @@ begin
     I_SetPalette64;
 end;
 
+//==============================================================================
+//
+// IV_SetPalette
+//
+//==============================================================================
 procedure IV_SetPalette(const palette: PByteArray);
 var
   dest: PLongWord;
@@ -574,6 +642,11 @@ begin
   V_SetPalette(palette);
 end;
 
+//==============================================================================
+//
+// I_AdjustWindowMode
+//
+//==============================================================================
 function I_AdjustWindowMode: boolean;
 begin
   result := false;
@@ -589,6 +662,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_MemoryStallHack
+//
+//==============================================================================
 function I_MemoryStallHack: boolean;
 // JVAL: Memory stall can dramatically reduce performance in inc operation of
 // esi register of value 4096 etc
@@ -602,8 +680,11 @@ function I_MemoryStallHack: boolean;
 begin
   if (SCREENWIDTH = 1024) or (SCREENWIDTH = 1152) or (SCREENWIDTH = 1280) then
   begin
-    dec(SCREENWIDTH, 2);
-    stallhack := true;
+    if fixstallhack then
+    begin
+      dec(SCREENWIDTH, 2);
+      stallhack := true;
+    end;
   end
   else
     stallhack := false;
@@ -613,9 +694,14 @@ end;
 const
   ERROR_OFFSET = 20;
 
+//==============================================================================
+// I_InitGraphics
+//
 // Called by D_DoomMain,
 // determines the hardware configuration
 // and sets up the video mode
+//
+//==============================================================================
 procedure I_InitGraphics;
 var
   hres: HRESULT;
@@ -637,23 +723,6 @@ begin
 
   I_EnumDisplayModes;
 
-  fu8_64a := TDThread.Create(I_FinishUpdate8_64a);
-  fu8_64b := TDThread.Create(I_FinishUpdate8_64a);
-  fu8_64c := TDThread.Create(I_FinishUpdate8_64a);
-  if I_GetNumCPUs > 6 then
-  begin
-    fu8_64d := TDThread.Create(I_FinishUpdate8_64a);
-    fu8_64e := TDThread.Create(I_FinishUpdate8_64a);
-    fu8_64f := TDThread.Create(I_FinishUpdate8_64a);
-    fu8_64g := TDThread.Create(I_FinishUpdate8_64a);
-  end
-  else
-  begin
-    fu8_64d := nil;
-    fu8_64e := nil;
-    fu8_64f := nil;
-    fu8_64g := nil;
-  end;
 ///////////////////////////////////////////////////////////////////////////
 // Create the main DirectDraw object
 ///////////////////////////////////////////////////////////////////////////
@@ -708,7 +777,6 @@ begin
     I_AdjustWindowMode;
     I_RestoreWindowPos(fullscreen);
 
-
     hres := g_pDD.SetCooperativeLevel(hMainWnd, DDSCL_NORMAL);
     if hres <> DD_OK then
       I_ErrorInitGraphics('SetCooperativeLevel');
@@ -730,7 +798,6 @@ begin
     if hres <> DD_OK then
       I_ErrorInitGraphics('CreateSurface');
   end;
-
 
   ZeroMemory(@ddsd, SizeOf(ddsd));
   ZeroMemory(@ddsd.ddpfPixelFormat, SizeOf(ddsd.ddpfPixelFormat));
@@ -784,6 +851,11 @@ const
     (1920, 1080), (1366, 768), (1280, 1024), (1280, 800), (1024, 768), (800, 600), (640, 480), (600, 400), (512, 384), (400, 300), (320, 200)
   );
 
+//==============================================================================
+//
+// I_ChangeFullScreen
+//
+//==============================================================================
 procedure I_ChangeFullScreen(const newmode: integer);
 
   procedure I_ChangeFullScreenError(full: boolean);
@@ -910,7 +982,7 @@ begin
   else if bpp = 16 then
   begin
     ddsd.lPitch := 2 * SCREENWIDTH;
-    if screen16 <> nil then
+    if screen16 = nil then
       screen16 := malloc(SCREENWIDTH * SCREENHEIGHT * 2);
     I_Warning('I_ChangeFullScreen(): using 16 bit color depth desktop in non fullscreen mode reduces performance'#13#10);
   end
@@ -929,6 +1001,11 @@ begin
   dpi := I_GetWindowDPI(hMainWnd);
 end;
 
+//==============================================================================
+//
+// I_ReadScreen32
+//
+//==============================================================================
 procedure I_ReadScreen32(dest: pointer);
 var
   i: integer;

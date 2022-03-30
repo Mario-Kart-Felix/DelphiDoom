@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -31,23 +31,67 @@ unit sv_save;
 
 interface
 
+//==============================================================================
+//
+// SV_Init
+//
+//==============================================================================
 procedure SV_Init;
 
+//==============================================================================
+//
+// SV_InitBaseSlot
+//
+//==============================================================================
 procedure SV_InitBaseSlot;
 
+//==============================================================================
+//
+// SV_ClearRebornSlot
+//
+//==============================================================================
 procedure SV_ClearRebornSlot;
 
+//==============================================================================
+//
+// SV_RebornSlotAvailable
+//
+//==============================================================================
 function SV_RebornSlotAvailable: boolean;
 
+//==============================================================================
+//
+// SV_MapTeleport
+//
+//==============================================================================
 procedure SV_MapTeleport(map: integer; position: integer);
 
+//==============================================================================
+//
+// SV_LoadGame
+//
+//==============================================================================
 procedure SV_LoadGame(slot: integer);
 
+//==============================================================================
+//
+// SV_GetRebornSlot
+//
+//==============================================================================
 function SV_GetRebornSlot: integer;
 
-
+//==============================================================================
+//
+// P_ArchiveScreenShot
+//
+//==============================================================================
 procedure P_ArchiveScreenShot;
 
+//==============================================================================
+//
+// P_UnArchiveScreenShot
+//
+//==============================================================================
 procedure P_UnArchiveScreenShot;
 var
   SAVEGAMENAME: string = '%s\hex%d00.hxs';
@@ -58,12 +102,32 @@ var
   SAVEGLOBALSNAMEDD: string = '%s\HEXDD%d00.HXW';
   SAVEPATH: string = 'HEXNDATA';
 
+//==============================================================================
+//
+// SV_GetSaveGameName
+//
+//==============================================================================
 function SV_GetSaveGameName(const slot: integer): string;
 
+//==============================================================================
+//
+// SV_GetSaveGameDescription
+//
+//==============================================================================
 function SV_GetSaveGameDescription(const slot: integer): string;
 
+//==============================================================================
+//
+// SV_UpdateRebornSlot
+//
+//==============================================================================
 procedure SV_UpdateRebornSlot;
 
+//==============================================================================
+//
+// SV_SaveGame
+//
+//==============================================================================
 procedure SV_SaveGame(slot: integer; description: string);
 
 implementation
@@ -87,16 +151,18 @@ uses
   a_action,
   p_3dfloors,
   p_local,
+  p_playertrace,
   p_mobj_h,
-  p_floor,
+  udmf_floor,
+  p_mapinfo,
   p_setup,
   p_acs,
   p_maputl,
   p_spec,
-  p_plats,
-  p_ceilng,
-  p_lights,
-  p_doors,
+  udmf_plats,
+  udmf_ceilng,
+  udmf_lights,
+  udmf_doors,
   p_pspr_h,
   p_inter,
   p_tick,
@@ -106,14 +172,17 @@ uses
   p_map,
   p_params,
   p_levelinfo,
+  p_udmf,
   po_man,
   ps_main,
   psi_globals,
   psi_overlay,
   r_defs,
   r_main,
+  r_translations,
   s_sndseq,
   sb_bar,
+  sv_hexen,
   doomdef,
   w_wad,
   r_data,
@@ -123,6 +192,11 @@ var
   saveptr: pointer;
   LOADVERSION: integer;
 
+//==============================================================================
+//
+// _SAVEGAMENAME
+//
+//==============================================================================
 function _SAVEGAMENAME: string;
 begin
   if hexdd_pack then
@@ -131,6 +205,11 @@ begin
     Result := SAVEGAMENAME
 end;
 
+//==============================================================================
+//
+// _SAVEGAMEMAP
+//
+//==============================================================================
 function _SAVEGAMEMAP: string;
 begin
   if hexdd_pack then
@@ -139,6 +218,11 @@ begin
     Result := SAVEGAMEMAP
 end;
 
+//==============================================================================
+//
+// _SAVEGLOBALSNAME
+//
+//==============================================================================
 function _SAVEGLOBALSNAME: string;
 begin
   if hexdd_pack then
@@ -147,12 +231,22 @@ begin
     Result := SAVEGLOBALSNAME
 end;
 
+//==============================================================================
+//
+// GET_BYTE
+//
+//==============================================================================
 function GET_BYTE: byte; overload;
 begin
   result := PByte(saveptr)^;
   saveptr := pointer(integer(saveptr) + SizeOf(byte));
 end;
 
+//==============================================================================
+//
+// GET_BYTE
+//
+//==============================================================================
 function GET_BYTE(b: PByte): byte; overload;
 begin
   result := PByte(saveptr)^;
@@ -160,30 +254,55 @@ begin
   saveptr := pointer(integer(saveptr) + SizeOf(byte));
 end;
 
+//==============================================================================
+//
+// GET_BOOLEAN
+//
+//==============================================================================
 function GET_BOOLEAN: boolean;
 begin
   result := PBoolean(saveptr)^;
   saveptr := pointer(integer(saveptr) + SizeOf(boolean));
 end;
 
+//==============================================================================
+//
+// GET_WORD
+//
+//==============================================================================
 function GET_WORD: word;
 begin
   result := PWord(saveptr)^;
   saveptr := pointer(integer(saveptr) + SizeOf(word));
 end;
 
+//==============================================================================
+//
+// GET_LONG
+//
+//==============================================================================
 function GET_LONG: integer;
 begin
   result := PInteger(saveptr)^;
   saveptr := pointer(integer(saveptr) + SizeOf(integer));
 end;
 
+//==============================================================================
+//
+// GET_LONGWORD
+//
+//==============================================================================
 function GET_LONGWORD: LongWord;
 begin
   result := PLongWord(saveptr)^;
   saveptr := pointer(integer(saveptr) + SizeOf(LongWord));
 end;
 
+//==============================================================================
+//
+// GET_STRING
+//
+//==============================================================================
 function GET_STRING: string;
 var
   b: byte;
@@ -197,101 +316,119 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// GET_CHAR8T
+//
+//==============================================================================
 function GET_CHAR8T: char8_t;
 var
   i: integer;
+  ch: Char;
 begin
-  for i := 0 to 7 do
-    result[i] := Chr(GET_BYTE);
+  if LOADVERSION >= VERSION207 then
+  begin
+    for i := 0 to 7 do
+      result[i] := #0;
+    for i := 0 to 7 do
+    begin
+      ch := Chr(GET_BYTE);
+      result[i] := ch;
+      if ch = #0 then
+        exit;
+    end;
+  end
+  else
+  begin
+    for i := 0 to 7 do
+      result[i] := Chr(GET_BYTE);
+  end;
 end;
 
+//==============================================================================
+//
+// GET_FLOAT
+//
+//==============================================================================
 function GET_FLOAT: float;
 begin
   result := Pfloat(saveptr)^;
   saveptr := pointer(integer(saveptr) + SizeOf(float));
 end;
 
-//==========================================================================
 //
 // Saving to stream helpers
 //
-//==========================================================================
 
 var
   SavingFP: TFile;
 
-//==========================================================================
+//==============================================================================
 //
 // StreamOutBuffer
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutBuffer(buffer: pointer; size: integer);
 begin
   SavingFP.Write(buffer^, size);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // StreamOutByte
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutByte(val: byte);
 begin
   SavingFP.Write(val, SizeOf(byte));
 end;
 
-//==========================================================================
+//==============================================================================
+// StreamOutBoolean
 //
 // StreamOutByte
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutBoolean(val: boolean);
 begin
   SavingFP.Write(val, SizeOf(boolean));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // StreamOutWord
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutWord(val: word);
 begin
   SavingFP.Write(val, SizeOf(word));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // StreamOutLong
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutLong(val: integer);
 begin
   SavingFP.Write(val, SizeOf(integer));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // StreamOutLongWord
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutLongWord(val: LongWord);
 begin
   SavingFP.Write(val, SizeOf(LongWord));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // StreamOutString
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutString(const s: string);
 var
   b: byte;
@@ -306,6 +443,11 @@ begin
   SavingFP.Write(b, SizeOf(byte));
 end;
 
+//==============================================================================
+//
+// StreamOutChar8t
+//
+//==============================================================================
 procedure StreamOutChar8t(const s: char8_t);
 var
   b: byte;
@@ -315,23 +457,23 @@ begin
   begin
     b := Ord(s[i]);
     SavingFP.Write(b, SizeOf(byte));
+    if b = 0 then
+      exit;
   end;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // StreamOutFloat
 //
-//==========================================================================
-
+//==============================================================================
 procedure StreamOutFloat(val: float);
 begin
   SavingFP.Write(val, SizeOf(float));
 end;
 
 const
-  MAX_TARGET_PLAYERS = 512;
+  MAX_TARGET_PLAYERS = 4096;
   MOBJ_NULL = -1;
   MOBJ_XX_PLAYER = -2;
   MAX_MAPS = 99;
@@ -389,7 +531,6 @@ type
   end;
   Pssthinker_t = ^ssthinker_t;
 
-
 type
   TargetPlayerAddrs_t = array[0..$FFFF] of PInteger;
   PTargetPlayerAddrs_t = ^TargetPlayerAddrs_t;
@@ -402,12 +543,11 @@ var
   SaveBuffer: PByteArray;
   SavingPlayers: boolean;
 
-//==========================================================================
+//==============================================================================
 //
 // GetMobjNum
 //
-//==========================================================================
-
+//==============================================================================
 function GetMobjNum(mobj: Pmobj_t): integer;
 begin
   if mobj = nil then
@@ -425,12 +565,11 @@ begin
   result := mobj.archiveNum;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SetMobjPtr
 //
-//==========================================================================
-
+//==============================================================================
 procedure SetMobjPtr(archiveNum: PInteger);
 begin
   if archiveNum^ = MOBJ_NULL then
@@ -455,13 +594,11 @@ begin
     archiveNum^ := 0;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // RestoreMobj
 //
-//==========================================================================
-
+//==============================================================================
 procedure RestoreMobj(mobj: Pmobj_t);
 begin
   mobj.state := @states[integer(mobj.state)];
@@ -473,6 +610,7 @@ begin
     mobj.player := @players[integer(mobj.player) - 1];
     Pplayer_t(mobj.player).mo := mobj;
   end;
+  R_InitMobjTranslation(mobj);
   P_SetThingPosition(mobj);
   mobj.info := @mobjinfo[mobj._type];
   mobj.floorz := P_3dFloorHeight(mobj);
@@ -516,62 +654,57 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // MangleSSThinker
 //
-//==========================================================================
-
+//==============================================================================
 procedure MangleSSThinker(sst: Pssthinker_t);
 begin
-  sst.sector := Psector_t((longword(sst.sector) - longword(@sectors[0])) div SizeOf(sector_t));
+  sst.sector := Psector_t((LongWord(sst.sector) - LongWord(@sectors[0])) div SizeOf(sector_t));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // RestoreSSThinker
 //
-//==========================================================================
-
+//==============================================================================
 procedure RestoreSSThinker(sst: Pssthinker_t);
 begin
   sst.sector := @sectors[integer(sst.sector)];
   sst.sector.specialdata := @sst.thinker._function.acp1;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // RestoreSSThinkerNoSD
 //
-//==========================================================================
-
+//==============================================================================
 procedure RestoreSSThinkerNoSD(sst: Pssthinker_t);
 begin
   sst.sector := @sectors[integer(sst.sector)];
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // MangleScript
 //
-//==========================================================================
-
+//==============================================================================
 procedure MangleScript(script: Pacs_t);
 begin
-  script.ip := PInteger(longword(script.ip) - longword(ActionCodeBase));
+  script.ip := PInteger(LongWord(script.ip) - LongWord(ActionCodeBase));
   if script.line <> nil then
-    script.line :=  Pline_t((longword(script.line) - longword(@lines[0])) div SizeOf(line_t))
+    script.line :=  Pline_t((LongWord(script.line) - LongWord(@lines[0])) div SizeOf(line_t))
   else
     script.line := Pline_t(-1);
   script.activator := Pmobj_t(GetMobjNum(script.activator));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // RestoreScript
 //
-//==========================================================================
-
+//==============================================================================
 procedure RestoreScript(script: Pacs_t);
 begin
   script.ip := @ActionCodeBase[integer(script.ip)];
@@ -582,32 +715,29 @@ begin
   SetMobjPtr(PInteger(@script.activator));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // RestorePlatRaise
 //
-//==========================================================================
-
+//==============================================================================
 procedure RestorePlatRaise(plat: Pplat_t);
 begin
   plat.sector := @sectors[integer(plat.sector)];
-  plat.sector.specialdata := @T_PlatRaise;
-  P_AddActivePlat(plat);
+  plat.sector.specialdata := @TH_PlatRaise;
+  PH_AddActivePlat(plat);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // RestoreMoveCeiling
 //
-//==========================================================================
-
+//==============================================================================
 procedure RestoreMoveCeiling(ceiling: Pceiling_t);
 begin
   ceiling.sector := @sectors[integer(ceiling.sector)];
-  ceiling.sector.specialdata := @T_MoveCeiling;
-  P_AddActiveCeiling(ceiling);
+  ceiling.sector.specialdata := @TH_MoveCeiling;
+  PH_AddActiveCeiling(ceiling);
 end;
-
 
 const
   SVNUMTHINKINFO = 13;
@@ -615,6 +745,11 @@ const
 var
   ThinkerInfo: array[0..SVNUMTHINKINFO - 1] of thinkInfo_t;
 
+//==============================================================================
+//
+// SV_Init
+//
+//==============================================================================
 procedure SV_Init;
 var
   pti: PthinkInfo_t;
@@ -622,84 +757,84 @@ begin
 // This list has been prioritized using frequency estimates
   pti := @ThinkerInfo[0];
   pti.tClass := TC_MOVE_FLOOR;
-  pti.thinkerFunc.acp1 := @T_MoveFloor;
+  pti.thinkerFunc.acp1 := @TH_MoveFloor;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreSSThinker;
   pti.size := SizeOf(floormove_t);
 
   inc(pti);
   pti.tClass := TC_PLAT_RAISE;
-  pti.thinkerFunc.acp1 := @T_PlatRaise;
+  pti.thinkerFunc.acp1 := @TH_PlatRaise;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestorePlatRaise;
   pti.size := SizeOf(plat_t);
 
   inc(pti);
   pti.tClass := TC_MOVE_CEILING;
-  pti.thinkerFunc.acp1 :=  @T_MoveCeiling;
+  pti.thinkerFunc.acp1 :=  @TH_MoveCeiling;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreMoveCeiling;
   pti.size := SizeOf(ceiling_t);
 
   inc(pti);
   pti.tClass := TC_LIGHT;
-  pti.thinkerFunc.acp1 := @T_Light;
+  pti.thinkerFunc.acp1 := @TH_Light;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreSSThinkerNoSD;
   pti.size := SizeOf(light_t);
 
   inc(pti);
   pti.tClass := TC_VERTICAL_DOOR;
-  pti.thinkerFunc.acp1 :=  @T_VerticalDoor;
+  pti.thinkerFunc.acp1 :=  @TH_VerticalDoor;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreSSThinker;
   pti.size := SizeOf(vldoor_t);
 
   inc(pti);
   pti.tClass := TC_PHASE;
-  pti.thinkerFunc.acp1 := @T_Phase;
+  pti.thinkerFunc.acp1 := @TH_Phase;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreSSThinkerNoSD;
   pti.size := SizeOf(phase_t);
 
   inc(pti);
   pti.tClass := TC_INTERPRET_ACS;
-  pti.thinkerFunc.acp1 :=  @T_InterpretACS;
+  pti.thinkerFunc.acp1 :=  @TH_InterpretACS;
   pti.mangleFunc := @MangleScript;
   pti.restoreFunc := @RestoreScript;
   pti.size := SizeOf(acs_t);
 
   inc(pti);
   pti.tClass := TC_ROTATE_POLY;
-  pti.thinkerFunc.acp1 :=  @T_RotatePoly;
+  pti.thinkerFunc.acp1 :=  @TH_RotatePoly;
   pti.mangleFunc := nil;
   pti.restoreFunc := nil;
   pti.size := SizeOf(polyevent_t);
 
   inc(pti);
   pti.tClass := TC_BUILD_PILLAR;
-  pti.thinkerFunc.acp1 :=  @T_BuildPillar;
+  pti.thinkerFunc.acp1 :=  @TH_BuildPillar;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreSSThinker;
   pti.size := SizeOf(pillar_t);
 
   inc(pti);
   pti.tClass := TC_MOVE_POLY;
-  pti.thinkerFunc.acp1 :=  @T_MovePoly;
+  pti.thinkerFunc.acp1 :=  @TH_MovePoly;
   pti.mangleFunc := nil;
   pti.restoreFunc := nil;
   pti.size := SizeOf(polyevent_t);
 
   inc(pti);
   pti.tClass := TC_POLY_DOOR;
-  pti.thinkerFunc.acp1 :=  @T_PolyDoor;
+  pti.thinkerFunc.acp1 :=  @TH_PolyDoor;
   pti.mangleFunc := nil;
   pti.restoreFunc := nil;
   pti.size := SizeOf(polydoor_t);
 
   inc(pti);
   pti.tClass := TC_FLOOR_WAGGLE;
-  pti.thinkerFunc.acp1 :=  @T_FloorWaggle;
+  pti.thinkerFunc.acp1 :=  @TH_FloorWaggle;
   pti.mangleFunc := @MangleSSThinker;
   pti.restoreFunc := @RestoreSSThinker;
   pti.size := SizeOf(floorWaggle_t);
@@ -713,23 +848,21 @@ begin
 
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // OpenStreamOut
 //
-//==========================================================================
-
+//==============================================================================
 procedure OpenStreamOut(const fileName: string);
 begin
   SavingFP := TFile.Create(fileName, fCreate);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // CloseStreamOut
 //
-//==========================================================================
-
+//==============================================================================
 procedure CloseStreamOut;
 begin
   if SavingFP <> nil then
@@ -739,13 +872,11 @@ begin
   end;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // ArchivePlayers
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchivePlayers;
 var
   i: integer;
@@ -765,32 +896,33 @@ begin
     begin
       if tempPlayer.psprites[j].state <> nil then
       begin
-        tempPlayer.psprites[j].state := Pstate_t((longword(tempPlayer.psprites[j].state) - longword(@states[0])) div SizeOf(state_t));
+        tempPlayer.psprites[j].state := Pstate_t((LongWord(tempPlayer.psprites[j].state) - LongWord(@states[0])) div SizeOf(state_t));
       end;
     end;
+    if tempPlayer.plinetarget <> nil then
+      tempPlayer.plinetarget := Pmobj_t(tempPlayer.plinetarget.key);
     StreamOutBuffer(@tempPlayer, SizeOf(player_t));
+    // JVAL: 20211224 - Save player history
+    StreamOutBuffer(@playerhistory[i], SizeOf(playertracehistory_t));
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // AssertSegment
 //
-//==========================================================================
-
+//==============================================================================
 procedure AssertSegment(segType: integer);
 begin
   if GET_LONG <> segType then
     I_Error('AssertSegment(): Corrupted save game: Segment [%d] failed alignment check', [segType]);
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // UnarchivePlayers
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchivePlayers;
 var
   i, j: integer;
@@ -820,6 +952,7 @@ begin
       players[i].lookdir16 := players[i].lookdir * 16; // JVAL Smooth Look Up/Down
       Pticcmd_t202(@players[i].cmd)^ := players[i].cmd202;
       players[i].cmd.lookupdown16 := (players[i].cmd.lookfly and 15) * 256;
+      P_ClearPlayerHistory(@players[i]);
       incp(saveptr, SizeOf(player_t141));
     end
     else if LOADVERSION <= VERSION142 then
@@ -833,6 +966,7 @@ begin
       players[i].lookdir16 := players[i].lookdir * 16; // JVAL Smooth Look Up/Down
       Pticcmd_t202(@players[i].cmd)^ := players[i].cmd202;
       players[i].cmd.lookupdown16 := (players[i].cmd.lookfly and 15) * 256;
+      P_ClearPlayerHistory(@players[i]);
       incp(saveptr, SizeOf(player_t142));
     end
     else if LOADVERSION <= VERSION205 then
@@ -843,18 +977,25 @@ begin
         players[i].quakeintensity := FRACUNIT
       else
         players[i].quakeintensity := 0;
+      P_ClearPlayerHistory(@players[i]);
       incp(saveptr, SizeOf(player_t205));
     end
     else if LOADVERSION <= VERSION206 then
     begin
       ZeroMemory(@players[i], SizeOf(player_t));
       memcpy(@players[i], saveptr, SizeOf(player_t206));
+      P_ClearPlayerHistory(@players[i]);
       incp(saveptr, SizeOf(player_t206));
     end
     else
     begin
       memcpy(@players[i], saveptr, SizeOf(player_t));
       incp(saveptr, SizeOf(player_t));
+    end;
+    if LOADVERSION >= VERSION207 then
+    begin
+      memcpy(@playerhistory[i], saveptr, SizeOf(playertracehistory_t));
+      incp(saveptr, SizeOf(playertracehistory_t));
     end;
     players[i].mo := nil; // Will be set when unarc thinker
     P_ClearMessage(@players[i]);
@@ -870,12 +1011,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchiveWorld
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchiveWorld;
 var
   i: integer;
@@ -884,7 +1024,10 @@ var
   li: Pline_t;
   si: Pside_t;
   levelinf: Plevelinfo_t;
+  buf: pointer;
 begin
+  buf := malloc($10000);
+
   StreamOutLong(ASEG_WORLD);
 
   levelinf := P_GetLevelInfo(P_GetMapName(gamemap));
@@ -894,76 +1037,46 @@ begin
   sec := @sectors[0];
   for i := 0 to numsectors - 1 do
   begin
-    StreamOutLong(sec.floorheight);
-    StreamOutLong(sec.ceilingheight);
+    StreamOutBuffer(buf, SectorSerializer.SaveToMem(buf, sec, $FFFF));
+
     StreamOutChar8t(flats[sec.floorpic].name);
     StreamOutChar8t(flats[sec.ceilingpic].name);
-    StreamOutWord(sec.lightlevel);
-    StreamOutWord(sec.special);
-    StreamOutWord(sec.tag);
-    StreamOutByte(Ord(sec.seqType));
-    StreamOutLongWord(sec.renderflags);
-    StreamOutLongWord(sec.flags);
-    StreamOutLong(sec.midsec);
-    StreamOutLong(sec.midline);
-    StreamOutLong(sec.gravity);
 
-    // JVAL: 20200221 - Texture angle
-    StreamOutLongWord(sec.floorangle);
-    StreamOutLong(sec.flooranglex);
-    StreamOutLong(sec.floorangley);
-    StreamOutLongWord(sec.ceilingangle);
-    StreamOutLong(sec.ceilinganglex);
-    StreamOutLong(sec.ceilingangley);
-
-    // JVAL: 20200522 - Slope values
-    StreamOutFloat(sec.fa);
-    StreamOutFloat(sec.fb);
-    StreamOutFloat(sec.fd);
-    StreamOutFloat(sec.fic);
-    StreamOutFloat(sec.ca);
-    StreamOutFloat(sec.cb);
-    StreamOutFloat(sec.cd);
-    StreamOutFloat(sec.cic);
-
-    StreamOutLong(sec.num_saffectees);
     for j := 0 to sec.num_saffectees - 1 do
       StreamOutLong(sec.saffectees[j]);
+
     inc(sec);
   end;
+
   li := @lines[0];
   for i := 0 to numlines -  1 do
   begin
-    StreamOutWord(li.flags);
-    StreamOutByte(li.special);
-    StreamOutByte(li.arg1);
-    StreamOutByte(li.arg2);
-    StreamOutByte(li.arg3);
-    StreamOutByte(li.arg4);
-    StreamOutByte(li.arg5);
-    for j := 0 to 1 do
-    begin
-      if li.sidenum[j] = -1 then
-        continue;
+    StreamOutBuffer(buf, LineSerializer.SaveToMem(buf, li, $FFFF));
 
-      si := @sides[li.sidenum[j]];
-      StreamOutLong(si.textureoffset);
-      StreamOutLong(si.rowoffset);
-      StreamOutChar8t(R_NameForSideTexture(si.toptexture));
-      StreamOutChar8t(R_NameForSideTexture(si.bottomtexture));
-      StreamOutChar8t(R_NameForSideTexture(si.midtexture));
-    end;
     inc(li);
   end;
+
+  si := @sides[0];
+  for i := 0 to numsides -  1 do
+  begin
+    StreamOutBuffer(buf, SideSerializer.SaveToMem(buf, si, $FFFF));
+
+    StreamOutChar8t(R_NameForSideTexture(si.toptexture));
+    StreamOutChar8t(R_NameForSideTexture(si.bottomtexture));
+    StreamOutChar8t(R_NameForSideTexture(si.midtexture));
+
+    inc(si);
+  end;
+
+  memfree(buf, $10000);
 end;
 
-//==========================================================================
+//==============================================================================
 //
-// UnarchiveWorld
+// UnarchiveWorld206
 //
-//==========================================================================
-
-procedure UnarchiveWorld;
+//==============================================================================
+procedure UnarchiveWorld206;
 var
   i: integer;
   j: integer;
@@ -1052,11 +1165,19 @@ begin
       for j := 0 to sec.num_saffectees - 1 do
         sec.saffectees[j] := GET_LONG;
     end;
+
+    sec.moreids := [];
+    if IsIntegerInRange(sec.tag, 0, 255) then
+      Include(sec.moreids, sec.tag);
+    sec.windthrust := 0;
+    sec.windangle := 0;
+
     sec.specialdata := nil;
     sec.soundtarget := nil;
     sec.iSectorID := i;
     inc(sec);
   end;
+
   li := @lines[0];
   for i := 0 to numlines - 1 do
   begin
@@ -1067,15 +1188,17 @@ begin
     li.arg3 := GET_BYTE;
     li.arg4 := GET_BYTE;
     li.arg5 := GET_BYTE;
+    li.moreids := [];
+
     for j := 0 to 1 do
     begin
       if li.sidenum[j] = -1 then
-      begin
         continue;
-      end;
+
       si := @sides[li.sidenum[j]];
       si.textureoffset := GET_LONG;
       si.rowoffset := GET_LONG;
+
       if LOADVERSION <= VERSION141 then
       begin
         si.toptexture := GET_WORD;
@@ -1088,20 +1211,93 @@ begin
         si.bottomtexture := R_SafeTextureNumForName(GET_CHAR8T);
         si.midtexture := R_SafeTextureNumForName(GET_CHAR8T);
       end;
+
+      si.toptextureoffset := 0;
+      si.bottomtextureoffset := 0;
+      si.midtextureoffset := 0;
+      si.toprowoffset := 0;
+      si.bottomrowoffset := 0;
+      si.midrowoffset := 0;
+      si.flags := 0;
     end;
     inc(li);
   end;
 end;
 
-//==========================================================================
+//==============================================================================
+//
+// UnarchiveWorld
+//
+//==============================================================================
+procedure UnarchiveWorld;
+var
+  i: integer;
+  j: integer;
+  sec: Psector_t;
+  li: Pline_t;
+  si: Pside_t;
+  levelinf: Plevelinfo_t;
+begin
+  if LOADVERSION <= VERSION206 then
+  begin
+    UnarchiveWorld206;
+    exit;
+  end;
+
+  AssertSegment(ASEG_WORLD);
+
+  levelinf := P_GetLevelInfo(P_GetMapName(gamemap));
+  levelinf.musname := GET_CHAR8T;
+  levelinf.skyflat := GET_CHAR8T;
+
+  sec := @sectors[0];
+  for i := 0 to numsectors - 1 do
+  begin
+    incp(saveptr, SectorSerializer.LoadFromMem(saveptr, sec, $FFFF));
+
+    sec.floorpic := R_FlatNumForName(GET_CHAR8T);
+    sec.ceilingpic := R_FlatNumForName(GET_CHAR8T);
+
+    sec.saffectees := Z_Realloc(sec.saffectees, sec.num_saffectees * SizeOf(integer), PU_LEVEL, nil);
+    for j := 0 to sec.num_saffectees - 1 do
+      sec.saffectees[j] := GET_LONG;
+
+    sec.specialdata := nil;
+    sec.soundtarget := nil;
+    sec.iSectorID := i;
+
+    inc(sec);
+  end;
+
+  li := @lines[0];
+  for i := 0 to numlines - 1 do
+  begin
+    incp(saveptr, LineSerializer.LoadFromMem(saveptr, li, $FFFF));
+
+    inc(li);
+  end;
+
+  si := @sides[0];
+  for i := 0 to numsides - 1 do
+  begin
+    incp(saveptr, SideSerializer.LoadFromMem(saveptr, si, $FFFF));
+
+    si.toptexture := R_SafeTextureNumForName(GET_CHAR8T);
+    si.bottomtexture := R_SafeTextureNumForName(GET_CHAR8T);
+    si.midtexture := R_SafeTextureNumForName(GET_CHAR8T);
+
+    inc(si);
+  end;
+end;
+
+//==============================================================================
 //
 // SetMobjArchiveNums
 //
 // Sets the archive numbers in all mobj structs.  Also sets the MobjCount
 // global.  Ignores player mobjs if SavingPlayers is false.
 //
-//==========================================================================
-
+//==============================================================================
 procedure SetMobjArchiveNums;
 var
   mobj: Pmobj_t;
@@ -1126,21 +1322,20 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // MangleMobj
 //
-//==========================================================================
-
+//==============================================================================
 procedure MangleMobj(mobj: Pmobj_t);
 var
   corpse: boolean;
 begin
   corpse := mobj.flags and MF_CORPSE <> 0;
-  mobj.state := Pstate_t((longword(mobj.state) - longword(@states[0])) div SizeOf(state_t));
+  mobj.state := Pstate_t((LongWord(mobj.state) - LongWord(@states[0])) div SizeOf(state_t));
   if mobj.player <> nil then
   begin
-    mobj.player := pointer((longword(mobj.player) - longword(@players[0])) div SizeOf(player_t) + 1);
+    mobj.player := pointer((LongWord(mobj.player) - LongWord(@players[0])) div SizeOf(player_t) + 1);
   end;
   if corpse then
   begin
@@ -1219,18 +1414,18 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchiveMobjs
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchiveMobjs;
 var
   count: integer;
   thinker: Pthinker_t;
   tempMobj: mobj_t;
   parm: Pmobjcustomparam_t;
+  m: TDMemoryStream;
 begin
   StreamOutLong(ASEG_MOBJS);
   StreamOutLong(MapMobjCount);
@@ -1251,7 +1446,11 @@ begin
     inc(count);
     memcpy(@tempMobj, thinker, SizeOf(mobj_t));
     MangleMobj(@tempMobj);
-    StreamOutBuffer(@tempMobj, SizeOf(mobj_t));
+
+    m := TDMemoryStream.Create;
+    MobjSerializer.SaveToStream(m, @tempMobj, $FFFF);
+    StreamOutBuffer(m.Memory, m.Size);
+    m.Free;
 
     parm := tempMobj.customparams;
     while parm <> nil do
@@ -1268,12 +1467,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // UnarchiveMobjs
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchiveMobjs;
 var
   i: integer;
@@ -1292,7 +1490,10 @@ begin
   for i := 0 to MapMobjCount - 1 do
   begin
     mobj := MapMobjList[i];
-    if LOADVERSION = VERSION140 then
+
+    if LOADVERSION >= VERSION207 then
+      incp(saveptr, MobjSerializer.LoadFromMem(saveptr, mobj, $FFFF))
+    else if LOADVERSION = VERSION140 then
     begin
       memcpy(mobj, saveptr, SizeOf(mobj_t140));
       incp(saveptr, SizeOf(mobj_t140));
@@ -1329,6 +1530,20 @@ begin
       mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
       mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
       mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
+      mobj.flags5_ex := 0;
+      mobj.flags6_ex := 0;
+      mobj.playerfollowtime := 0;
+      mobj.tracefollowtimestamp := 0;
+      mobj.tracex := 0;
+      mobj.tracey := 0;
+      mobj.tracez := 0;
+      mobj.infighting_group := mobjinfo[Ord(mobj._type)].infighting_group;
+      mobj.projectile_group := mobjinfo[Ord(mobj._type)].projectile_group;
+      mobj.splash_group := mobjinfo[Ord(mobj._type)].splash_group;
+      mobj.strafecount := 0;
+      mobj.bloodcolor := mobjinfo[Ord(mobj._type)].bloodcolor;
+      mobj.translationname := mobjinfo[Ord(mobj._type)].translationname;
+      mobj.translationtable := nil;
     end
     else if LOADVERSION = VERSION141 then
     begin
@@ -1356,6 +1571,20 @@ begin
       mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
       mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
       mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
+      mobj.flags5_ex := 0;
+      mobj.flags6_ex := 0;
+      mobj.playerfollowtime := 0;
+      mobj.tracefollowtimestamp := 0;
+      mobj.tracex := 0;
+      mobj.tracey := 0;
+      mobj.tracez := 0;
+      mobj.infighting_group := mobjinfo[Ord(mobj._type)].infighting_group;
+      mobj.projectile_group := mobjinfo[Ord(mobj._type)].projectile_group;
+      mobj.splash_group := mobjinfo[Ord(mobj._type)].splash_group;
+      mobj.strafecount := 0;
+      mobj.bloodcolor := mobjinfo[Ord(mobj._type)].bloodcolor;
+      mobj.translationname := mobjinfo[Ord(mobj._type)].translationname;
+      mobj.translationtable := nil;
     end
     else if LOADVERSION <= VERSION204 then
     begin
@@ -1381,6 +1610,20 @@ begin
       mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
       mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
       mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
+      mobj.flags5_ex := 0;
+      mobj.flags6_ex := 0;
+      mobj.playerfollowtime := 0;
+      mobj.tracefollowtimestamp := 0;
+      mobj.tracex := 0;
+      mobj.tracey := 0;
+      mobj.tracez := 0;
+      mobj.infighting_group := mobjinfo[Ord(mobj._type)].infighting_group;
+      mobj.projectile_group := mobjinfo[Ord(mobj._type)].projectile_group;
+      mobj.splash_group := mobjinfo[Ord(mobj._type)].splash_group;
+      mobj.strafecount := 0;
+      mobj.bloodcolor := mobjinfo[Ord(mobj._type)].bloodcolor;
+      mobj.translationname := mobjinfo[Ord(mobj._type)].translationname;
+      mobj.translationtable := nil;
     end
     else if LOADVERSION <= VERSION205 then
     begin
@@ -1396,6 +1639,20 @@ begin
       mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
       mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
       mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
+      mobj.flags5_ex := 0;
+      mobj.flags6_ex := 0;
+      mobj.playerfollowtime := 0;
+      mobj.tracefollowtimestamp := 0;
+      mobj.tracex := 0;
+      mobj.tracey := 0;
+      mobj.tracez := 0;
+      mobj.infighting_group := mobjinfo[Ord(mobj._type)].infighting_group;
+      mobj.projectile_group := mobjinfo[Ord(mobj._type)].projectile_group;
+      mobj.splash_group := mobjinfo[Ord(mobj._type)].splash_group;
+      mobj.strafecount := 0;
+      mobj.bloodcolor := mobjinfo[Ord(mobj._type)].bloodcolor;
+      mobj.translationname := mobjinfo[Ord(mobj._type)].translationname;
+      mobj.translationtable := nil;
     end
     else if LOADVERSION <= VERSION206 then
     begin
@@ -1406,12 +1663,24 @@ begin
       mobj.painchance := mobjinfo[Ord(mobj._type)].painchance;
       mobj.spriteDX := mobjinfo[Ord(mobj._type)].spriteDX;
       mobj.spriteDY := mobjinfo[Ord(mobj._type)].spriteDY;
+      mobj.flags5_ex := 0;
+      mobj.flags6_ex := 0;
+      mobj.playerfollowtime := 0;
+      mobj.tracefollowtimestamp := 0;
+      mobj.tracex := 0;
+      mobj.tracey := 0;
+      mobj.tracez := 0;
+      mobj.infighting_group := mobjinfo[Ord(mobj._type)].infighting_group;
+      mobj.projectile_group := mobjinfo[Ord(mobj._type)].projectile_group;
+      mobj.splash_group := mobjinfo[Ord(mobj._type)].splash_group;
+      mobj.strafecount := 0;
+      mobj.bloodcolor := mobjinfo[Ord(mobj._type)].bloodcolor;
+      mobj.translationname := mobjinfo[Ord(mobj._type)].translationname;
+      mobj.translationtable := nil;
     end
-    else
-    begin
-      memcpy(mobj, saveptr, SizeOf(mobj_t));
-      incp(saveptr, SizeOf(mobj_t));
-    end;
+    else // Unreachable code
+      I_Error('UnarchiveMobjs(): Unsupported saved game version: %d', [LOADVERSION]);
+
     mobj.thinker._function.acp1 := @P_MobjThinker;
 
     if mobj.key < 1 then
@@ -1431,16 +1700,20 @@ begin
     RestoreMobj(mobj);
     P_AddThinker(@mobj.thinker);
   end;
+
+  for i := 0 to MAXPLAYERS - 1 do
+    if playeringame[i] then
+      players[i].plinetarget := P_FindMobjFromKey(integer(players[i].plinetarget));
+
   P_CreateTIDList;
   P_InitCreatureCorpseQueue(true); // true := scan for corpses
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchiveThinkers
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchiveThinkers;
 var
   thinker: Pthinker_t;
@@ -1476,12 +1749,11 @@ begin
   StreamOutByte(Ord(TC_NULL));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // UnarchiveThinkers
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchiveThinkers;
 var
   tClass: byte;
@@ -1512,6 +1784,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SV_ArchiveGlobalVariables
+//
+//==============================================================================
 procedure SV_ArchiveGlobalVariables(const vars: TGlobalVariablesList);
 var
   len: integer;
@@ -1528,6 +1805,11 @@ begin
   memfree(pp, len + SizeOf(integer));
 end;
 
+//==============================================================================
+//
+// SV_UnArchiveGlobalVariables
+//
+//==============================================================================
 procedure SV_UnArchiveGlobalVariables(const vars: TGlobalVariablesList);
 var
   len: integer;
@@ -1541,6 +1823,11 @@ begin
   incp(saveptr, len);
 end;
 
+//==============================================================================
+//
+// SV_ArchivePSMapScript
+//
+//==============================================================================
 procedure SV_ArchivePSMapScript;
 var
   fname: string;
@@ -1564,6 +1851,11 @@ begin
   memfree(pp, sz);
 end;
 
+//==============================================================================
+//
+// SV_UnArchivePSMapScript
+//
+//==============================================================================
 procedure SV_UnArchivePSMapScript;
 var
   fname: string;
@@ -1587,6 +1879,11 @@ begin
   incp(Pointer(saveptr), sz);
 end;
 
+//==============================================================================
+//
+// SV_ArchiveOverlay
+//
+//==============================================================================
 procedure SV_ArchiveOverlay;
 var
   buf, buf1: pointer;
@@ -1600,6 +1897,11 @@ begin
   memfree(buf1, sz);
 end;
 
+//==============================================================================
+//
+// SV_UnArchiveOverlay
+//
+//==============================================================================
 procedure SV_UnArchiveOverlay;
 begin
   if LOADVERSION < VERSION142 then
@@ -1608,12 +1910,11 @@ begin
   overlay.LoadFromBuffer(Pointer(saveptr));
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchiveScripts
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchiveScripts;
 var
   i: integer;
@@ -1630,12 +1931,11 @@ begin
   SV_ArchiveOverlay;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // UnarchiveScripts
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchiveScripts;
 var
   i: integer;
@@ -1653,12 +1953,11 @@ begin
   SV_UnArchiveOverlay;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchiveMisc
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchiveMisc;
 var
   ix: integer;
@@ -1668,12 +1967,11 @@ begin
     StreamOutLong(localQuakeHappening[ix]);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // UnarchiveMisc
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchiveMisc;
 var
   ix: integer;
@@ -1683,12 +1981,11 @@ begin
     localQuakeHappening[ix] := GET_LONG;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // RemoveAllThinkers
 //
-//==========================================================================
-
+//==============================================================================
 procedure RemoveAllThinkers;
 var
   thinker: Pthinker_t;
@@ -1711,12 +2008,11 @@ begin
   P_InitThinkers;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchiveSounds
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchiveSounds;
 var
   node: Pseqnode_t;
@@ -1746,7 +2042,7 @@ begin
     if i = po_NumPolyobjs then
     begin // Sound is attached to a sector, not a polyobj
       sec := R_PointInSubsector(node.mobj.x, node.mobj.y).sector;
-      difference := (longword(sec) - longword(@sectors[0])) div SizeOf(sector_t);
+      difference := (LongWord(sec) - LongWord(@sectors[0])) div SizeOf(sector_t);
       StreamOutLong(0); // 0 -- sector sound origin
     end
     else
@@ -1759,12 +2055,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // UnarchiveSounds
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchiveSounds;
 var
   i: integer;
@@ -1807,12 +2102,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ArchivePolyobjs
 //
-//==========================================================================
-
+//==============================================================================
 procedure ArchivePolyobjs;
 var
   i: integer;
@@ -1828,12 +2122,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // UnarchivePolyobjs
 //
-//==========================================================================
-
+//==============================================================================
 procedure UnarchivePolyobjs;
 var
   i: integer;
@@ -1855,17 +2148,19 @@ begin
     deltaX := GET_LONG - polyobjs[i].startSpot.x;
     deltaY := GET_LONG - polyobjs[i].startSpot.y;
     PO_MovePolyobj(polyobjs[i].tag, deltaX, deltaY);
+    polyobjs[i].prevangle := polyobjs[i].angle; // Interpolation
+    polyobjs[i].prevx := polyobjs[i].startSpot.x;
+    polyobjs[i].prevy := polyobjs[i].startSpot.y;
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // ClearSaveSlot
 //
 // Deletes all save game files associated with a slot number.
 //
-//==========================================================================
-
+//==============================================================================
 procedure ClearSaveSlot(slot: integer);
 var
   i: integer;
@@ -1885,14 +2180,13 @@ begin
   fdelete(fileName);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // CopySaveSlot
 //
 // Copies all the save game files from one slot to another.
 //
-//==========================================================================
-
+//==============================================================================
 procedure CopySaveSlot(sourceSlot: integer; destSlot: integer);
 var
   i: integer;
@@ -1928,12 +2222,11 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_SaveMap
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_SaveMap(savePlayers: boolean);
 var
   fileName: string;
@@ -1969,13 +2262,11 @@ begin
   CloseStreamOut;
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // SV_SaveGame
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_SaveGame(slot: integer; description: string);
 var
   fileName: string;
@@ -2028,12 +2319,11 @@ begin
   CopySaveSlot(BASE_SLOT, slot);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_LoadMap
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_LoadMap;
 var
   fileName: string;
@@ -2082,13 +2372,11 @@ begin
   Z_Free(SaveBuffer);
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // SV_LoadGame
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_LoadGame(slot: integer);
 var
   i: integer;
@@ -2146,6 +2434,7 @@ begin
   gameepisode := 1;
   gamemap := GET_BYTE;
   gameskill := skill_t(GET_BYTE);
+  defaultskill := Ord(gameskill);
 
   // Read global script info
   memcpy(@ACSWorldVars, saveptr, SizeOf(ACSWorldVars));
@@ -2183,37 +2472,34 @@ begin
   end;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_UpdateRebornSlot
 //
 // Copies the base slot to the reborn slot.
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_UpdateRebornSlot;
 begin
   ClearSaveSlot(REBORN_SLOT);
   CopySaveSlot(BASE_SLOT, REBORN_SLOT);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_ClearRebornSlot
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_ClearRebornSlot;
 begin
   ClearSaveSlot(REBORN_SLOT);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_MapTeleport
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_MapTeleport(map: integer; position: integer);
 var
   i: integer;
@@ -2323,7 +2609,7 @@ begin
     end
     else
     begin
-      P_SpawnPlayer(@playerstarts[position, i]);
+      P_SpawnPlayer(@playerstarts[position, i], @uplayerstarts[position, i]);
     end;
 
     if playerWasReborn and netgame and (deathmatch = 0) then
@@ -2386,25 +2672,23 @@ begin
     SV_SaveGame(REBORN_SLOT, REBORN_DESCRIPTION);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_GetRebornSlot
 //
-//==========================================================================
-
+//==============================================================================
 function SV_GetRebornSlot: integer;
 begin
   result := REBORN_SLOT;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_RebornSlotAvailable
 //
 // Returns true if the reborn slot is available.
 //
-//==========================================================================
-
+//==============================================================================
 function SV_RebornSlotAvailable: boolean;
 var
   fileName: string;
@@ -2414,23 +2698,32 @@ begin
   result := fexists(fileName);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // SV_InitBaseSlot
 //
-//==========================================================================
-
+//==============================================================================
 procedure SV_InitBaseSlot;
 begin
   ClearSaveSlot(BASE_SLOT);
 end;
 
+//==============================================================================
+//
+// SV_GetSaveGameName
+//
+//==============================================================================
 function SV_GetSaveGameName(const slot: integer): string;
 begin
   sprintf(result, _SAVEGAMENAME, [SAVEPATH, slot]);
   result := M_SaveFileName(result);
 end;
 
+//==============================================================================
+//
+// SV_GetSaveGameDescription
+//
+//==============================================================================
 function SV_GetSaveGameDescription(const slot: integer): string;
 var
   filename: string;
@@ -2453,6 +2746,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_ArchiveScreenShot
+//
+//==============================================================================
 procedure P_ArchiveScreenShot;
 var
   i: integer;
@@ -2463,6 +2761,11 @@ begin
     StreamOutByte(mn_screenshotbuffer.data[i]);
 end;
 
+//==============================================================================
+//
+// P_UnArchiveScreenShot
+//
+//==============================================================================
 procedure P_UnArchiveScreenShot;
 begin
   // Nothing to do, just inc the buffer

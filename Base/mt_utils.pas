@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  MultiThreading Utility functions
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,19 +37,49 @@ uses
   d_delphi,
   i_threads;
 
+//==============================================================================
+//
+// MT_Init
+//
+//==============================================================================
 procedure MT_Init;
 
+//==============================================================================
+//
+// MT_ShutDown
+//
+//==============================================================================
 procedure MT_ShutDown;
 
+//==============================================================================
+//
+// MT_ZeroMemory
+//
+//==============================================================================
 procedure MT_ZeroMemory(const dest0: pointer;
   const count0: integer; threadsuse: integer = 0);
 
+//==============================================================================
+//
+// MT_memset
+//
+//==============================================================================
 procedure MT_memset(const dest0: pointer; const val: integer;
   const count0: integer; threadsuse: integer = 0);
 
+//==============================================================================
+//
+// MT_memseti
+//
+//==============================================================================
 procedure MT_memseti(const dest0: pointer; const val: integer;
   const count0: integer; threadsuse: integer = 0);
 
+//==============================================================================
+//
+// MT_memcpy
+//
+//==============================================================================
 procedure MT_memcpy(const dest0: pointer; const src0: pointer;
   const count0: integer; threadsuse: integer = 0);
 
@@ -196,18 +226,48 @@ type
   end;
   iterator_p = ^iterator_t;
 
+//==============================================================================
+//
+// MT_Iterate
+//
+//==============================================================================
 procedure MT_Iterate(const func: threadfunc_t; const data: pointer;
   const nthreads: integer = 0);
 
+//==============================================================================
+// MT_ScheduleTask
+//
 // Background tasks
+//
+//==============================================================================
 function MT_ScheduleTask(const proc: PProcedure): integer;
 
+//==============================================================================
+//
+// MT_ExecutePendingTask
+//
+//==============================================================================
 procedure MT_ExecutePendingTask(const id: integer);
 
+//==============================================================================
+//
+// MT_ExecutePendingTasks
+//
+//==============================================================================
 procedure MT_ExecutePendingTasks;
 
+//==============================================================================
+//
+// MT_WaitTask
+//
+//==============================================================================
 procedure MT_WaitTask(const id: integer);
 
+//==============================================================================
+//
+// MT_WaitTasks
+//
+//==============================================================================
 procedure MT_WaitTasks;
 
 // JVAL: Execute code threads
@@ -224,7 +284,7 @@ var
 
 // JVAL: General purpose threads
 const
-  MAXGPTHREADS = 256;
+  MAXGPTHREADS = 16;
 
 var
   numgpthreads: integer;
@@ -251,12 +311,22 @@ type
   zmparams_p = ^zmparams_t;
   zmparams_a = array[0..MAXGPTHREADS - 1] of zmparams_t;
 
+//==============================================================================
+//
+// MT_ZeroMemory_thr
+//
+//==============================================================================
 function MT_ZeroMemory_thr(p: pointer): integer; stdcall;
 begin
   ZeroMemory(zmparams_p(p).dest, zmparams_p(p).size);
   result := 1;
 end;
 
+//==============================================================================
+//
+// MT_ZeroMemory
+//
+//==============================================================================
 procedure MT_ZeroMemory(const dest0: pointer;
   const count0: integer; threadsuse: integer = 0);
 var
@@ -299,7 +369,6 @@ begin
     gp_threads[i].Wait;
 end;
 
-
 //
 // MT_memset, MT_memseti
 //
@@ -312,18 +381,33 @@ type
   msparams_p = ^msparams_t;
   msparams_a = array[0..MAXGPTHREADS - 1] of msparams_t;
 
+//==============================================================================
+//
+// MT_memset_thr
+//
+//==============================================================================
 function MT_memset_thr(p: pointer): integer; stdcall;
 begin
   memset(msparams_p(p).dest, msparams_p(p).value, msparams_p(p).size);
   result := 1;
 end;
 
+//==============================================================================
+//
+// MT_memseti_thr
+//
+//==============================================================================
 function MT_memseti_thr(p: pointer): integer; stdcall;
 begin
   memseti(msparams_p(p).dest, msparams_p(p).value, msparams_p(p).size);
   result := 1;
 end;
 
+//==============================================================================
+//
+// MT_memset
+//
+//==============================================================================
 procedure MT_memset(const dest0: pointer; const val: integer;
   const count0: integer; threadsuse: integer = 0);
 var
@@ -367,6 +451,11 @@ begin
     gp_threads[i].Wait;
 end;
 
+//==============================================================================
+//
+// MT_memseti
+//
+//==============================================================================
 procedure MT_memseti(const dest0: pointer; const val: integer;
   const count0: integer; threadsuse: integer = 0);
 var
@@ -420,12 +509,22 @@ type
   mcparams_p = ^mcparams_t;
   mcparams_a = array[0..MAXGPTHREADS - 1] of mcparams_t;
 
+//==============================================================================
+//
+// MT_memcpy_thr
+//
+//==============================================================================
 function MT_memcpy_thr(p: pointer): integer; stdcall;
 begin
   memcpy(mcparams_p(p).dest, mcparams_p(p).src, mcparams_p(p).size);
   result := 1;
 end;
 
+//==============================================================================
+//
+// MT_memcpy
+//
+//==============================================================================
 procedure MT_memcpy(const dest0: pointer; const src0: pointer;
   const count0: integer; threadsuse: integer = 0);
 var
@@ -471,6 +570,11 @@ begin
     gp_threads[i].Wait;
 end;
 
+//==============================================================================
+//
+// MT_Init
+//
+//==============================================================================
 procedure MT_Init;
 var
   i: integer;
@@ -489,6 +593,11 @@ begin
   mt_initialized := true;
 end;
 
+//==============================================================================
+//
+// MT_ShutDown
+//
+//==============================================================================
 procedure MT_ShutDown;
 var
   i: integer;
@@ -568,6 +677,8 @@ begin
   else
     func1(parms1);
   for i := 0 to nt - 1 do
+    exec_threads[i].CheckJobDone;
+  for i := 0 to nt - 1 do
     exec_threads[i].Wait;
   mt_execute_fetched := False;
 end;
@@ -619,6 +730,8 @@ begin
     I_Warning('MT_Execute(): Called with null application thread function.'#13#10)
   else
     func1(parms1);
+  for i := 0 to nt - 1 do
+    exec_threads[i].CheckJobDone;
   for i := 0 to nt - 1 do
     exec_threads[i].Wait;
   mt_execute_fetched := False;
@@ -683,6 +796,8 @@ begin
     I_Warning('MT_Execute(): Called with null application thread function.'#13#10)
   else
     func1(parms1);
+  for i := 0 to nt - 1 do
+    exec_threads[i].CheckJobDone;
   for i := 0 to nt - 1 do
     exec_threads[i].Wait;
   mt_execute_fetched := False;
@@ -771,6 +886,8 @@ begin
     I_Warning('MT_Execute(): Called with null application thread function.'#13#10)
   else
     func1(parms1);
+  for i := 0 to nt - 1 do
+    exec_threads[i].CheckJobDone;
   for i := 0 to nt - 1 do
     exec_threads[i].Wait;
   mt_execute_fetched := False;
@@ -890,6 +1007,8 @@ begin
   else
     func1(parms1);
   for i := 0 to nt - 1 do
+    exec_threads[i].CheckJobDone;
+  for i := 0 to nt - 1 do
     exec_threads[i].Wait;
   mt_execute_fetched := False;
 end;
@@ -910,6 +1029,10 @@ begin
   exec_threads[1].Activate(func3, parms3);
   exec_threads[2].Activate(func4, parms4);
   func1(parms1);
+
+  exec_threads[0].CheckJobDone;
+  exec_threads[1].CheckJobDone;
+  exec_threads[2].CheckJobDone;
 
   exec_threads[0].Wait;
   exec_threads[1].Wait;
@@ -938,6 +1061,12 @@ begin
   exec_threads[3].Activate(func5, parms5);
   exec_threads[4].Activate(func6, parms6);
   func1(parms1);
+
+  exec_threads[0].CheckJobDone;
+  exec_threads[1].CheckJobDone;
+  exec_threads[2].CheckJobDone;
+  exec_threads[3].CheckJobDone;
+  exec_threads[4].CheckJobDone;
 
   exec_threads[0].Wait;
   exec_threads[1].Wait;
@@ -972,6 +1101,14 @@ begin
   exec_threads[5].Activate(func7, parms7);
   exec_threads[6].Activate(func8, parms8);
   func1(parms1);
+
+  exec_threads[0].CheckJobDone;
+  exec_threads[1].CheckJobDone;
+  exec_threads[2].CheckJobDone;
+  exec_threads[3].CheckJobDone;
+  exec_threads[4].CheckJobDone;
+  exec_threads[5].CheckJobDone;
+  exec_threads[6].CheckJobDone;
 
   exec_threads[0].Wait;
   exec_threads[1].Wait;
@@ -1016,6 +1153,18 @@ begin
   exec_threads[9].Activate(func11, parms11);
   exec_threads[10].Activate(func12, parms12);
   func1(parms1);
+
+  exec_threads[0].CheckJobDone;
+  exec_threads[1].CheckJobDone;
+  exec_threads[2].CheckJobDone;
+  exec_threads[3].CheckJobDone;
+  exec_threads[4].CheckJobDone;
+  exec_threads[5].CheckJobDone;
+  exec_threads[6].CheckJobDone;
+  exec_threads[7].CheckJobDone;
+  exec_threads[8].CheckJobDone;
+  exec_threads[9].CheckJobDone;
+  exec_threads[10].CheckJobDone;
 
   exec_threads[0].Wait;
   exec_threads[1].Wait;
@@ -1073,6 +1222,22 @@ begin
   exec_threads[14].Activate(func16, parms16);
   func1(parms1);
 
+  exec_threads[0].CheckJobDone;
+  exec_threads[1].CheckJobDone;
+  exec_threads[2].CheckJobDone;
+  exec_threads[3].CheckJobDone;
+  exec_threads[4].CheckJobDone;
+  exec_threads[5].CheckJobDone;
+  exec_threads[6].CheckJobDone;
+  exec_threads[7].CheckJobDone;
+  exec_threads[8].CheckJobDone;
+  exec_threads[9].CheckJobDone;
+  exec_threads[10].CheckJobDone;
+  exec_threads[11].CheckJobDone;
+  exec_threads[12].CheckJobDone;
+  exec_threads[13].CheckJobDone;
+  exec_threads[14].CheckJobDone;
+
   exec_threads[0].Wait;
   exec_threads[1].Wait;
   exec_threads[2].Wait;
@@ -1092,6 +1257,11 @@ begin
   mt_execute_fetched := False;
 end;
 
+//==============================================================================
+//
+// MT_Iterate
+//
+//==============================================================================
 procedure MT_Iterate(const func: threadfunc_t; const data: pointer;
   const nthreads: integer = 0);
 var
@@ -1125,6 +1295,9 @@ begin
   func(@parms[nt - 1]);
 
   for i := 0 to nt - 2 do
+    exec_threads[i].CheckJobDone;
+
+  for i := 0 to nt - 2 do
     exec_threads[i].Wait;
 
   mt_execute_fetched := False;
@@ -1140,6 +1313,11 @@ type
 var
   tasks: array[0..NUMTASKTHREADS - 1] of taskinfo_t;
 
+//==============================================================================
+//
+// _execute_task
+//
+//==============================================================================
 function _execute_task(p: pointer): integer; stdcall;
 var
   pt: Ptaskinfo_t;
@@ -1151,6 +1329,11 @@ begin
   pt.proc := nil;
 end;
 
+//==============================================================================
+//
+// MT_ScheduleTask
+//
+//==============================================================================
 function MT_ScheduleTask(const proc: PProcedure): integer;
 var
   i: integer;
@@ -1167,12 +1350,22 @@ begin
   result := -1;
 end;
 
+//==============================================================================
+//
+// MT_ExecutePendingTask
+//
+//==============================================================================
 procedure MT_ExecutePendingTask(const id: integer);
 begin
   if Assigned(tasks[id].proc) then
     task_threads[id].Activate(_execute_task, @tasks[id]);
 end;
 
+//==============================================================================
+//
+// MT_ExecutePendingTasks
+//
+//==============================================================================
 procedure MT_ExecutePendingTasks;
 var
   i: integer;
@@ -1182,7 +1375,11 @@ begin
       task_threads[i].Activate(_execute_task, @tasks[i]);
 end;
 
-
+//==============================================================================
+//
+// MT_WaitTask
+//
+//==============================================================================
 procedure MT_WaitTask(const id: integer);
 begin
   if (id < 0) or (id >= NUMTASKTHREADS) then
@@ -1191,6 +1388,11 @@ begin
     task_threads[id].Wait;
 end;
 
+//==============================================================================
+//
+// MT_WaitTasks
+//
+//==============================================================================
 procedure MT_WaitTasks;
 var
   i: integer;

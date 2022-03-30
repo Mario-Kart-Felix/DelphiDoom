@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Plats (i.e. elevator platforms) code, raising/lowering.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -41,16 +41,46 @@ uses
 var
   activeplats: array[0..MAXPLATS - 1] of Pplat_t;
 
+//==============================================================================
+//
+// T_PlatRaise
+//
+//==============================================================================
 procedure T_PlatRaise(plat: Pplat_t);
 
+//==============================================================================
+//
+// EV_DoPlat
+//
+//==============================================================================
 function EV_DoPlat(line: Pline_t; _type: plattype_e; amount: integer): integer;
 
+//==============================================================================
+//
+// P_ActivateInStasis
+//
+//==============================================================================
 procedure P_ActivateInStasis(tag: integer);
 
+//==============================================================================
+//
+// EV_StopPlat
+//
+//==============================================================================
 procedure EV_StopPlat(line: Pline_t);
 
+//==============================================================================
+//
+// P_AddActivePlat
+//
+//==============================================================================
 procedure P_AddActivePlat(plat: Pplat_t);
 
+//==============================================================================
+//
+// P_RemoveActivePlat
+//
+//==============================================================================
 procedure P_RemoveActivePlat(plat: Pplat_t);
 
 implementation
@@ -60,14 +90,18 @@ uses
   i_system,
   m_fixed,
   m_rnd,
-  p_mobj_h,
   p_tick,
   p_floor,
   p_setup,
   s_sound,
-  sounds,
+  sounddata,
   z_zone;
 
+//==============================================================================
+//
+// T_PlatRaise
+//
+//==============================================================================
 procedure T_PlatRaise(plat: Pplat_t);
 var
   res: result_e;
@@ -80,14 +114,14 @@ begin
         if (plat._type = raiseAndChange) or (plat._type = raiseToNearestAndChange) then
         begin
           if leveltime and 7 = 0 then
-            S_StartSound(Pmobj_t(@plat.sector.soundorg), Ord(sfx_stnmov));
+            S_StartSound(@plat.sector.soundorg, Ord(sfx_stnmov));
         end;
 
         if (res = crushed) and not plat.crush then
         begin
           plat.count := plat.wait;
           plat.status := down;
-          S_StartSound(Pmobj_t(@plat.sector.soundorg), Ord(sfx_pstart));
+          S_StartSound(@plat.sector.soundorg, Ord(sfx_pstart));
         end
         else
         begin
@@ -95,7 +129,7 @@ begin
           begin
             plat.count := plat.wait;
             plat.status := waiting;
-            S_StartSound(Pmobj_t(@plat.sector.soundorg), Ord(sfx_pstop));
+            S_StartSound(@plat.sector.soundorg, Ord(sfx_pstop));
 
             case plat._type of
               blazeDWUS,
@@ -117,7 +151,7 @@ begin
         begin
           plat.count := plat.wait;
           plat.status := waiting;
-          S_StartSound(Pmobj_t(@plat.sector.soundorg), Ord(sfx_pstop));
+          S_StartSound(@plat.sector.soundorg, Ord(sfx_pstop));
         end;
       end;
     waiting:
@@ -129,16 +163,19 @@ begin
             plat.status := up
           else
             plat.status := down;
-          S_StartSound(Pmobj_t(@plat.sector.soundorg), Ord(sfx_pstart));
+          S_StartSound(@plat.sector.soundorg, Ord(sfx_pstart));
         end;
       end;
   end;
 end;
 
+//==============================================================================
+// EV_DoPlat
 //
 // Do Platforms
 //  "amount" is only used for SOME platforms.
 //
+//==============================================================================
 function EV_DoPlat(line: Pline_t; _type: plattype_e; amount: integer): integer;
 var
   plat: Pplat_t;
@@ -182,7 +219,7 @@ begin
           plat.status := up;
           // NO MORE DAMAGE, IF APPLICABLE
           sec.special := 0;
-          S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_stnmov));
+          S_StartSound(@sec.soundorg, Ord(sfx_stnmov));
         end;
 
       raiseAndChange:
@@ -192,7 +229,7 @@ begin
           plat.high := sec.floorheight + amount * FRACUNIT;
           plat.wait := 0;
           plat.status := up;
-          S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_stnmov));
+          S_StartSound(@sec.soundorg, Ord(sfx_stnmov));
         end;
       downWaitUpStay:
         begin
@@ -203,7 +240,7 @@ begin
           plat.high := sec.floorheight;
           plat.wait := TICRATE * PLATWAIT;
           plat.status := down;
-          S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_pstart));
+          S_StartSound(@sec.soundorg, Ord(sfx_pstart));
         end;
       blazeDWUS:
         begin
@@ -214,7 +251,7 @@ begin
           plat.high := sec.floorheight;
           plat.wait := TICRATE * PLATWAIT;
           plat.status := down;
-          S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_pstart));
+          S_StartSound(@sec.soundorg, Ord(sfx_pstart));
         end;
       perpetualRaise:
         begin
@@ -227,13 +264,18 @@ begin
             plat.high := sec.floorheight;
           plat.wait := TICRATE * PLATWAIT;
           plat.status := plat_e(P_Random and 1);
-          S_StartSound(Pmobj_t(@sec.soundorg), Ord(sfx_pstart));
+          S_StartSound(@sec.soundorg, Ord(sfx_pstart));
         end;
     end;
     P_AddActivePlat(plat);
   end;
 end;
 
+//==============================================================================
+//
+// P_ActivateInStasis
+//
+//==============================================================================
 procedure P_ActivateInStasis(tag: integer);
 var
   i: integer;
@@ -248,7 +290,11 @@ begin
     end;
 end;
 
-
+//==============================================================================
+//
+// EV_StopPlat
+//
+//==============================================================================
 procedure EV_StopPlat(line: Pline_t);
 var
   i: integer;
@@ -264,6 +310,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// P_AddActivePlat
+//
+//==============================================================================
 procedure P_AddActivePlat(plat: Pplat_t);
 var
   i: integer;
@@ -278,6 +329,11 @@ begin
   I_Error('P_AddActivePlat(): no more plats!');
 end;
 
+//==============================================================================
+//
+// P_RemoveActivePlat
+//
+//==============================================================================
 procedure P_RemoveActivePlat(plat: Pplat_t);
 var
   i: integer;

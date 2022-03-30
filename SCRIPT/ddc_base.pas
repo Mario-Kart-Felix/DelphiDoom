@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -34,38 +34,132 @@ uses
   Classes;
 
 const
-  DDCVERSION = 102;
+  DDCVERSION = 103;
 
+//==============================================================================
+//
+// dll_loadlibrary
+//
+//==============================================================================
+procedure dll_loadlibrary(const game: string);
+
+//==============================================================================
+//
+// dll_freelibrary
+//
+//==============================================================================
+procedure dll_freelibrary;
+
+//==============================================================================
+//
+// dll_compile
+//
+//==============================================================================
 function dll_compile(const game: string; const code: string; var pcode: string; var msgs: string): Boolean;
 
+//==============================================================================
+//
+// dll_getuntisfuncdeclarations
+//
+//==============================================================================
 function dll_getuntisfuncdeclarations(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getpcharfunc
+//
+//==============================================================================
 function dll_getpcharfunc(const game: string; const funcpr: string): TStringList;
 
+//==============================================================================
+//
+// dll_getconstants
+//
+//==============================================================================
 function dll_getconstants(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getvariables
+//
+//==============================================================================
 function dll_getvariables(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_gettypes
+//
+//==============================================================================
 function dll_gettypes(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getclassesdeclarations
+//
+//==============================================================================
 function dll_getclassesdeclarations(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getdisassembly
+//
+//==============================================================================
 function dll_getdisassembly(const game: string; const pcode: string): string;
 
+//==============================================================================
+//
+// dll_getevents
+//
+//==============================================================================
 function dll_getevents(const game: string): string;
 
+//==============================================================================
+//
+// dll_getactordeffunctions
+//
+//==============================================================================
 function dll_getactordeffunctions(const game: string): TStringList;
 
+//==============================================================================
+//
+// csvlinetolist
+//
+//==============================================================================
 function csvlinetolist(const s: string): TStringList;
 
+//==============================================================================
+//
+// dll_getmobjinfodeclarations
+//
+//==============================================================================
 function dll_getmobjinfodeclarations(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getstatesdeclarations
+//
+//==============================================================================
 function dll_getstatesdeclarations(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getspritenames
+//
+//==============================================================================
 function dll_getspritenames(const game: string): TStringList;
 
+//==============================================================================
+//
+// dll_getstatesdeclarations2
+//
+//==============================================================================
 function dll_getstatesdeclarations2(const game: string): TStringList;
 
+//==============================================================================
+//
+// getcolumnfromcsv
+//
+//==============================================================================
 function getcolumnfromcsv(const csv: TStringList; const cname: string): TStringList;
 
 implementation
@@ -74,6 +168,73 @@ uses
   Windows,
   SysUtils;
 
+var
+  inst: THandle = 0;
+
+//==============================================================================
+//
+// dll_loadlibrary
+//
+//==============================================================================
+procedure dll_loadlibrary(const game: string);
+var
+  libname: string;
+begin
+  libname := 'ddc_' + game + '.dll';
+  inst := LoadLibrary(PChar(libname));
+end;
+
+//==============================================================================
+//
+// dll_freelibrary
+//
+//==============================================================================
+procedure dll_freelibrary;
+begin
+  if inst <> 0 then
+  begin
+    FreeLibrary(inst);
+    inst := 0;
+  end;
+end;
+
+var
+  localload: Boolean = False;
+
+//==============================================================================
+//
+// localLoadLibrary
+//
+//==============================================================================
+function localLoadLibrary(lpLibFileName: PChar): HMODULE; stdcall;
+begin
+  if inst = 0 then
+  begin
+    inst := LoadLibrary(lpLibFileName);
+    localload := True;
+  end
+  else
+    localload := False;
+  Result := inst;
+end;
+
+//==============================================================================
+//
+// localFreeLibrary
+//
+//==============================================================================
+function localFreeLibrary(var hLibModule: HMODULE): BOOL; stdcall;
+begin
+  if localload then
+  begin
+    Result := FreeLibrary(hLibModule);
+    localload := False;
+    hLibModule := 0;
+  end
+  else
+    Result := False;
+end;
+
 type
   dllcompilefunc_t =
     function (
@@ -81,10 +242,14 @@ type
       var _out: PChar; var _outsize: Integer;
       var _msgs: PChar; var _msgssize: Integer): Boolean; stdcall;
 
+//==============================================================================
+//
+// dll_compile
+//
+//==============================================================================
 function dll_compile(const game: string; const code: string; var pcode: string; var msgs: string): Boolean;
 var
   func: dllcompilefunc_t;
-  inst: THandle;
   libname: string;
   funcname: string;
   clen, plen, mlen: integer;
@@ -92,10 +257,10 @@ var
   i: integer;
   _inp, _out, _msgs: PChar;
 begin
-  libname := 'ddc_' + game + '.dll';
-  inst := LoadLibrary(PChar(libname));
+  dll_LoadLibrary(PChar(game));
   if inst = 0 then
   begin
+    libname := 'ddc_' + game + '.dll';
     msgs := 'ERROR: ' + libname + ' not found.';
     Result := False;
     Exit;
@@ -105,7 +270,7 @@ begin
   func := GetProcAddress(inst, PChar(funcname));
   if not Assigned(func) then
   begin
-    FreeLibrary(inst);
+    localFreeLibrary(inst);
     msgs := 'ERROR: ' + funcname + '() could not be loaded. (incorrect version?)';
     Result := False;
     Exit;
@@ -149,7 +314,7 @@ begin
   FreeMem(_msgs, mlen1);
   FreeMem(_inp, clen);
 
-  FreeLibrary(inst);
+  dll_FreeLibrary;
 end;
 
 // Returns a TStringList with the unit names
@@ -167,6 +332,11 @@ type
 const
   MAXALLOCSIZE = $100000; // 1 MB :)
 
+//==============================================================================
+//
+// dll_getuntisfuncdeclarations
+//
+//==============================================================================
 function dll_getuntisfuncdeclarations(const game: string): TStringList;
 var
   funcunits: dll_getavailableunits_t;
@@ -183,7 +353,7 @@ var
   funclist: TStringList;
 begin
   libname := 'ddc_' + game + '.dll';
-  inst := LoadLibrary(PChar(libname));
+  inst := localLoadLibrary(PChar(libname));
   if inst = 0 then
   begin
     Result := nil;
@@ -194,7 +364,7 @@ begin
   funcunits := GetProcAddress(inst, PChar(funcname));
   if not Assigned(funcunits) then
   begin
-    FreeLibrary(inst);
+    localFreeLibrary(inst);
     Result := nil;
     Exit;
   end;
@@ -203,7 +373,7 @@ begin
   funcunitfunctions := GetProcAddress(inst, PChar(funcname));
   if not Assigned(funcunitfunctions) then
   begin
-    FreeLibrary(inst);
+    localFreeLibrary(inst);
     Result := nil;
     Exit;
   end;
@@ -243,7 +413,7 @@ begin
   FreeMem(unitnames, MAXALLOCSIZE);
   FreeMem(unitdecls, MAXALLOCSIZE);
 
-  FreeLibrary(inst);
+  localFreeLibrary(inst);
 end;
 
 type
@@ -251,6 +421,11 @@ type
     procedure (
       var _out: PChar; var _outsize: Integer); stdcall;
 
+//==============================================================================
+//
+// dll_getpcharfunc
+//
+//==============================================================================
 function dll_getpcharfunc(const game: string; const funcpr: string): TStringList;
 var
   func: dll_getpchar_t;
@@ -263,7 +438,7 @@ var
   i: integer;
 begin
   libname := 'ddc_' + game + '.dll';
-  inst := LoadLibrary(PChar(libname));
+  inst := localLoadLibrary(PChar(libname));
   if inst = 0 then
   begin
     Result := nil;
@@ -274,7 +449,7 @@ begin
   func := GetProcAddress(inst, PChar(funcname));
   if not Assigned(func) then
   begin
-    FreeLibrary(inst);
+    localFreeLibrary(inst);
     Result := nil;
     Exit;
   end;
@@ -295,24 +470,44 @@ begin
   Result.Text := tmpstr;
 
   FreeMem(outp, MAXALLOCSIZE);
-  FreeLibrary(inst);
+  localFreeLibrary(inst);
 end;
 
+//==============================================================================
+//
+// dll_getconstants
+//
+//==============================================================================
 function dll_getconstants(const game: string): TStringList;
 begin
   Result := dll_getpcharfunc(game, 'dd_getconstants_');
 end;
 
+//==============================================================================
+//
+// dll_getvariables
+//
+//==============================================================================
 function dll_getvariables(const game: string): TStringList;
 begin
   Result := dll_getpcharfunc(game, 'dd_getvariables_');
 end;
 
+//==============================================================================
+//
+// dll_gettypes
+//
+//==============================================================================
 function dll_gettypes(const game: string): TStringList;
 begin
   Result := dll_getpcharfunc(game, 'dd_gettypes_');
 end;
 
+//==============================================================================
+//
+// dll_getclassesdeclarations
+//
+//==============================================================================
 function dll_getclassesdeclarations(const game: string): TStringList;
 var
   lst: TStringList;
@@ -363,6 +558,11 @@ type
       const _inp: PChar; const _inpsize: Integer;
       var _out: PChar; var _outsize: Integer); stdcall;
 
+//==============================================================================
+//
+// dll_getdisassembly
+//
+//==============================================================================
 function dll_getdisassembly(const game: string; const pcode: string): string;
 var
   func: dll_getdisassembly_t;
@@ -378,7 +578,7 @@ begin
   Result := '';
 
   libname := 'ddc_' + game + '.dll';
-  inst := LoadLibrary(PChar(libname));
+  inst := localLoadLibrary(PChar(libname));
   if inst = 0 then
   begin
     Exit;
@@ -388,7 +588,7 @@ begin
   func := GetProcAddress(inst, PChar(funcname));
   if not Assigned(func) then
   begin
-    FreeLibrary(inst);
+    localFreeLibrary(inst);
     Exit;
   end;
 
@@ -409,9 +609,14 @@ begin
 
   FreeMem(outp, MAXALLOCSIZE);
   FreeMem(inpp, inplen);
-  FreeLibrary(inst);
+  localFreeLibrary(inst);
 end;
 
+//==============================================================================
+//
+// dll_getevents
+//
+//==============================================================================
 function dll_getevents(const game: string): string;
 var
   lst: TStringList;
@@ -426,11 +631,21 @@ begin
   lst.Free;
 end;
 
+//==============================================================================
+//
+// dll_getactordeffunctions
+//
+//==============================================================================
 function dll_getactordeffunctions(const game: string): TStringList;
 begin
   Result := dll_getpcharfunc(game, 'dd_getactordeffunctions_');
 end;
 
+//==============================================================================
+//
+// stripquotes
+//
+//==============================================================================
 function stripquotes(const s: string): string;
 begin
   if Length(s) < 2 then
@@ -444,6 +659,11 @@ begin
     Result := s;
 end;
 
+//==============================================================================
+//
+// csvlinetolist
+//
+//==============================================================================
 function csvlinetolist(const s: string): TStringList;
 var
   i: integer;
@@ -466,6 +686,11 @@ begin
     Result.Add(token);
 end;
 
+//==============================================================================
+//
+// csvexpandfracunit
+//
+//==============================================================================
 function csvexpandfracunit(const s: string): string;
 var
   check: string;
@@ -497,6 +722,11 @@ begin
     Result := IntToStr(num div 65536) + ' * FRACUNIT';
 end;
 
+//==============================================================================
+//
+// dll_getmobjinfodeclarations
+//
+//==============================================================================
 function dll_getmobjinfodeclarations(const game: string): TStringList;
 var
   mlst: TStringList;
@@ -537,6 +767,11 @@ begin
   mheader.Free;
 end;
 
+//==============================================================================
+//
+// dll_getstatesdeclarations
+//
+//==============================================================================
 function dll_getstatesdeclarations(const game: string): TStringList;
 var
   slst: TStringList;
@@ -577,6 +812,11 @@ begin
   sheader.Free;
 end;
 
+//==============================================================================
+//
+// dll_getspritenames
+//
+//==============================================================================
 function dll_getspritenames(const game: string): TStringList;
 var
   sprlst: TStringList;
@@ -612,6 +852,11 @@ begin
   sprheader.Free;
 end;
 
+//==============================================================================
+//
+// dll_getstatesdeclarations2
+//
+//==============================================================================
 function dll_getstatesdeclarations2(const game: string): TStringList;
 var
   slst: TStringList;
@@ -652,6 +897,11 @@ begin
   sheader.Free;
 end;
 
+//==============================================================================
+//
+// getcolumnfromcsv
+//
+//==============================================================================
 function getcolumnfromcsv(const csv: TStringList; const cname: string): TStringList;
 var
   i, idx: integer;

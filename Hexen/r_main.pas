@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  See tables.c, too.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -63,6 +63,7 @@ const
 
   MAXLIGHTSCALE = 48;
   LIGHTSCALESHIFT = 12;
+  LIGHTSCALEUNIT = 1 shl LIGHTSCALESHIFT;
   HLL_MAXLIGHTSCALE = MAXLIGHTSCALE * 64;
 
   MAXLIGHTZ = 128;
@@ -89,53 +90,145 @@ const
 var
   forcecolormaps: boolean;
   useclassicfuzzeffect: boolean;
+  diher8bittransparency: boolean;
 
+//==============================================================================
+// R_ApplyColormap
 //
 // Utility functions.
 //
+//==============================================================================
 procedure R_ApplyColormap(const ofs, count: integer; const scrn: integer; const cmap: integer);
 
+//==============================================================================
+//
+// R_PointOnSide
+//
+//==============================================================================
 function R_PointOnSide(const x: fixed_t; const y: fixed_t; const node: Pnode_t): boolean;
 
+//==============================================================================
+//
+// R_PointOnSegSide
+//
+//==============================================================================
 function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): boolean;
 
+//==============================================================================
+//
+// R_PointOnLineSide
+//
+//==============================================================================
 function R_PointOnLineSide(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
 
+//==============================================================================
+//
+// R_PointToAngle
+//
+//==============================================================================
 function R_PointToAngle(x: fixed_t; y: fixed_t): angle_t;
 
-function R_PointToAngleEx(const x: fixed_t; const y: fixed_t): angle_t;
+//==============================================================================
+//
+// R_PointToAngleEx
+//
+//==============================================================================
+function R_PointToAngleEx(x: fixed_t; y: fixed_t): angle_t;
 
+//==============================================================================
+//
+// R_PointToAngle2
+//
+//==============================================================================
 function R_PointToAngle2(const x1: fixed_t; const y1: fixed_t; const x2: fixed_t; const y2: fixed_t): angle_t;
 
+//==============================================================================
+//
+// R_PointToDist
+//
+//==============================================================================
 function R_PointToDist(const x: fixed_t; const y: fixed_t): fixed_t;
 
+//==============================================================================
+//
+// R_PointInSubsectorClassic
+//
+//==============================================================================
 function R_PointInSubsectorClassic(const x: fixed_t; const y: fixed_t): Psubsector_t;
 
+//==============================================================================
+//
+// R_PointInSubsector
+//
+//==============================================================================
 function R_PointInSubsector(const x: fixed_t; const y: fixed_t): Psubsector_t;
 
+//==============================================================================
+//
+// R_AddPointToBox
+//
+//==============================================================================
 procedure R_AddPointToBox(const x: integer; const y: integer; box: Pfixed_tArray);
 
-
+//==============================================================================
+// R_RenderPlayerView
 //
 // REFRESH - the actual rendering functions.
 //
-
 // Called by G_Drawer.
+//
+//==============================================================================
 procedure R_RenderPlayerView(player: Pplayer_t);
 
+//==============================================================================
+// R_Init
+//
 // Called by startup code.
+//
+//==============================================================================
 procedure R_Init;
+
+//==============================================================================
+//
+// R_ShutDown
+//
+//==============================================================================
 procedure R_ShutDown;
 
+//==============================================================================
+// R_SetViewSize
+//
 // Called by M_Responder.
+//
+//==============================================================================
 procedure R_SetViewSize;
 
+//==============================================================================
+//
+// R_ExecuteSetViewSize
+//
+//==============================================================================
 procedure R_ExecuteSetViewSize;
 
+//==============================================================================
+//
+// R_SetViewAngleOffset
+//
+//==============================================================================
 procedure R_SetViewAngleOffset(const angle: angle_t);
 
+//==============================================================================
+//
+// R_FullStOn
+//
+//==============================================================================
 function R_FullStOn: boolean;
 
+//==============================================================================
+//
+// R_StOff
+//
+//==============================================================================
 function R_StOff: boolean;
 
 var
@@ -157,13 +250,16 @@ var
   // JVAL: Multithreading sprite funcs
   basebatchcolfunc_mt: spritefunc_t;
   batchcolfunc_mt: spritefunc_t;
+  batchtaveragecolfunc_mt: spritefunc_t;
   batchtalphacolfunc_mt: spritefunc_t;
   batchaddcolfunc_mt: spritefunc_t;
   batchsubtractcolfunc_mt: spritefunc_t;
   maskedcolfunc_mt: spritefunc_t;
   colfunc_mt: spritefunc_t;
+  averagecolfunc_mt: spritefunc_t;
   alphacolfunc_mt: spritefunc_t;
   addcolfunc_mt: spritefunc_t;
+  addcolfunc_smallstep_mt: spritefunc_t;
   subtractcolfunc_mt: spritefunc_t;
 
   colfunc: PProcedure;
@@ -175,6 +271,7 @@ var
   averagecolfunc: PProcedure;
   alphacolfunc: PProcedure;
   addcolfunc: PProcedure;
+  addcolfunc_smallstep: PProcedure;
   subtractcolfunc: PProcedure;
   maskedcolfunc: PProcedure;
   maskedcolfunc2: PProcedure; // For hi res textures
@@ -257,10 +354,10 @@ type
 var
   fog_zlight: zlight_t;
   zlight: zlight_t;
+  renderlightscale: integer;
 
 var
   zlightlevels: array[0..LIGHTLEVELS - 1, 0..HLL_MAXLIGHTZ - 1] of fixed_t;
-
 
 var
   viewplayer: Pplayer_t;
@@ -290,7 +387,6 @@ var
 // fixed_t    finesine[5*FINEANGLES/4];
 // fixed_t*    finecosine = &finesine[FINEANGLES/4]; // JVAL -> moved to tables.pas
 
-
   linecount: integer;
   loopcount: integer;
 
@@ -301,14 +397,35 @@ var
 // Blocky mode, has default, 0 = high, 1 = normal
   screenblocks: integer;  // has default
 
+//==============================================================================
+//
+// R_GetColormapLightLevel
+//
+//==============================================================================
 function R_GetColormapLightLevel(const cmap: PByteArray): fixed_t;
 
+//==============================================================================
+//
+// R_GetColormap32
+//
+//==============================================================================
 function R_GetColormap32(const cmap: PByteArray): PLongWordArray;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_SetPalette64
+//
+//==============================================================================
 procedure R_SetPalette64;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_Ticker
+//
+//==============================================================================
 procedure R_Ticker;
 
 {$IFDEF OPENGL}
@@ -325,6 +442,12 @@ var
 {$ENDIF}
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_SetRenderingFunctions
+//
+//==============================================================================
 procedure R_SetRenderingFunctions;
 {$ENDIF}
 
@@ -338,19 +461,18 @@ uses
   doomdata,
   c_cmds,
   d_net,
-  i_io,
   mt_utils,
   mn_screenshot,
   g_game,
   m_bbox,
-  m_menu,
   m_misc,
   m_rnd,
   a_action,
   p_setup,
   p_user,
-  p_3dfloors,  // JVAL: 3d floors
+   // JVAL: 3d floors
   {$IFNDEF OPENGL}
+  i_threads,
   i_video,
   i_system,
   {$ENDIF}
@@ -366,28 +488,28 @@ uses
   {$ENDIF}
   r_plane,
   r_sky,
-{$IFNDEF OPENGL}
+  {$IFNDEF OPENGL}
   r_segs,
-{$ENDIF}
+  {$ENDIF}
   r_hires,
   r_camera,
   r_precalc,
-{$IFNDEF OPENGL}
+  r_ripple,
+  {$IFNDEF OPENGL}
   r_cache_main,
   r_fake3d,
-  r_ripple,
   r_trans8,
   r_voxels,
   r_3dfloors, // JVAL: 3d Floors
   r_slopes, // JVAL: Slopes
-{$ENDIF}
+  {$ENDIF}
   r_lights,
   r_intrpl,
-{$IFDEF OPENGL}
+  {$IFDEF OPENGL}
   gl_render, // JVAL OPENGL
   gl_clipper,
   gl_tex,
-{$ELSE}
+  {$ELSE}
   r_segs2,
   r_wall8,
   r_wall32,
@@ -406,8 +528,8 @@ uses
   r_col_ms,
   r_col_sk,
   r_col_fz,
-  r_col_av,
-  r_col_al,
+  r_draw_average,
+  r_draw_alpha,
   r_col_tr,
   r_col_fog,
   r_col_ms_fog,
@@ -416,8 +538,9 @@ uses
   r_depthbuffer,  // JVAL: 3d Floors
   r_zbuffer, // JVAL: version 205
   v_video,
-{$ENDIF}
+  {$ENDIF}
   r_subsectors,
+  r_translations,
   v_data,
   sb_bar,
   w_sprite,
@@ -427,6 +550,11 @@ var
 // just for profiling purposes
   framecount: integer;
 
+//==============================================================================
+//
+// R_ApplyColormap
+//
+//==============================================================================
 procedure R_ApplyColormap(const ofs, count: integer; const scrn: integer; const cmap: integer);
 var
   src: PByte;
@@ -446,11 +574,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // R_AddPointToBox
 // Expand a given bbox
 // so that it encloses a given point.
 //
+//==============================================================================
 procedure R_AddPointToBox(const x: integer; const y: integer; box: Pfixed_tArray);
 begin
   if x < box[BOXLEFT] then
@@ -463,12 +593,15 @@ begin
     box[BOXTOP] := y;
 end;
 
+//==============================================================================
+// R_PointOnSide32
 //
 // R_PointOnSide
 // Traverse BSP (sub) tree,
 //  check point against partition plane.
 // Returns side 0 (front) or 1 (back).
 //
+//==============================================================================
 function R_PointOnSide32(const x: fixed_t; const y: fixed_t; const node: Pnode_t): boolean;
 var
   dx: fixed_t;
@@ -510,6 +643,11 @@ begin
   result := right >= left;
 end;
 
+//==============================================================================
+//
+// R_PointOnSide64
+//
+//==============================================================================
 function R_PointOnSide64(const x: fixed_t; const y: fixed_t; const node: Pnode_t): boolean;
 var
   dx64: int64;
@@ -544,6 +682,11 @@ begin
   result := right64 >= left64;
 end;
 
+//==============================================================================
+//
+// R_PointOnSide
+//
+//==============================================================================
 function R_PointOnSide(const x: fixed_t; const y: fixed_t; const node: Pnode_t): boolean;
 begin
   if largemap then
@@ -552,6 +695,11 @@ begin
     result := R_PointOnSide32(x, y, node);
 end;
 
+//==============================================================================
+//
+// R_PointOnSegSide32
+//
+//==============================================================================
 function R_PointOnSegSide32(x: fixed_t; y: fixed_t; line: Pseg_t): boolean;
 var
   lx: fixed_t;
@@ -603,6 +751,11 @@ begin
   result := left <= right;
 end;
 
+//==============================================================================
+//
+// R_PointOnSegSide64
+//
+//==============================================================================
 function R_PointOnSegSide64(x: fixed_t; y: fixed_t; line: Pseg_t): boolean;
 var
   lx: fixed_t;
@@ -647,6 +800,11 @@ begin
   result := left64 <= right64;
 end;
 
+//==============================================================================
+//
+// R_PointOnSegSide
+//
+//==============================================================================
 function R_PointOnSegSide(x: fixed_t; y: fixed_t; line: Pseg_t): boolean;
 begin
   if largemap then
@@ -655,6 +813,11 @@ begin
     result := R_PointOnSegSide32(x, y, line);
 end;
 
+//==============================================================================
+//
+// R_PointOnLineSide32
+//
+//==============================================================================
 function R_PointOnLineSide32(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
 var
   lx: fixed_t;
@@ -699,6 +862,11 @@ begin
   result := left <= right;
 end;
 
+//==============================================================================
+//
+// R_PointOnLineSide64
+//
+//==============================================================================
 function R_PointOnLineSide64(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
 var
   lx: fixed_t;
@@ -743,6 +911,11 @@ begin
   result := left64 <= right64;
 end;
 
+//==============================================================================
+//
+// R_PointOnLineSide
+//
+//==============================================================================
 function R_PointOnLineSide(x: fixed_t; y: fixed_t; line: Pline_t): boolean;
 begin
   if largemap then
@@ -751,6 +924,7 @@ begin
     result := R_PointOnLineSide32(x, y, line)
 end;
 
+//==============================================================================
 //
 // R_PointToAngle
 // To get a global angle from cartesian coordinates,
@@ -762,6 +936,7 @@ end;
 //
 // JVAL  -> Calculates: result := round(683565275 * (arctan2(y, x)));
 //
+//==============================================================================
 function R_PointToAngle(x: fixed_t; y: fixed_t): angle_t;
 begin
   x := x - viewx;
@@ -852,7 +1027,132 @@ begin
   result := 0;
 end;
 
-function R_PointToAngleEx(const x: fixed_t; const y: fixed_t): angle_t;
+//==============================================================================
+//
+// R_PointToAngleEx1
+//
+//==============================================================================
+function R_PointToAngleEx1(x: fixed_t; y: fixed_t): angle_t;
+begin
+  if (x = 0) and (y = 0) then
+  begin
+    result := 0;
+    exit;
+  end;
+
+  if x >= 0 then
+  begin
+    // x >=0
+    if y >= 0 then
+    begin
+      // y>= 0
+      if x > y then
+      begin
+        // octant 0
+        result := tantoangle_ex[SlopeDivEx(y, x)];
+        exit;
+      end
+      else
+      begin
+        // octant 1
+        result := ANG90 - 1 - tantoangle_ex[SlopeDivEx(x, y)];
+        exit;
+      end;
+    end
+    else
+    begin
+      // y<0
+      y := -y;
+      if x > y then
+      begin
+        // octant 8
+        result := -tantoangle_ex[SlopeDivEx(y, x)];
+        exit;
+      end
+      else
+      begin
+        // octant 7
+        result := ANG270 + tantoangle_ex[SlopeDivEx(x, y)];
+        exit;
+      end;
+    end;
+  end
+  else
+  begin
+    // x<0
+    x := -x;
+    if y >= 0 then
+    begin
+      // y>= 0
+      if x > y then
+      begin
+        // octant 3
+        result := ANG180 - 1 - tantoangle_ex[SlopeDivEx(y, x)];
+        exit;
+      end
+      else
+      begin
+        // octant 2
+        result := ANG90 + tantoangle_ex[SlopeDivEx(x, y)];
+        exit;
+      end;
+    end
+    else
+    begin
+      // y<0
+      y := -y;
+      if x > y then
+      begin
+        // octant 4
+        result := ANG180 + tantoangle_ex[SlopeDivEx(y, x)];
+        exit;
+      end
+      else
+      begin
+        // octant 5
+        result := ANG270 - 1 - tantoangle_ex[SlopeDivEx(x, y)];
+        exit;
+      end;
+    end;
+  end;
+
+  result := 0;
+end;
+
+var
+  pta_x, pta_y: fixed_t;
+  pta_ret: angle_t;
+
+//==============================================================================
+//
+// R_PointToAngleEx
+//
+//==============================================================================
+function R_PointToAngleEx(x: fixed_t; y: fixed_t): angle_t;
+begin
+  x := x - viewx;
+  y := y - viewy;
+
+  if x = pta_x then
+    if y = pta_y then
+    begin
+      Result := pta_ret;
+      Exit;
+    end;
+
+  result := R_PointToAngleEx1(x, y);
+  pta_x := x;
+  pta_y := y;
+  pta_ret := Result;
+end;
+
+//==============================================================================
+//
+// R_PointToAngleDbl
+// JVAL: very slow, do not use
+//
+//==============================================================================
+function R_PointToAngleDbl(const x: fixed_t; const y: fixed_t): angle_t;
 var
   xx, yy: fixed_t;
 begin
@@ -861,11 +1161,21 @@ begin
   result := Round(arctan2(yy, xx) * (ANG180 / D_PI));
 end;
 
+//==============================================================================
+//
+// R_PointToAngle2
+//
+//==============================================================================
 function R_PointToAngle2(const x1: fixed_t; const y1: fixed_t; const x2: fixed_t; const y2: fixed_t): angle_t;
 begin
   result := R_PointToAngle(x2 - x1 + viewx, y2 - y1 + viewy);
 end;
 
+//==============================================================================
+//
+// R_PointToDist
+//
+//==============================================================================
 function R_PointToDist(const x: fixed_t; const y: fixed_t): fixed_t;
 var
   angle: integer;
@@ -902,9 +1212,11 @@ begin
   result := FixedDiv(dx, finecosine[angle]);
 end;
 
+//==============================================================================
 //
 // R_InitPointToAngle
 //
+//==============================================================================
 procedure R_InitPointToAngle;
 {var
   i: integer;
@@ -922,9 +1234,11 @@ begin
   end;}
 end;
 
+//==============================================================================
 //
 // R_InitTables
 //
+//==============================================================================
 procedure R_InitTables;
 // JVAL: Caclulate tables constants
 {var
@@ -957,9 +1271,12 @@ end;
 
 var
   oldfocallength: fixed_t = -1;
+
+//==============================================================================
 //
 // R_InitTextureMapping
 //
+//==============================================================================
 procedure R_InitTextureMapping;
 var
   i: integer;
@@ -1026,11 +1343,13 @@ begin
   clipangle := xtoviewangle[0];
 end;
 
+//==============================================================================
 //
 // R_InitLightTables
 // Only inits the zlight table,
 //  because the scalelight table changes with view size.
 //
+//==============================================================================
 procedure R_InitLightTables;
 var
   i: integer;
@@ -1058,8 +1377,8 @@ begin
       else if level >= NUMCOLORMAPS then
         level := NUMCOLORMAPS - 1;
 
-      zlight[i][j] := PByteArray(integer(colormaps) + level * 256);
-      fog_zlight[i][j] := PByteArray(integer(fog_colormaps) + level * 256);
+      zlight[i][j] := @colormaps[level * 256];
+      fog_zlight[i][j] := @fog_colormaps[level * 256];
     end;
 
     startmaphi := ((LIGHTLEVELS - 1 - i) * 2 * FRACUNIT) div LIGHTLEVELS;
@@ -1091,6 +1410,11 @@ var
   setblocks: integer = -1;
   olddetail: integer = -1;
 
+//==============================================================================
+//
+// R_SetViewSize
+//
+//==============================================================================
 procedure R_SetViewSize;
 begin
   if not allowlowdetails then
@@ -1118,12 +1442,23 @@ begin
 end;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_SetPalette64
+//
+//==============================================================================
 procedure R_SetPalette64;
 begin
   if setdetail in [DL_LOWEST, DL_LOW, DL_MEDIUM] then
     I_SetPalette64;
 end;
 
+//==============================================================================
+//
+// R_SetRenderingFunctions
+//
+//==============================================================================
 procedure R_SetRenderingFunctions;
 begin
   case setdetail of
@@ -1138,33 +1473,40 @@ begin
         batchbluelightcolfunc := nil;
         batchyellowlightcolfunc := nil;
         batchtranscolfunc := R_DrawTranslatedColumn_Batch;
-        batchtaveragecolfunc := nil;
-        batchtalphacolfunc := nil;
 
         if usemultithread then
         begin
           basebatchcolfunc_mt := R_DrawColumnLow_BatchMT;
           batchcolfunc_mt := R_DrawColumnLow_BatchMT;
-          batchtalphacolfunc_mt := nil;
+          batchtaveragecolfunc_mt := R_DrawColumnAverageMedium_BatchMT;
+          if diher8bittransparency then
+            batchtalphacolfunc_mt := nil
+          else
+            batchtalphacolfunc_mt := R_DrawColumnAlphaMedium_BatchMT;
           batchaddcolfunc_mt := R_DrawColumnAddMedium_BatchMT;
           batchsubtractcolfunc_mt := R_DrawColumnSubtractMedium_BatchMT;
-          maskedcolfunc_mt := nil;
+          maskedcolfunc_mt := R_DrawColumnLowestMT;
           colfunc_mt := nil;
+          averagecolfunc_mt := R_DrawColumnAverageLowestMT;
           alphacolfunc_mt := nil;
-          addcolfunc_mt := nil;
-          subtractcolfunc_mt := nil;
+          addcolfunc_mt := R_DrawColumnAddLowestMT;
+          addcolfunc_smallstep_mt := R_DrawColumnAddLowestMT;
+          subtractcolfunc_mt := R_DrawColumnSubtractLowestMT;
         end
         else
         begin
           basebatchcolfunc_mt := nil;
           batchcolfunc_mt := nil;
+          batchtaveragecolfunc_mt := nil;
           batchtalphacolfunc_mt := nil;
           batchaddcolfunc_mt := nil;
           batchsubtractcolfunc_mt := nil;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := nil;
           alphacolfunc_mt := nil;
           addcolfunc_mt := nil;
+          addcolfunc_smallstep_mt := nil;
           subtractcolfunc_mt := nil;
         end;
 
@@ -1173,9 +1515,22 @@ begin
         basewallcolfunc := R_DrawColumnLowest;
         tallwallcolfunc := R_DrawTallColumnLowest;
         transcolfunc := R_DrawTranslatedColumn;
-        averagecolfunc := R_DrawColumnLowest;
-        alphacolfunc := R_DrawColumnAlphaMedium;
+        if diher8bittransparency then
+        begin
+          averagecolfunc := R_DrawColumnAlphaMediumDiher;
+          alphacolfunc := R_DrawColumnAlphaMediumDiher;
+          batchtaveragecolfunc := nil;
+          batchtalphacolfunc := nil;
+        end
+        else
+        begin
+          averagecolfunc := R_DrawColumnAverageLowest;
+          alphacolfunc := R_DrawColumnAlphaLowest;
+          batchtaveragecolfunc := R_DrawColumnAverageMedium_Batch;
+          batchtalphacolfunc := R_DrawColumnAlphaMedium_Batch;
+        end;
         addcolfunc := R_DrawColumnAddLowest;
+        addcolfunc_smallstep := R_DrawColumnAddLowest;
         batchaddcolfunc := R_DrawColumnAddMedium_Batch;
         subtractcolfunc := R_DrawColumnSubtractLowest;
         batchsubtractcolfunc := R_DrawColumnSubtractMedium_Batch;
@@ -1233,33 +1588,40 @@ begin
         batchbluelightcolfunc := nil;
         batchyellowlightcolfunc := nil;
         batchtranscolfunc := R_DrawTranslatedColumn_Batch;
-        batchtaveragecolfunc := nil;
-        batchtalphacolfunc := nil;
 
         if usemultithread then
         begin
           basebatchcolfunc_mt := R_DrawColumnLow_BatchMT;
           batchcolfunc_mt := R_DrawColumnLow_BatchMT;
-          batchtalphacolfunc_mt := nil;
+          batchtaveragecolfunc_mt := R_DrawColumnAverageMedium_BatchMT;
+          if diher8bittransparency then
+            batchtalphacolfunc_mt := nil
+          else
+            batchtalphacolfunc_mt := R_DrawColumnAlphaMedium_BatchMT;
           batchaddcolfunc_mt := R_DrawColumnAddMedium_BatchMT;
           batchsubtractcolfunc_mt := R_DrawColumnSubtractMedium_BatchMT;
-          maskedcolfunc_mt := nil;
+          maskedcolfunc_mt := R_DrawColumnLowMT;
           colfunc_mt := nil;
+          averagecolfunc_mt := R_DrawColumnAverageLowMT;
           alphacolfunc_mt := nil;
-          addcolfunc_mt := nil;
-          subtractcolfunc_mt := nil;
+          addcolfunc_mt := R_DrawColumnAddLowMT;
+          addcolfunc_smallstep_mt := R_DrawColumnAddLowMT;
+          subtractcolfunc_mt := R_DrawColumnSubtractLowMT;
         end
         else
         begin
           basebatchcolfunc_mt := nil;
           batchcolfunc_mt := nil;
+          batchtaveragecolfunc_mt := nil;
           batchtalphacolfunc_mt := nil;
           batchaddcolfunc_mt := nil;
           batchsubtractcolfunc_mt := nil;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := nil;
           alphacolfunc_mt := nil;
           addcolfunc_mt := nil;
+          addcolfunc_smallstep_mt := nil;
           subtractcolfunc_mt := nil;
         end;
 
@@ -1268,9 +1630,22 @@ begin
         basewallcolfunc := R_DrawColumnLow;
         tallwallcolfunc := R_DrawTallColumnLow;
         transcolfunc := R_DrawTranslatedColumn;
-        averagecolfunc := R_DrawColumnLow;
-        alphacolfunc := R_DrawColumnAlphaMedium;
+        if diher8bittransparency then
+        begin
+          averagecolfunc := R_DrawColumnAlphaMediumDiher;
+          alphacolfunc := R_DrawColumnAlphaMediumDiher;
+          batchtaveragecolfunc := nil;
+          batchtalphacolfunc := nil;
+        end
+        else
+        begin
+          averagecolfunc := R_DrawColumnAverageLow;
+          alphacolfunc := R_DrawColumnAlphaLow;
+          batchtaveragecolfunc := R_DrawColumnAverageMedium_Batch;
+          batchtalphacolfunc := R_DrawColumnAlphaMedium_Batch;
+        end;
         addcolfunc := R_DrawColumnAddLow;
+        addcolfunc_smallstep := R_DrawColumnAddLow;
         batchaddcolfunc := R_DrawColumnAddMedium_Batch;
         subtractcolfunc := R_DrawColumnSubtractLow;
         batchsubtractcolfunc := R_DrawColumnSubtractMedium_Batch;
@@ -1328,33 +1703,40 @@ begin
         batchbluelightcolfunc := nil;
         batchyellowlightcolfunc := nil;
         batchtranscolfunc := R_DrawTranslatedColumn_Batch;
-        batchtaveragecolfunc := nil;
-        batchtalphacolfunc := nil;
 
         if usemultithread then
         begin
           basebatchcolfunc_mt := R_DrawColumnMedium_BatchMT;
           batchcolfunc_mt := R_DrawColumnMedium_BatchMT;
-          batchtalphacolfunc_mt := nil;
+          batchtaveragecolfunc_mt := R_DrawColumnAverageMedium_BatchMT;
+          if diher8bittransparency then
+            batchtalphacolfunc_mt := nil
+          else
+            batchtalphacolfunc_mt := R_DrawColumnAlphaMedium_BatchMT;
           batchaddcolfunc_mt := R_DrawColumnAddMedium_BatchMT;
           batchsubtractcolfunc_mt := R_DrawColumnSubtractMedium_BatchMT;
-          maskedcolfunc_mt := nil;
+          maskedcolfunc_mt := R_DrawColumnMediumMT;
           colfunc_mt := nil;
+          averagecolfunc_mt := R_DrawColumnAverageMediumMT;
           alphacolfunc_mt := nil;
-          addcolfunc_mt := nil;
-          subtractcolfunc_mt := nil;
+          addcolfunc_mt := R_DrawColumnAddMediumMT;
+          addcolfunc_smallstep_mt := R_DrawColumnAddMediumMT;
+          subtractcolfunc_mt := R_DrawColumnSubtractMediumMT;
         end
         else
         begin
           basebatchcolfunc_mt := nil;
           batchcolfunc_mt := nil;
+          batchtaveragecolfunc_mt := nil;
           batchtalphacolfunc_mt := nil;
           batchaddcolfunc_mt := nil;
           batchsubtractcolfunc_mt := nil;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := nil;
           alphacolfunc_mt := nil;
           addcolfunc_mt := nil;
+          addcolfunc_smallstep_mt := nil;
           subtractcolfunc_mt := nil;
         end;
 
@@ -1363,9 +1745,22 @@ begin
         basewallcolfunc := R_DrawColumnMedium;
         tallwallcolfunc := R_DrawTallColumnMedium;
         transcolfunc := R_DrawTranslatedColumn;
-        averagecolfunc := R_DrawColumnMedium;
-        alphacolfunc := R_DrawColumnAlphaMedium;
+        if diher8bittransparency then
+        begin
+          averagecolfunc := R_DrawColumnAlphaMediumDiher;
+          alphacolfunc := R_DrawColumnAlphaMediumDiher;
+          batchtaveragecolfunc := nil;
+          batchtalphacolfunc := nil;
+        end
+        else
+        begin
+          averagecolfunc := R_DrawColumnAverageMedium;
+          alphacolfunc := R_DrawColumnAlphaMedium;
+          batchtaveragecolfunc := R_DrawColumnAverageMedium_Batch;
+          batchtalphacolfunc := R_DrawColumnAlphaMedium_Batch;
+        end;
         addcolfunc := R_DrawColumnAddMedium;
+        addcolfunc_smallstep := R_DrawColumnAddMedium;
         batchaddcolfunc := R_DrawColumnAddMedium_Batch;
         subtractcolfunc := R_DrawColumnSubtractMedium;
         batchsubtractcolfunc := R_DrawColumnSubtractMedium_Batch;
@@ -1430,26 +1825,32 @@ begin
         begin
           basebatchcolfunc_mt := R_DrawColumnHi_BatchMT;
           batchcolfunc_mt := R_DrawColumnHi_BatchMT;
+          batchtaveragecolfunc_mt := R_DrawColumnAverageHi_BatchMT;
           batchtalphacolfunc_mt := R_DrawColumnAlphaHi_BatchMT;
           batchaddcolfunc_mt := R_DrawColumnAddHi_BatchMT;
           batchsubtractcolfunc_mt := R_DrawColumnSubtractHi_BatchMT;
           maskedcolfunc_mt := R_DrawMaskedColumnNormalMT;
           colfunc_mt := nil;
+          averagecolfunc_mt := R_DrawColumnAverageHiMT;
           alphacolfunc_mt := nil;
-          addcolfunc_mt := nil;
-          subtractcolfunc_mt := nil;
+          addcolfunc_mt := R_DrawColumnAddHiMT;
+          addcolfunc_smallstep_mt := R_DrawColumnAddHi_SmallStepMT;
+          subtractcolfunc_mt := R_DrawColumnSubtractHiMT;
         end
         else
         begin
           basebatchcolfunc_mt := nil;
           batchcolfunc_mt := nil;
+          batchtaveragecolfunc_mt := nil;
           batchtalphacolfunc_mt := nil;
           batchaddcolfunc_mt := nil;
           batchsubtractcolfunc_mt := nil;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := nil;
           alphacolfunc_mt := nil;
           addcolfunc_mt := nil;
+          addcolfunc_smallstep_mt := nil;
           subtractcolfunc_mt := nil;
         end;
 
@@ -1475,6 +1876,7 @@ begin
         averagecolfunc := R_DrawColumnAverageHi;
         alphacolfunc := R_DrawColumnAlphaHi;
         addcolfunc := R_DrawColumnAddHi;
+        addcolfunc_smallstep := R_DrawColumnAddHi_SmallStep;
         subtractcolfunc := R_DrawColumnSubtractHi;
 
         if LevelUseFog then
@@ -1519,6 +1921,7 @@ begin
             rippleslopefunc := R_DrawSpanNormal_Ripple;
           end;
         end;
+
         if useclassicfuzzeffect then
           fuzzcolfunc := R_DrawFuzzColumn32
         else
@@ -1550,26 +1953,32 @@ begin
         begin
           basebatchcolfunc_mt := R_DrawColumnHi_BatchMT;
           batchcolfunc_mt := R_DrawColumnHi_BatchMT;
+          batchtaveragecolfunc_mt := R_DrawColumnAverageHi_BatchMT;
           batchtalphacolfunc_mt := R_DrawColumnAlphaHi_BatchMT;
           batchaddcolfunc_mt := R_DrawColumnAddHi_BatchMT;
           batchsubtractcolfunc_mt := R_DrawColumnSubtractHi_BatchMT;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := R_DrawColumnAverageHiMT;
           alphacolfunc_mt := nil;
-          addcolfunc_mt := nil;
-          subtractcolfunc_mt := nil;
+          addcolfunc_mt := R_DrawColumnAddHiMT;
+          addcolfunc_smallstep_mt := R_DrawColumnAddHi_SmallStepMT;
+          subtractcolfunc_mt := R_DrawColumnSubtractHiMT;
         end
         else
         begin
           basebatchcolfunc_mt := nil;
           batchcolfunc_mt := nil;
+          batchtaveragecolfunc_mt := nil;
           batchtalphacolfunc_mt := nil;
           batchaddcolfunc_mt := nil;
           batchsubtractcolfunc_mt := nil;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := nil;
           alphacolfunc_mt := nil;
           addcolfunc_mt := nil;
+          addcolfunc_smallstep_mt := nil;
           subtractcolfunc_mt := nil;
         end;
 
@@ -1595,6 +2004,7 @@ begin
         averagecolfunc := R_DrawColumnAverageHi;
         alphacolfunc := R_DrawColumnAlphaHi;
         addcolfunc := R_DrawColumnAddHi;
+        addcolfunc_smallstep := R_DrawColumnAddHi_SmallStep;
         subtractcolfunc := R_DrawColumnSubtractHi;
 
         if LevelUseFog then
@@ -1670,26 +2080,32 @@ begin
         begin
           basebatchcolfunc_mt := R_DrawColumnHi_BatchMT;
           batchcolfunc_mt := R_DrawColumnHi_BatchMT;
+          batchtaveragecolfunc_mt := R_DrawColumnAverageHi_BatchMT;
           batchtalphacolfunc_mt := R_DrawColumnAlphaHi_BatchMT;
           batchaddcolfunc_mt := R_DrawColumnAddHi_BatchMT;
           batchsubtractcolfunc_mt := R_DrawColumnSubtractHi_BatchMT;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := R_DrawColumnAverageHiMT;
           alphacolfunc_mt := nil;
-          addcolfunc_mt := nil;
-          subtractcolfunc_mt := nil;
+          addcolfunc_mt := R_DrawColumnAddHiMT;
+          addcolfunc_smallstep_mt := R_DrawColumnAddHi_SmallStepMT;
+          subtractcolfunc_mt := R_DrawColumnSubtractHiMT;
         end
         else
         begin
           basebatchcolfunc_mt := nil;
           batchcolfunc_mt := nil;
+          batchtaveragecolfunc_mt := nil;
           batchtalphacolfunc_mt := nil;
           batchaddcolfunc_mt := nil;
           batchsubtractcolfunc_mt := nil;
           maskedcolfunc_mt := nil;
           colfunc_mt := nil;
+          averagecolfunc_mt := nil;
           alphacolfunc_mt := nil;
           addcolfunc_mt := nil;
+          addcolfunc_smallstep_mt := nil;
           subtractcolfunc_mt := nil;
         end;
 
@@ -1714,6 +2130,7 @@ begin
         transcolfunc := R_DrawTranslatedColumnHi;
         averagecolfunc := R_DrawColumnAverageUltra;
         addcolfunc := R_DrawColumnAddHi;
+        addcolfunc_smallstep := R_DrawColumnAddHi_SmallStep;
         subtractcolfunc := R_DrawColumnSubtractHi;
         alphacolfunc := R_DrawColumnAlphaHi;
         if LevelUseFog then
@@ -1776,9 +2193,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
 //
 // R_ExecuteSetViewSize
 //
+//==============================================================================
 procedure R_ExecuteSetViewSize;
 var
 {$IFNDEF OPENGL}
@@ -1905,8 +2324,8 @@ begin
           level := NUMCOLORMAPS - 1;
       end;
 
-      scalelight[i][j] := PByteArray(integer(colormaps) + level * 256);
-      fog_scalelight[i][j] := PByteArray(integer(fog_colormaps) + level * 256);
+      scalelight[i][j] := @colormaps[level * 256];
+      fog_scalelight[i][j] := @fog_colormaps[level * 256];
     end;
   end;
 
@@ -1929,7 +2348,11 @@ begin
 
 end;
 
-
+//==============================================================================
+//
+// R_CmdZAxisShift
+//
+//==============================================================================
 procedure R_CmdZAxisShift(const parm1: string = '');
 var
   newz: boolean;
@@ -1950,6 +2373,12 @@ begin
 end;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// R_CmdUseFake3D
+//
+//==============================================================================
 procedure R_CmdUseFake3D(const parm1: string = '');
 var
   newf: boolean;
@@ -1971,6 +2400,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_CmdUseClassicFuzzEffect
+//
+//==============================================================================
 procedure R_CmdUseClassicFuzzEffect(const parm1: string = '');
 var
   newusefz: boolean;
@@ -1992,6 +2426,37 @@ begin
   R_CmdUseClassicFuzzEffect;
 end;
 
+//==============================================================================
+//
+// R_CmdDiher8bitTransparency
+//
+//==============================================================================
+procedure R_CmdDiher8bitTransparency(const parm1: string = '');
+var
+  newdih: boolean;
+begin
+  if parm1 = '' then
+  begin
+    printf('Current setting: diher8bittransparency = %s.'#13#10, [truefalseStrings[diher8bittransparency]]);
+    exit;
+  end;
+
+  newdih := C_BoolEval(parm1, diher8bittransparency);
+  if newdih <> diher8bittransparency then
+  begin
+    diher8bittransparency := newdih;
+{$IFNDEF OPENGL}
+    R_SetRenderingFunctions;
+{$ENDIF}
+  end;
+  R_CmdDiher8bitTransparency;
+end;
+
+//==============================================================================
+//
+// R_CmdScreenWidth
+//
+//==============================================================================
 procedure R_CmdScreenWidth;
 begin
   {$IFDEF OPENGL}
@@ -2001,6 +2466,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// R_CmdScreenHeight
+//
+//==============================================================================
 procedure R_CmdScreenHeight;
 begin
   {$IFDEF OPENGL}
@@ -2010,6 +2480,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// R_CmdClearCache
+//
+//==============================================================================
 procedure R_CmdClearCache;
 begin
   {$IFDEF OPENGL}
@@ -2021,6 +2496,11 @@ begin
   printf('Texture cache clear'#13#10);
 end;
 
+//==============================================================================
+//
+// R_CmdResetCache
+//
+//==============================================================================
 procedure R_CmdResetCache;
 begin
   {$IFNDEF OPENGL}
@@ -2030,11 +2510,11 @@ begin
   printf('Texture cache reset'#13#10);
 end;
 
-
-
+//==============================================================================
 //
 // R_Init
 //
+//==============================================================================
 procedure R_Init;
 begin
 {$IFNDEF OPENGL}
@@ -2047,10 +2527,8 @@ begin
   R_InitAspect;
   printf('R_InitData'#13#10);
   R_InitData;
-{$IFNDEF OPENGL}
   printf('R_InitRippleEffects'#13#10);
   R_InitRippleEffects;
-{$ENDIF}
   printf('R_InitInterpolations'#13#10);
   R_InitInterpolations;
   printf('R_InitPointToAngle'#13#10);
@@ -2068,6 +2546,8 @@ begin
   R_InitSkyMap;
   printf('R_InitTranslationsTables'#13#10);
   R_InitTranslationTables;
+  printf('R_InitTranslations'#13#10);
+  R_InitTranslations;
 {$IFNDEF OPENGL}
   printf('R_InitTransparency8Tables'#13#10);
   R_InitTransparency8Tables;
@@ -2111,6 +2591,7 @@ begin
   C_AddCmd('32bittexturepaletteeffects, use32bittexturepaletteeffects', @R_Cmd32bittexturepaletteeffects);
   C_AddCmd('useexternaltextures', @R_CmdUseExternalTextures);
   C_AddCmd('useclassicfuzzeffect', @R_CmdUseClassicFuzzEffect);
+  C_AddCmd('diher8bittransparency', @R_CmdDiher8bitTransparency);
   C_AddCmd('lightboostfactor', @R_CmdLightBoostFactor);
   C_AddCmd('screenwidth', @R_CmdScreenWidth);
   C_AddCmd('screenheight', @R_CmdScreenHeight);
@@ -2118,6 +2599,11 @@ begin
   C_AddCmd('resetcache, resettexturecache', @R_CmdResetCache);
 end;
 
+//==============================================================================
+//
+// R_ShutDown
+//
+//==============================================================================
 procedure R_ShutDown;
 begin
   printf(#13#10 + 'R_ShutDownLightBoost');
@@ -2132,16 +2618,12 @@ begin
 {$ENDIF}
   printf(#13#10 + 'R_ShutDownInterpolation');
   R_ResetInterpolationBuffer;
-  printf(#13#10 + 'R_ShutDownSprites');
-  R_ShutDownSprites;
-{$IFDEF OPENGL}
-  printf(#13#10 + 'R_ShutDownOpenGL');
-  R_ShutDownOpenGL;
-{$ENDIF}
 {$IFNDEF OPENGL}
   printf(#13#10 + 'R_FreeTransparency8Tables');
   R_FreeTransparency8Tables;
 {$ENDIF}
+  printf('R_ShutDownTranslations'#13#10);
+  R_ShutDownTranslations;
   printf(#13#10 + 'R_ShutDownPrecalc');
   R_ShutDownPrecalc;
 {$IFNDEF OPENGL}
@@ -2153,6 +2635,12 @@ begin
   R_ShutDownFlatsCache8;
   printf(#13#10 + 'R_ShutDownFlatsCache32');
   R_ShutDownFlatsCache32;
+{$ENDIF}
+  printf(#13#10 + 'R_ShutDownSprites');
+  R_ShutDownSprites;
+  printf(#13#10 + 'R_FreeMemory');
+  R_FreeMemory;
+{$IFNDEF OPENGL}
   printf(#13#10 + 'R_VoxelsDone');
   R_VoxelsDone;
   printf(#13#10 + 'R_ShutDownDepthBuffer'); // JVAL: 3d Floors
@@ -2162,14 +2650,19 @@ begin
   printf(#13#10 + 'R_DynamicLightsDone');
   R_DynamicLightsDone;
 {$ENDIF}
-  printf(#13#10 + 'W_ShutDownSprites'); // JVAL: Images as sprites
-  W_ShutDownSprites; // JVAL: Images as sprites
+{$IFDEF OPENGL}
+  printf(#13#10 + 'R_ShutDownOpenGL');
+  R_ShutDownOpenGL;
+{$ENDIF}
   printf(#13#10);
 end;
 
+//==============================================================================
+// R_PointInSubsectorClassic
 //
 // R_PointInSubsector
 //
+//==============================================================================
 function R_PointInSubsectorClassic(const x: fixed_t; const y: fixed_t): Psubsector_t;
 var
   node: Pnode_t;
@@ -2196,6 +2689,11 @@ begin
   result := @subsectors[nodenum and not NF_SUBSECTOR_V5]; // JVAL: glbsp
 end;
 
+//==============================================================================
+//
+// R_PointInSubsector
+//
+//==============================================================================
 function R_PointInSubsector(const x: fixed_t; const y: fixed_t): Psubsector_t;
 begin
   result := R_PointInSubsectorPrecalc(x, y);
@@ -2203,9 +2701,11 @@ begin
     result := R_PointInSubSectorClassic(x, y);
 end;
 
+//==============================================================================
 //
 // R_SetupFrame
 //
+//==============================================================================
 procedure R_SetupFrame(player: Pplayer_t);
 var
   i: integer;
@@ -2229,12 +2729,17 @@ begin
     viewy := viewy + ((P_RandomFromSeed(gametic + 1) mod (intensity * 4)) - intensity * 2) * FRACUNIT;
   end;
 
-
   shiftangle := player.lookdir2;
   viewangle := player.mo.angle + shiftangle * DIR256TOANGLEUNIT + viewangleoffset;
   extralight := player.extralight;
+  renderlightscale := (SCREENWIDTH * LIGHTSCALEUNIT) div 320;
 
   viewz := player.viewz;
+
+  // JVAL: 20220309 - Reset R_PointToAngleEx
+  pta_x := 0;
+  pta_y := 0;
+  pta_ret := 0;
 
   R_AdjustTeleportZoom(player);
   R_AdjustChaseCamera;
@@ -2325,21 +2830,41 @@ begin
   inc(validcount);
 end;
 
+//==============================================================================
+//
+// R_SetViewAngleOffset
+//
+//==============================================================================
 procedure R_SetViewAngleOffset(const angle: angle_t);
 begin
   viewangleoffset := angle;
 end;
 
+//==============================================================================
+//
+// R_FullStOn
+//
+//==============================================================================
 function R_FullStOn: boolean;
 begin
   result := setblocks = 11;
 end;
 
+//==============================================================================
+//
+// R_StOff
+//
+//==============================================================================
 function R_StOff: boolean;
 begin
   result := setblocks = 12;
 end;
 
+//==============================================================================
+//
+// R_GetColormapLightLevel
+//
+//==============================================================================
 function R_GetColormapLightLevel(const cmap: PByteArray): fixed_t;
 var
   m: integer;
@@ -2357,6 +2882,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_GetColormap32
+//
+//==============================================================================
 function R_GetColormap32(const cmap: PByteArray): PLongWordArray;
 var
   m: integer;
@@ -2385,6 +2915,11 @@ end;
 var
   oldlookdir16: integer = MAXINT;
 
+//==============================================================================
+//
+// R_Fake3DPrepare
+//
+//==============================================================================
 procedure R_Fake3DPrepare(player: Pplayer_t);
 begin
   if oldlookdir16 = player.lookdir16 then
@@ -2398,12 +2933,27 @@ end;
 
 var
   task_clearplanes: integer = -1;
+  task_8bitlights: integer = -1;
+  task_maskedstuff: integer = -1;
 
+procedure R_MaskedStuffMT;
+begin
+  R_SortVisSprites;
+  R_SetUpDrawSegLists;
+  R_PrepareMasked;
+end;
+
+//==============================================================================
+//
+// R_DoRenderPlayerView8_MultiThread
+//
+//==============================================================================
 procedure R_DoRenderPlayerView8_MultiThread(player: Pplayer_t);
 begin
   R_Fake3DPrepare(player);
-  R_Calc8bitTables;
   R_SetupFrame(player);
+  task_8bitlights := MT_ScheduleTask(@R_Calc8bitTables);
+  MT_ExecutePendingTask(task_8bitlights);
 
   // Clear buffers.
   R_ClearClipSegs;
@@ -2412,6 +2962,9 @@ begin
   R_Wait3DLookup;
   R_Fake3DAdjustPlanes(player);
   R_ClearSprites;
+
+  // Check for completed thread tasks
+  TestActiveThreads;
 
   // check for new console commands.
   NetUpdate;
@@ -2421,15 +2974,22 @@ begin
   // The head node is the last node output.
   R_RenderBSPNode(numnodes - 1);
 
+  // Check for completed thread tasks
+  TestActiveThreads;
+
   R_ProjectAdditionalThings;
 
   R_SortVisSpritesMT;
 
+  task_maskedstuff := MT_ScheduleTask(@R_MaskedStuffMT);
+  MT_ExecutePendingTask(task_maskedstuff);
+
   R_RenderMultiThreadWalls8;
 
-  R_SetUpDrawSegLists;
-
   R_DrawPlanes;
+
+  // Check for completed thread tasks
+  TestActiveThreads;
 
   R_RenderMultiThreadFlats8;
 
@@ -2437,9 +2997,18 @@ begin
 
   R_DrawFFloorsMultiThread;  // JVAL: 3d Floors
 
+  // Check for completed thread tasks
+  TestActiveThreads;
+
   R_RenderMultiThreadFFloors8;
 
+  MT_WaitTask(task_8bitlights);
+  R_SignalPrepareMasked;
+  MT_WaitTask(task_maskedstuff);
   R_DrawMasked_MultiThread;
+
+  // Check for completed thread tasks
+  TestActiveThreads;
 
   // Check for new console commands.
   NetUpdate;
@@ -2455,11 +3024,16 @@ begin
   MT_ExecutePendingTask(task_clearplanes);
 end;
 
+//==============================================================================
+//
+// R_DoRenderPlayerView32_MultiThread
+//
+//==============================================================================
 procedure R_DoRenderPlayerView32_MultiThread(player: Pplayer_t);
 begin
   R_Fake3DPrepare(player);
-  R_CalcHiResTables_Multithread;
   R_SetupFrame(player);
+  R_CalcHiResTables_MultiThread;
 
   // Clear buffers.
   R_ClearClipSegs;
@@ -2469,6 +3043,9 @@ begin
   R_Fake3DAdjustPlanes(player);
   R_ClearSprites;
 
+  // Check for completed thread tasks
+  TestActiveThreads;
+
   // check for new console commands.
   NetUpdate;
 
@@ -2477,15 +3054,22 @@ begin
   // The head node is the last node output.
   R_RenderBSPNode(numnodes - 1);
 
+  // Check for completed thread tasks
+  TestActiveThreads;
+
   R_ProjectAdditionalThings;
 
   R_SortVisSpritesMT;
 
+  task_maskedstuff := MT_ScheduleTask(@R_MaskedStuffMT);
+  MT_ExecutePendingTask(task_maskedstuff);
+
   R_RenderMultiThreadWalls32;
 
-  R_SetUpDrawSegLists;
-
   R_DrawPlanes;
+
+  // Check for completed thread tasks
+  TestActiveThreads;
 
   R_RenderMultiThreadFlats32;
 
@@ -2493,9 +3077,17 @@ begin
 
   R_DrawFFloorsMultiThread;  // JVAL: 3d Floors
 
+  // Check for completed thread tasks
+  TestActiveThreads;
+
   R_RenderMultiThreadFFloors32;
 
+  R_SignalPrepareMasked;
+  MT_WaitTask(task_maskedstuff);
   R_DrawMasked_MultiThread;
+
+  // Check for completed thread tasks
+  TestActiveThreads;
 
   // Check for new console commands.
   NetUpdate;
@@ -2512,15 +3104,22 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// R_DoRenderPlayerView_SingleThread
+//
+//==============================================================================
 procedure R_DoRenderPlayerView_SingleThread(player: Pplayer_t);
 begin
 {$IFNDEF OPENGL}
   R_Fake3DPrepare(player);
-  R_CalcHiResTables_SingleThread;
-  R_Calc8bitTables;
 {$ENDIF}
-
   R_SetupFrame(player);
+
+{$IFNDEF OPENGL}
+  R_Calc8bitTables;
+  R_CalcHiResTables_SingleThread;
+{$ENDIF}
 
   // Clear buffers.
 {$IFNDEF OPENGL}
@@ -2576,7 +3175,6 @@ begin
   R_DrawPlayer;
 {$ENDIF}
 
-
   // Check for new console commands.
   NetUpdate;
 
@@ -2586,6 +3184,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// R_RenderPlayerView
+//
+//==============================================================================
 procedure R_RenderPlayerView(player: Pplayer_t);
 begin
   // new render validcount
@@ -2613,6 +3216,11 @@ begin
     MN_ScreenShotFromBlitBuffer;
 end;
 
+//==============================================================================
+//
+// R_Ticker
+//
+//==============================================================================
 procedure R_Ticker;
 begin
   R_InterpolateTicker;

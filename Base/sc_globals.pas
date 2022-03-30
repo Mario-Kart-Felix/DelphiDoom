@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,10 +30,25 @@ unit sc_globals;
 
 interface
 
+//==============================================================================
+//
+// SC_InitGlobals
+//
+//==============================================================================
 procedure SC_InitGlobals;
 
+//==============================================================================
+//
+// SC_ShutDownGlobals
+//
+//==============================================================================
 procedure SC_ShutDownGlobals;
 
+//==============================================================================
+//
+// SC_AddGlobalPrecalc
+//
+//==============================================================================
 procedure SC_AddGlobalPrecalc(const name: string);
 
 implementation
@@ -46,6 +61,11 @@ const
 var
   scgloballists: array[0..NUM_SCGLOBALLISTS - 1] of TDStringList;
 
+//==============================================================================
+//
+// SC_InitGlobals
+//
+//==============================================================================
 procedure SC_InitGlobals;
 var
   i: integer;
@@ -53,6 +73,12 @@ begin
   for i := 0 to NUM_SCGLOBALLISTS - 1 do
     scgloballists[i] := TDStringList.Create;
 end;
+
+//==============================================================================
+//
+// SC_ShutDownGlobals
+//
+//==============================================================================
 procedure SC_ShutDownGlobals;
 var
   i: integer;
@@ -61,6 +87,11 @@ begin
     scgloballists[i].Free;
 end;
 
+//==============================================================================
+//
+// SC_AddGlobalPrecalc
+//
+//==============================================================================
 procedure SC_AddGlobalPrecalc(const name: string);
 begin
 end;

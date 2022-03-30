@@ -119,6 +119,7 @@ type
     PopupMenu1: TPopupMenu;
     ItemProperties1: TMenuItem;
     KeyboardModeRadioGroup: TRadioGroup;
+    MidiRadioGroup: TRadioGroup;
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure RunDelphiDoomClick(Sender: TObject);
@@ -589,7 +590,6 @@ var
   swidth, sheight: integer;
   ep, map: integer;
 
-
   procedure AddCmd(const s: string);
   begin
     if Pos(' ', s) = 0 then
@@ -607,6 +607,7 @@ begin
       break;
     end;
 
+  cmd := '';
   if check then
   begin
     AddCmd('-lfile');
@@ -685,7 +686,6 @@ begin
   else if UseMMXCheckBox.State = cbUnChecked then
     AddCmd('-nommx');
 
-
   if RandomMonstersCheckBox.State = cbChecked then
     AddCmd('-spawnrandommonsters')
   else if RandomMonstersCheckBox.State = cbUnChecked then
@@ -742,6 +742,13 @@ begin
   end;
 
 // Sound
+  if MidiRadioGroup.ItemIndex = 1 then
+    AddCmd('-uselegacymidiplayer')
+  else if MidiRadioGroup.ItemIndex = 2 then
+    AddCmd('-nouselegacymidiplayer')
+  else if MidiRadioGroup.ItemIndex = 3 then
+    AddCmd('-internalmidiplayer');
+
   if NoSoundCheckBox.State = cbChecked then
     AddCmd('-nosound');
 
@@ -758,7 +765,6 @@ begin
     AddCmd('-joystick')
   else if UseJoystickCheckBox.State = cbUnchecked then
     AddCmd('-nojoystick');
-
 
   if GameModeComboBox.ItemIndex > 0 then
   begin
@@ -797,7 +803,9 @@ begin
     AddCmd(IntToStr(KeyboardModeRadioGroup.ItemIndex - 1));
   end;
 
-  result := cmd + ' ' + AdditionalParametersEdit.Text;
+  result := cmd;
+  if Trim(AdditionalParametersEdit.Text) <> '' then
+    result := result + ' ' + Trim(AdditionalParametersEdit.Text);
 end;
 
 procedure TForm1.RunDelphiDoomClick(Sender: TObject);
@@ -985,7 +993,6 @@ begin
     ScreenResolutionComboBox.Text := IntToStr(w) + 'x' + IntToStr(h);
 
 end;
-
 
 procedure TForm1.UpdateNetwork;
 var

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Use Voxels as sprites without patch inside WAD
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,6 +33,11 @@ unit vx_voxelsprite;
 
 interface
 
+//==============================================================================
+//
+// VX_VoxelToSprite
+//
+//==============================================================================
 procedure VX_VoxelToSprite;
 
 var
@@ -88,22 +93,42 @@ type
     procedure CreateDoomPatch(out p: pointer; out size: integer);
   end;
 
+//==============================================================================
+//
+// TVoxelImageLoader.Create
+//
+//==============================================================================
 constructor TVoxelImageLoader.Create;
 begin
   fvoxelbuffer := mallocz(SizeOf(voxelbuffer3d_t));
   fvoxelsize := 0;
 end;
 
+//==============================================================================
+//
+// TVoxelImageLoader.Destroy
+//
+//==============================================================================
 destructor TVoxelImageLoader.Destroy;
 begin
   memfree(pointer(fvoxelbuffer), SizeOf(voxelbuffer3d_t));
 end;
 
+//==============================================================================
+//
+// TVoxelImageLoader.Clear
+//
+//==============================================================================
 procedure TVoxelImageLoader.Clear;
 begin
   ZeroMemory(fvoxelbuffer, SizeOf(voxelbuffer3d_t));
 end;
 
+//==============================================================================
+//
+// SwapRGB
+//
+//==============================================================================
 function SwapRGB(const c: LongWord): LongWord;
 var
   r, g, b: byte;
@@ -114,6 +139,11 @@ begin
   result := b shl 16 + g shl 8 + r;
 end;
 
+//==============================================================================
+//
+// TVoxelImageLoader.LoadDDVOX
+//
+//==============================================================================
 function TVoxelImageLoader.LoadDDVOX(const vname: string): boolean;
 var
   buf: TDStringList;
@@ -192,6 +222,11 @@ type
   end;
   kvxslab_p = ^kvxslab_t;
 
+//==============================================================================
+//
+// TVoxelImageLoader.LoadKVX
+//
+//==============================================================================
 function TVoxelImageLoader.LoadKVX(const vname: string): boolean;
 var
   strm: TDStream;
@@ -228,7 +263,7 @@ begin
   begin
     strm.Free;
     s1 := fname(vname);
-    splitstring(s1, s2, s3, '.');
+    splitstring_ch(s1, s2, s3, '.');
     lump := W_CheckNumForName(s2, TYPE_VOXEL);
     if lump < 0 then
     begin
@@ -393,6 +428,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// TVoxelImageLoader.LoadVOX
+//
+//==============================================================================
 function TVoxelImageLoader.LoadVOX(const vname: string): boolean;
 var
   strm: TDStream;
@@ -528,6 +568,11 @@ type
   ddmeshitem_a = array[0..$FFF] of ddmeshitem_t;
   ddmeshitem_pa = ^ddmeshitem_a;
 
+//==============================================================================
+//
+// TVoxelImageLoader.LoadDDMESH
+//
+//==============================================================================
 function TVoxelImageLoader.LoadDDMESH(const vname: string): boolean;
 var
   strm: TPakStream;
@@ -599,6 +644,11 @@ type
     topoffset: smallint;  // pixels below the origin
   end;
 
+//==============================================================================
+//
+// TVoxelImageLoader.CreateDoomPatch
+//
+//==============================================================================
 procedure TVoxelImageLoader.CreateDoomPatch(out p: pointer; out size: integer);
 var
   x, y, z: integer;
@@ -710,13 +760,18 @@ end;
 var
   vx_names: TDStringList = nil;
 
+//==============================================================================
+//
+// VX_SpriteExistsInWAD
+//
+//==============================================================================
 function VX_SpriteExistsInWAD(const filename: string): boolean;
 var
   check, lumpname: string;
   i: integer;
   in_loop: boolean;
 begin
-  check := firstword(filename, '.'); // Input is uppercase
+  check := firstword_ch(filename, '.'); // Input is uppercase
   SetLength(check, 5); // SPRITE & FRAME
   in_loop := false;
   for i := 0 to W_NumLumps - 1 do
@@ -738,6 +793,11 @@ begin
   result := false;
 end;
 
+//==============================================================================
+//
+// VX_AddFileName
+//
+//==============================================================================
 procedure VX_AddFileName(const filename: string);
 var
   check: string;
@@ -750,7 +810,7 @@ begin
      ((ext = '') and (Pos(FOLDER_VOXELS + '\', fixpathname(check)) > 0)) then
   begin
     check := fname(check);
-    name := firstword(check, '.');
+    name := firstword_ch(check, '.');
     if (Length(name) = 5) or ((Length(name) = 6) and (name[6] = '0')) then
       if vx_names.IndexOf(name) < 0 then
         if not VX_SpriteExistsInWAD(name) then
@@ -791,6 +851,11 @@ const
     $C2, $B3, $80, $00, $00, $00, $00, $49, $45, $4E, $44, $AE, $42, $60, $82
   );
 
+//==============================================================================
+//
+// VX_VoxelToSprite
+//
+//==============================================================================
 procedure VX_VoxelToSprite;
 var
   wad: TWADWriter;
@@ -805,7 +870,7 @@ var
 
   function _vxsprname(const vxn: string): string;
   begin
-    result := firstword(vx_names.Strings[i], '.');
+    result := firstword_ch(vx_names.Strings[i], '.');
     if Length(result) = 5 then
       result := result + '0';
   end;

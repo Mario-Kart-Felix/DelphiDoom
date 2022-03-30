@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  and some PIT_* functions to use for iteration.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,34 +39,93 @@ interface
 
 uses
   m_bbox,
-  doomdef,
   p_local,
   p_mobj_h,
   m_fixed,
   r_defs;
 
+//==============================================================================
+//
+// P_AproxDistance
+//
+//==============================================================================
 function P_AproxDistance(dx: fixed_t; dy: fixed_t): fixed_t;
 
+//==============================================================================
+//
+// P_PointOnLineSide
+//
+//==============================================================================
 function P_PointOnLineSide(x: fixed_t; y: fixed_t; line: Pline_t): integer;
 
+//==============================================================================
+//
+// P_BoxOnLineSide
+//
+//==============================================================================
 function P_BoxOnLineSide(tmbox: Pfixed_tArray; ld: Pline_t): integer;
 
+//==============================================================================
+//
+// P_InterceptVector
+//
+//==============================================================================
 function P_InterceptVector(v2: Pdivline_t; v1: Pdivline_t): fixed_t;
 
+//==============================================================================
+//
+// P_LineOpening
+//
+//==============================================================================
 procedure P_LineOpening(linedef: Pline_t; check3dfloor: boolean);
 
+//==============================================================================
+//
+// P_LineOpeningTM
+//
+//==============================================================================
 procedure P_LineOpeningTM(linedef: Pline_t; check3dfloor: boolean); // JVAL: Slopes
 
+//==============================================================================
+//
+// P_LineOpeningTM206
+//
+//==============================================================================
 procedure P_LineOpeningTM206(linedef: Pline_t; check3dfloor: boolean);  // JVAL: VERSION 206
 
+//==============================================================================
+//
+// P_UnsetThingPosition
+//
+//==============================================================================
 procedure P_UnsetThingPosition(thing: Pmobj_t);
 
+//==============================================================================
+//
+// P_SetThingPosition
+//
+//==============================================================================
 procedure P_SetThingPosition(thing: Pmobj_t);
 
+//==============================================================================
+//
+// P_BlockLinesIterator
+//
+//==============================================================================
 function P_BlockLinesIterator(x, y: integer; func: ltraverser_t): boolean;
 
+//==============================================================================
+//
+// P_BlockThingsIterator
+//
+//==============================================================================
 function P_BlockThingsIterator(x, y: integer; func: ttraverser_t): boolean;
 
+//==============================================================================
+//
+// P_PathTraverse
+//
+//==============================================================================
 function P_PathTraverse(x1, y1, x2, y2: fixed_t; flags: integer;
   trav: traverser_t): boolean;
 
@@ -78,7 +137,19 @@ var
 
   trace: divline_t;
 
+//==============================================================================
+//
+// P_InitIntercepts
+//
+//==============================================================================
 procedure P_InitIntercepts;
+
+//==============================================================================
+//
+// P_LineTrace
+//
+//==============================================================================
+procedure P_LineTrace(const fromx, fromy, fromz: fixed_t; const tox, toy, toz: fixed_t; out newx, newy, newz: fixed_t);
 
 implementation
 
@@ -86,15 +157,20 @@ uses
   d_delphi,
   i_system,
   p_setup,
+  p_3dfloors,
   p_slopes,
   p_map,
+  po_man,
   r_main,
   z_zone;
 
+//==============================================================================
+// P_AproxDistance32
 //
 // P_AproxDistance
 // Gives an estimation of distance (not exact)
 //
+//==============================================================================
 function P_AproxDistance32(dx: fixed_t; dy: fixed_t): fixed_t;
 begin
   dx := abs(dx);
@@ -105,6 +181,11 @@ begin
     result := dx + dy - _SHR1(dy);
 end;
 
+//==============================================================================
+//
+// P_AproxDistance64
+//
+//==============================================================================
 function P_AproxDistance64(dx: fixed_t; dy: fixed_t): fixed_t;
 var
   dx64, dy64: int64;
@@ -122,6 +203,11 @@ begin
     result := dist;
 end;
 
+//==============================================================================
+//
+// P_AproxDistance
+//
+//==============================================================================
 function P_AproxDistance(dx: fixed_t; dy: fixed_t): fixed_t;
 begin
   if largemap then
@@ -130,10 +216,12 @@ begin
     result := P_AproxDistance32(dx, dy);
 end;
 
+//==============================================================================
 //
 // P_PointOnLineSide
 // Returns 0 or 1
 //
+//==============================================================================
 function P_PointOnLineSide(x: fixed_t; y: fixed_t; line: Pline_t): integer;
 var
   dx: fixed_t;
@@ -171,11 +259,13 @@ begin
     result := 1; // back side
 end;
 
+//==============================================================================
 //
 // P_BoxOnLineSide
 // Considers the line to be infinite
 // Returns side 0 or 1, -1 if box crosses the line.
 //
+//==============================================================================
 function P_BoxOnLineSide(tmbox: Pfixed_tArray; ld: Pline_t): integer;
 var
   p1: integer;
@@ -225,10 +315,13 @@ begin
     result := -1;
 end;
 
+//==============================================================================
+// P_PointOnDivlineSide32
 //
 // P_PointOnDivlineSide
 // Returns 0 or 1.
 //
+//==============================================================================
 function P_PointOnDivlineSide32(x: fixed_t; y: fixed_t; line: Pdivline_t): integer;
 var
   dx: fixed_t;
@@ -295,6 +388,11 @@ begin
     result := 1; // back side
 end;
 
+//==============================================================================
+//
+// P_PointOnDivlineSide64
+//
+//==============================================================================
 function P_PointOnDivlineSide64(x: fixed_t; y: fixed_t; line: Pdivline_t): integer;
 var
   dx64: int64;
@@ -352,6 +450,11 @@ begin
     result := 1; // back side
 end;
 
+//==============================================================================
+//
+// P_PointOnDivlineSide
+//
+//==============================================================================
 function P_PointOnDivlineSide(x: fixed_t; y: fixed_t; line: Pdivline_t): integer;
 begin
   if largemap then
@@ -360,9 +463,11 @@ begin
     result := P_PointOnDivlineSide32(x, y, line);
 end;
 
+//==============================================================================
 //
 // P_MakeDivline
 //
+//==============================================================================
 procedure P_MakeDivline(li: Pline_t; dl: Pdivline_t);
 begin
   dl.x := li.v1.x;
@@ -371,6 +476,7 @@ begin
   dl.dy := li.dy;
 end;
 
+//==============================================================================
 //
 // P_InterceptVector
 // Returns the fractional intercept point
@@ -378,6 +484,7 @@ end;
 // This is only called by the addthings
 // and addlines traversers.
 //
+//==============================================================================
 function P_InterceptVector(v2: Pdivline_t; v1: Pdivline_t): fixed_t;
 var
   num: fixed_t;
@@ -396,12 +503,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_LineOpening
 // Sets opentop and openbottom to the window
 // through a two sided line.
 // OPTIMIZE: keep this precalculated
 //
+//==============================================================================
 procedure P_LineOpening(linedef: Pline_t; check3dfloor: boolean);
 var
   front: Psector_t;
@@ -485,7 +594,12 @@ begin
   openrange := opentop - openbottom;
 end;
 
+//==============================================================================
+// P_LineOpeningTM
+//
 // JVAL: Slopes
+//
+//==============================================================================
 procedure P_LineOpeningTM(linedef: Pline_t; check3dfloor: boolean);
 var
   front: Psector_t;
@@ -515,7 +629,6 @@ begin
   front := linedef.frontsector;
   back := linedef.backsector;
 
-
   // JVAL: Slopes
   moside := P_PointOnLineSide(tmthing.x, tmthing.y, linedef);
 
@@ -535,7 +648,6 @@ begin
     backfloorheight := P_FloorHeight(back, x, y);
     backceilingheight := P_CeilingHeight(back, x, y);
   end;
-
 
   if frontceilingheight < backceilingheight then
     opentop := frontceilingheight + P_SectorJumpOverhead(front)
@@ -609,7 +721,12 @@ begin
   openrange := opentop - openbottom;
 end;
 
+//==============================================================================
+// P_LineOpeningTM206
+//
 // JVAL: VERSION 206
+//
+//==============================================================================
 procedure P_LineOpeningTM206(linedef: Pline_t; check3dfloor: boolean);
 var
   front: Psector_t;
@@ -714,11 +831,9 @@ begin
   openrange := opentop - openbottom;
 end;
 
+//==============================================================================
 //
 // THING POSITION SETTING
-//
-
-
 //
 // P_UnsetThingPosition
 // Unlinks a thing from block map and sectors.
@@ -726,6 +841,7 @@ end;
 // lookups maintaining lists ot things inside
 // these structures need to be updated.
 //
+//==============================================================================
 procedure P_UnsetThingPosition(thing: Pmobj_t);
 var
   link: Pblocklinkitem_t;
@@ -768,12 +884,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_SetThingPosition
 // Links a thing into both a block and a subsector
 // based on it's x y.
 // Sets thing->subsector properly
 //
+//==============================================================================
 procedure P_SetThingPosition(thing: Pmobj_t);
 var
   ss: Psubsector_t;
@@ -841,15 +959,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // BLOCK MAP ITERATORS
 // For each line/thing in the given mapblock,
 // call the passed PIT_* function.
 // If the function returns false,
 // exit with false without checking anything else.
-//
-
-
 //
 // P_BlockLinesIterator
 // The validcount flags are used to avoid checking lines
@@ -858,15 +974,50 @@ end;
 // to P_BlockLinesIterator, then make one or more calls
 // to it.
 //
+//==============================================================================
 function P_BlockLinesIterator(x, y: integer; func: ltraverser_t): boolean;
 var
   offset: PInteger;
   ld: Pline_t;
+  polyLink: Ppolyblock_t;
+  tempSeg: PPseg_t;
+  i: integer;
 begin
   if (x < 0) or (y < 0) or (x >= bmapwidth) or (y >= bmapheight) then
   begin
     result := true;
     exit;
+  end;
+
+  if PolyBlockMap <> nil then
+  begin
+    polyLink := PolyBlockMap[y * bmapwidth + x];
+    while polyLink <> nil do
+    begin
+      if polyLink.polyobj <> nil then
+      begin
+        if polyLink.polyobj.validcount <> validcount then
+        begin
+          polyLink.polyobj.validcount := validcount;
+          tempSeg := polyLink.polyobj.segs;
+          for i := 0 to polyLink.polyobj.numsegs - 1 do
+          begin
+            if not tempSeg^.miniseg then
+            if tempSeg^.linedef.validcount <> validcount then
+            begin
+              tempSeg^.linedef.validcount := validcount;
+              if not func(tempSeg^.linedef) then
+              begin
+                result := false;
+                exit;
+              end;
+            end;
+            inc(tempSeg);
+          end;
+        end;
+      end;
+      polyLink := polyLink.next;
+    end;
   end;
 
   offset := @blockmaplump[blockmap[y * bmapwidth + x]];
@@ -890,9 +1041,11 @@ begin
   result := true; // everything was checked
 end;
 
+//==============================================================================
 //
 // P_BlockThingsIterator
 //
+//==============================================================================
 function P_BlockThingsIterator(x, y: integer; func: ttraverser_t): boolean;
 var
   i: integer;
@@ -925,12 +1078,22 @@ var
 
   earlyout: boolean;
 
+//==============================================================================
+//
+// P_InitIntercepts
+//
+//==============================================================================
 procedure P_InitIntercepts;
 begin
   intercepts := Z_Malloc(MAXINTERCEPTS * SizeOf(intercept_t), PU_LEVEL, nil);
   numintercepts := MAXINTERCEPTS;
 end;
 
+//==============================================================================
+//
+// P_GrowIntercepts
+//
+//==============================================================================
 procedure P_GrowIntercepts;
 begin
   if intercept_p >= numintercepts then
@@ -940,6 +1103,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // PIT_AddLineIntercepts.
 // Looks for lines in the given block
@@ -950,6 +1114,7 @@ end;
 // are on opposite sides of the trace.
 // Returns true if earlyout and a solid line hit.
 //
+//==============================================================================
 function PIT_AddLineIntercepts(ld: Pline_t): boolean;
 var
   s1: integer;
@@ -1004,9 +1169,11 @@ begin
   result := true; // continue
 end;
 
+//==============================================================================
 //
 // PIT_AddThingIntercepts
 //
+//==============================================================================
 function PIT_AddThingIntercepts(thing: Pmobj_t): boolean;
 var
   x1: fixed_t;
@@ -1072,11 +1239,13 @@ begin
   result := true; // keep going
 end;
 
+//==============================================================================
 //
 // P_TraverseIntercepts
 // Returns true if the traverser function returns true
 // for all lines.
 //
+//==============================================================================
 function P_TraverseIntercepts(func: traverser_t; maxfrac: fixed_t): boolean;
 var
   i: integer;
@@ -1116,6 +1285,8 @@ begin
   result := true; // everything was traversed
 end;
 
+//==============================================================================
+// P_PathTraverse32
 //
 // P_PathTraverse
 // Traces a line from x1,y1 to x2,y2,
@@ -1123,6 +1294,7 @@ end;
 // Returns true if the traverser function returns true
 // for all lines.
 //
+//==============================================================================
 function P_PathTraverse32(x1, y1, x2, y2: fixed_t; flags: integer;
   trav: traverser_t): boolean;
 var
@@ -1254,6 +1426,11 @@ begin
   result := P_TraverseIntercepts(trav, FRACUNIT);
 end;
 
+//==============================================================================
+//
+// P_PathTraverse64
+//
+//==============================================================================
 function P_PathTraverse64(x1, y1, x2, y2: fixed_t; flags: integer;
   trav: traverser_t): boolean;
 var
@@ -1396,6 +1573,11 @@ begin
   result := P_TraverseIntercepts(trav, FRACUNIT);
 end;
 
+//==============================================================================
+//
+// P_PathTraverse
+//
+//==============================================================================
 function P_PathTraverse(x1, y1, x2, y2: fixed_t; flags: integer;
   trav: traverser_t): boolean;
 begin
@@ -1403,6 +1585,126 @@ begin
     result := P_PathTraverse64(x1, y1, x2, y2, flags, trav)
   else
     result := P_PathTraverse32(x1, y1, x2, y2, flags, trav)
+end;
+
+var
+  LTfromx, LTfromy, LTfromz: fixed_t;
+  LTtox, LTtoy, LTtoz: fixed_t;
+  LTbbox: array[0..3] of fixed_t;
+  LTline: Pline_t;
+
+//==============================================================================
+//
+// PIT_LineTrace
+//
+//==============================================================================
+function PIT_LineTrace(ld: Pline_t): boolean;
+var
+  A1, B1, C1: int64;
+  A2, B2, C2: int64;
+  det: int64;
+  x, y: int64;
+  dist1, dist2: int64;
+begin
+  if ld.backsector <> nil then
+  begin
+    result := true;
+    exit;
+  end;
+
+  if (LTbbox[BOXRIGHT] <= ld.bbox[BOXLEFT]) or
+     (LTbbox[BOXLEFT] >= ld.bbox[BOXRIGHT]) or
+     (LTbbox[BOXTOP] <= ld.bbox[BOXBOTTOM]) or
+     (LTbbox[BOXBOTTOM] >= ld.bbox[BOXTOP]) then
+  begin
+    result := true;
+    exit;
+  end;
+
+  if P_BoxOnLineSide(@LTbbox, ld) <> -1 then
+  begin
+    result := true;
+    exit;
+  end;
+
+  A1 := LTtoy - LTfromy;
+  B1 := LTfromx - LTtox;
+  C1 := (A1 * LTfromx) div FRACUNIT + (B1 * LTfromy) div FRACUNIT;
+
+  A2 := ld.v2.y - ld.v1.y;
+  B2 := ld.v1.x - ld.v2.x;
+  C2 := (A2 * ld.v1.x) div FRACUNIT + (B2 * ld.v1.y) div FRACUNIT;
+
+  det := (A1 * B2) div FRACUNIT - (A2 * B1) div FRACUNIT;
+  if det <> 0 then
+  begin
+    x := (B2 * C1 - B1 * C2) div det;
+    y := (A1 * C2 - A2 * C1) div det;
+    dist1 := ((LTfromx - x) div FRACUNIT) * (LTfromx - x) + ((LTfromy - y) div FRACUNIT) * (LTfromy - y);
+    dist2 := ((LTfromx - LTtox) div FRACUNIT) * (LTfromx - LTtox) + ((LTfromy - LTtoy) div FRACUNIT) * (LTfromy - LTtoy);
+    if dist1 < dist2 then
+    begin
+      LTtox := x;
+      LTtoy := y;
+      LTline := ld;
+    end;
+  end;
+
+  result := true;
+end;
+
+//==============================================================================
+//
+// P_LineTrace
+//
+//==============================================================================
+procedure P_LineTrace(const fromx, fromy, fromz: fixed_t; const tox, toy, toz: fixed_t; out newx, newy, newz: fixed_t);
+var
+  xl: integer;
+  xh: integer;
+  yl: integer;
+  yh: integer;
+  bx: integer;
+  by: integer;
+  floor, ceiling: fixed_t;
+begin
+  LTbbox[BOXLEFT] := MinI(fromx, tox);
+  LTbbox[BOXRIGHT] := MaxI(fromx, tox);
+  LTbbox[BOXBOTTOM] := MinI(fromy, toy);
+  LTbbox[BOXTOP] := MaxI(fromy, toy);
+
+  xl := MapBlockIntX(int64(LTbbox[BOXLEFT]) - int64(bmaporgx) - MAXRADIUS);
+  xh := MapBlockIntX(int64(LTbbox[BOXRIGHT]) - int64(bmaporgx) + MAXRADIUS);
+  yl := MapBlockIntY(int64(LTbbox[BOXBOTTOM]) - int64(bmaporgy) - MAXRADIUS);
+  yh := MapBlockIntY(int64(LTbbox[BOXTOP]) - int64(bmaporgy) + MAXRADIUS);
+
+  LTfromx := fromx;
+  LTfromy := fromy;
+  LTfromz := fromz;
+
+  LTtox := tox;
+  LTtoy := toy;
+  LTtoz := toz;
+
+  LTline := nil;
+  for bx := xl to xh do
+    for by := yl to yh do
+      P_BlockLinesIterator(bx, by, PIT_LineTrace);
+
+  newx := LTtox;
+  newy := LTtoy;
+  if LTline = nil then
+  begin
+    floor := P_3dFloorHeight(newx, newy, LTfromz);
+    ceiling := P_3dCeilingHeight(newx, newy, LTfromz);
+    newz := GetIntegerInRange(LTtoz, floor, ceiling);
+  end
+  else
+  begin
+    floor := P_3dFloorHeight(LTline.frontsector, newx, newy, LTfromz);
+    ceiling := P_3dCeilingHeight(LTline.frontsector, newx, newy, LTfromz);
+    newz := GetIntegerInRange(LTtoz, floor, ceiling);
+  end;
 end;
 
 end.

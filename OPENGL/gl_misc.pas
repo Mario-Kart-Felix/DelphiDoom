@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,13 +30,34 @@ unit gl_misc;
 
 interface
 
+//==============================================================================
+//
+// gl_i_min
+//
+//==============================================================================
 function gl_i_min(const a, b: integer): integer;
+
+//==============================================================================
+//
+// gl_i_max
+//
+//==============================================================================
 function gl_i_max(const a, b: integer): integer;
 
+//==============================================================================
+//
+// gl_f_max
+//
+//==============================================================================
 function gl_f_max(const a, b: single): single;
 
 implementation
 
+//==============================================================================
+//
+// gl_i_min
+//
+//==============================================================================
 function gl_i_min(const a, b: integer): integer;
 begin
   if a > b then
@@ -45,6 +66,11 @@ begin
     result := a;
 end;
 
+//==============================================================================
+//
+// gl_i_max
+//
+//==============================================================================
 function gl_i_max(const a, b: integer): integer;
 begin
   if a > b then
@@ -53,6 +79,11 @@ begin
     result := b;
 end;
 
+//==============================================================================
+//
+// gl_f_max
+//
+//==============================================================================
 function gl_f_max(const a, b: single): single;
 begin
   if a > b then
@@ -60,7 +91,6 @@ begin
   else
     result := b;
 end;
-
 
 end.
 

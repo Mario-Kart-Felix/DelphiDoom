@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Basic Voxel Definitions
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -82,8 +82,18 @@ var
   voxelstates: Pvoxelstate_tArray;
   numvoxelstates: integer;
 
+//==============================================================================
+//
+// VX_InitVoxels
+//
+//==============================================================================
 procedure VX_InitVoxels;
 
+//==============================================================================
+//
+// VX_VoxelsDone
+//
+//==============================================================================
 procedure VX_VoxelsDone;
 
 var
@@ -107,6 +117,11 @@ uses
   w_wad,
   w_pak;
 
+//==============================================================================
+//
+// VX_AddVoxel
+//
+//==============================================================================
 function VX_AddVoxel(const item: voxelmanageritem_t): integer;
 var
   i: integer;
@@ -138,6 +153,11 @@ begin
   inc(voxelmanager.size);
 end;
 
+//==============================================================================
+//
+// VX_AddVoxelState
+//
+//==============================================================================
 procedure VX_AddVoxelState(const item: voxelstate_t);
 begin
   if item.state < 0 then
@@ -154,18 +174,20 @@ end;
 const
   SPRITEFRAMECHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]';
 
+//==============================================================================
 //
 // VX_CheckVoxelSprite
 // JVAL 20191204
 //    Add the sprname and the it's voxel source
 //    Only one voxel (first parsed) per sprite though
 //
+//==============================================================================
 procedure VX_CheckVoxelSprite(const sprname: string; const voxelsrc: string);
 var
   s1, s2, check: string;
   i: integer;
 begin
-  splitstring(fname(sprname), s1, s2, '.');
+  splitstring_ch(fname(sprname), s1, s2, '.');
   check := strupper(s1);
   if Length(check) = 4 then
   begin
@@ -189,10 +211,13 @@ end;
 const
   VOXELDEFLUMPNAME = 'VOXELDEF';
 
+//==============================================================================
+// SC_DoParseVoxelDefinition
 //
 // SC_ParseVoxelDefinition
 // JVAL: Parse VOXELDEF LUMP
 //
+//==============================================================================
 procedure SC_DoParseVoxelDefinition(const in_text: string);
 var
   sc: TScriptEngine;
@@ -222,6 +247,7 @@ begin
   tokens.Add('ANGLEOFFSET');                  //  9
   tokens.Add('DROPPEDSPIN');                  // 10
   tokens.Add('PLACEDSPIN');                   // 11
+  tokens.Add('SPIN');                         // 12
 
   if devparm then
   begin
@@ -302,6 +328,12 @@ begin
              11:  // PLACEDDSPIN
                 begin
                   sc.MustGetInteger;
+                  voxelitem.placedspin := sc._Integer;
+                end;
+             12:  // SPIN
+                begin
+                  sc.MustGetInteger;
+                  voxelitem.droppedspin := sc._Integer;
                   voxelitem.placedspin := sc._Integer;
                 end;
               6:  // Replace
@@ -419,15 +451,22 @@ begin
   tokens.Free;
 end;
 
+//==============================================================================
+//
+// SC_ParseVoxelDefinition
+//
+//==============================================================================
 procedure SC_ParseVoxelDefinition(const in_text: string);
 begin
   SC_DoParseVoxelDefinition(SC_Preprocess(in_text, false));
 end;
 
+//==============================================================================
 //
 // SC_ParseVoxelDefinitions
 // JVAL: Parse all VOXELDEF lumps
 //
+//==============================================================================
 procedure SC_ParseVoxelDefinitions;
 var
   i: integer;
@@ -457,6 +496,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// Cmd_VoxelMapping
+//
+//==============================================================================
 procedure Cmd_VoxelMapping;
 var
   i: integer;
@@ -476,6 +520,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// VX_InitVoxels
+//
+//==============================================================================
 procedure VX_InitVoxels;
 begin
   voxelmanager.size := 0;
@@ -488,7 +537,11 @@ begin
   C_AddCmd('voxelmapping', @Cmd_VoxelMapping);
 end;
 
-
+//==============================================================================
+//
+// VX_VoxelsDone
+//
+//==============================================================================
 procedure VX_VoxelsDone;
 var
   i: integer;

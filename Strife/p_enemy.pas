@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 //  that are associated with states/frames.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -48,212 +48,727 @@ uses
   p_mobj_h,
   s_sound,
   d_player,
-  sounds;
+  sounddata;
 
+//==============================================================================
+//
+// A_Fall
+//
+//==============================================================================
 procedure A_Fall(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Look
+//
+//==============================================================================
 procedure A_Look(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Chase
+//
+//==============================================================================
 procedure A_Chase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FaceTarget
+//
+//==============================================================================
 procedure A_FaceTarget(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BulletAttack
+//
+//==============================================================================
 procedure A_BulletAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Tracer
+//
+//==============================================================================
 procedure A_Tracer(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Scream
+//
+//==============================================================================
 procedure A_Scream(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_XScream
+//
+//==============================================================================
 procedure A_XScream(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Pain
+//
+//==============================================================================
 procedure A_Pain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Explode
+//
+//==============================================================================
 procedure A_Explode(thingy: Pmobj_t);
 
+//==============================================================================
+//
+// A_BossDeath
+//
+//==============================================================================
 procedure A_BossDeath(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PlayerScream
+//
+//==============================================================================
 procedure A_PlayerScream(mo: Pmobj_t);
 
+//==============================================================================
+//
+// A_Listen
+//
+//==============================================================================
 procedure A_Listen(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_RandomWalk
+//
+//==============================================================================
 procedure A_RandomWalk(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FriendLook
+//
+//==============================================================================
 procedure A_FriendLook(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PeasantPunch
+//
+//==============================================================================
 procedure A_PeasantPunch(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ReaverAttack
+//
+//==============================================================================
 procedure A_ReaverAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CheckTargetVisible
+//
+//==============================================================================
 procedure A_CheckTargetVisible(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SentinelAttack
+//
+//==============================================================================
 procedure A_SentinelAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_StalkerThink
+//
+//==============================================================================
 procedure A_StalkerThink(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_StalkerSetLook
+//
+//==============================================================================
 procedure A_StalkerSetLook(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_StalkerDrop
+//
+//==============================================================================
 procedure A_StalkerDrop(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_StalkerScratch
+//
+//==============================================================================
 procedure A_StalkerScratch(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FloatWeave
+//
+//==============================================================================
 procedure A_FloatWeave(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_RobotMelee
+//
+//==============================================================================
 procedure A_RobotMelee(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_TemplarMauler
+//
+//==============================================================================
 procedure A_TemplarMauler(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CrusaderAttack
+//
+//==============================================================================
 procedure A_CrusaderAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CrusaderLeft
+//
+//==============================================================================
 procedure A_CrusaderLeft(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CrusaderRight
+//
+//==============================================================================
 procedure A_CrusaderRight(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CheckTargetVisible2
+//
+//==============================================================================
 procedure A_CheckTargetVisible2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InqFlyCheck
+//
+//==============================================================================
 procedure A_InqFlyCheck(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InqGrenade
+//
+//==============================================================================
 procedure A_InqGrenade(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InqTakeOff
+//
+//==============================================================================
 procedure A_InqTakeOff(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InqFly
+//
+//==============================================================================
 procedure A_InqFly(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireSigilWeapon
+//
+//==============================================================================
 procedure A_FireSigilWeapon(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ProgrammerAttack
+//
+//==============================================================================
 procedure A_ProgrammerAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Sigil_A_Action
+//
+//==============================================================================
 procedure A_Sigil_A_Action(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpectreEAttack
+//
+//==============================================================================
 procedure A_SpectreEAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpectreCAttack
+//
+//==============================================================================
 procedure A_SpectreCAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_AlertSpectreC
+//
+//==============================================================================
 procedure A_AlertSpectreC(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Sigil_E_Action
+//
+//==============================================================================
 procedure A_Sigil_E_Action(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SigilTrail
+//
+//==============================================================================
 procedure A_SigilTrail(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpectreDAttack
+//
+//==============================================================================
 procedure A_SpectreDAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireSigilEOffshoot
+//
+//==============================================================================
 procedure A_FireSigilEOffshoot(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ShadowOff
+//
+//==============================================================================
 procedure A_ShadowOff(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ModifyVisibility
+//
+//==============================================================================
 procedure A_ModifyVisibility(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ShadowOn
+//
+//==============================================================================
 procedure A_ShadowOn(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SetTLOptions
+//
+//==============================================================================
 procedure A_SetTLOptions(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BossMeleeAtk
+//
+//==============================================================================
 procedure A_BossMeleeAtk(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BishopAttack
+//
+//==============================================================================
 procedure A_BishopAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireHookShot
+//
+//==============================================================================
 procedure A_FireHookShot(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireChainShot
+//
+//==============================================================================
 procedure A_FireChainShot(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MissileSmoke
+//
+//==============================================================================
 procedure A_MissileSmoke(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSparkPuff
+//
+//==============================================================================
 procedure A_SpawnSparkPuff(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ProgrammerMelee
+//
+//==============================================================================
 procedure A_ProgrammerMelee(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PeasantCrash
+//
+//==============================================================================
 procedure A_PeasantCrash(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HideZombie
+//
+//==============================================================================
 procedure A_HideZombie(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MerchantPain
+//
+//==============================================================================
 procedure A_MerchantPain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ProgrammerDie
+//
+//==============================================================================
 procedure A_ProgrammerDie(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InqTossArm
+//
+//==============================================================================
 procedure A_InqTossArm(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSpectreA
+//
+//==============================================================================
 procedure A_SpawnSpectreA(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSpectreB
+//
+//==============================================================================
 procedure A_SpawnSpectreB(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSpectreC
+//
+//==============================================================================
 procedure A_SpawnSpectreC(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSpectreD
+//
+//==============================================================================
 procedure A_SpawnSpectreD(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSpectreE
+//
+//==============================================================================
 procedure A_SpawnSpectreE(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnEntity
+//
+//==============================================================================
 procedure A_SpawnEntity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_EntityDeath
+//
+//==============================================================================
 procedure A_EntityDeath(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnZombie
+//
+//==============================================================================
 procedure A_SpawnZombie(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ZombieInSpecialSector
+//
+//==============================================================================
 procedure A_ZombieInSpecialSector(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CrystalExplode
+//
+//==============================================================================
 procedure A_CrystalExplode(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_QuestMsg
+//
+//==============================================================================
 procedure A_QuestMsg(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ExtraLightOff
+//
+//==============================================================================
 procedure A_ExtraLightOff(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CrystalRadiusAtk
+//
+//==============================================================================
 procedure A_CrystalRadiusAtk(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_DeathExplode1
+//
+//==============================================================================
 procedure A_DeathExplode1(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_DeathExplode2
+//
+//==============================================================================
 procedure A_DeathExplode2(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_DeathExplode3
+//
+//==============================================================================
 procedure A_DeathExplode3(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_DeathExplode5
+//
+//==============================================================================
 procedure A_DeathExplode5(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_RaiseAlarm
+//
+//==============================================================================
 procedure A_RaiseAlarm(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MissileTick
+//
+//==============================================================================
 procedure A_MissileTick(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnGrenadeFire
+//
+//==============================================================================
 procedure A_SpawnGrenadeFire(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NodeChunk
+//
+//==============================================================================
 procedure A_NodeChunk(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HeadChunk
+//
+//==============================================================================
 procedure A_HeadChunk(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BurnSpread
+//
+//==============================================================================
 procedure A_BurnSpread(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_AcolyteSpecial
+//
+//==============================================================================
 procedure A_AcolyteSpecial(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InqChase
+//
+//==============================================================================
 procedure A_InqChase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_StalkerChase
+//
+//==============================================================================
 procedure A_StalkerChase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_TeleportBeacon
+//
+//==============================================================================
 procedure A_TeleportBeacon(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_BodyParts
+//
+//==============================================================================
 procedure A_BodyParts(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ClaxonBlare
+//
+//==============================================================================
 procedure A_ClaxonBlare(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ActiveSoundSTRF
+//
+//==============================================================================
 procedure A_ActiveSoundSTRF(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ClearSoundTarget
+//
+//==============================================================================
 procedure A_ClearSoundTarget(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_DropBurnFlesh
+//
+//==============================================================================
 procedure A_DropBurnFlesh(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FlameDeath
+//
+//==============================================================================
 procedure A_FlameDeath(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ClearForceField
+//
+//==============================================================================
 procedure A_ClearForceField(actor: Pmobj_t);
 
+//==============================================================================
+//
+// P_DoChase
+//
+//==============================================================================
 procedure P_DoChase(actor: Pmobj_t; const fast: boolean);
 
+//==============================================================================
+//
+// P_NoiseAlert
+//
+//==============================================================================
 procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 
-function P_CheckMeleeRange(actor: Pmobj_t): boolean;
+//==============================================================================
+//
+// P_CheckMeleeRange
+//
+//==============================================================================
+function P_CheckMeleeRange(actor: Pmobj_t; const factor: Integer = 1): boolean;
 
+//==============================================================================
+//
+// P_TryWalk
+//
+//==============================================================================
 function P_TryWalk(actor: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_Move
+//
+//==============================================================================
 function P_Move(actor: Pmobj_t): boolean;
 
+//==============================================================================
+//
+// P_Massacre
+//
+//==============================================================================
 procedure P_Massacre;
 
+//==============================================================================
+//
+// P_FreePrisoners
+//
+//==============================================================================
 procedure P_FreePrisoners;
 
+//==============================================================================
+//
+// P_DestroyConverter
+//
+//==============================================================================
 procedure P_DestroyConverter;
 
+//==============================================================================
+//
+// P_DoPunchAlert
+//
+//==============================================================================
 procedure P_DoPunchAlert(puncher: Pmobj_t; punchee: Pmobj_t);
 
 type
@@ -276,6 +791,7 @@ uses
   d_delphi,
   doomdata,
   deh_main,
+  d_items,
   d_think,
   d_main,
   g_game,
@@ -286,6 +802,10 @@ uses
   info,
   f_finale,
   m_rnd,
+  p_common,
+  p_extra,
+  p_floor,
+  p_friends,
   p_map,
   p_maputl,
   p_setup,
@@ -296,16 +816,15 @@ uses
   p_doors,
   p_spec,
   p_inter,
-  p_floor,
-  p_pspr,
-  p_extra,
-  p_common,
   p_sounds,
   p_dialog,
   p_terrain,
+  p_udmf,
+  udmf_spec,
   ps_main,
   r_defs,
-  r_main;
+  r_main,
+  r_translations;
 
 const
   opposite: array[0..8] of dirtype_t = (
@@ -317,12 +836,14 @@ const
     DI_NORTHWEST, DI_NORTHEAST, DI_SOUTHWEST, DI_SOUTHEAST
   );
 
+//==============================================================================
 //
 // A_Fall
 //
 // [STRIFE]
 // * Set NODIALOG, and clear NOGRAVITY and SHADOW
 //
+//==============================================================================
 procedure A_Fall(actor: Pmobj_t);
 begin
   // villsa [STRIFE] set NODIALOG flag to stop dialog
@@ -346,7 +867,6 @@ end;
 // but some can be made preaware
 //
 
-
 //
 // Called by P_NoiseAlert.
 // Recursively traverse adjacent sectors,
@@ -356,6 +876,11 @@ end;
 var
   soundtarget: Pmobj_t;
 
+//==============================================================================
+//
+// P_RecursiveSound
+//
+//==============================================================================
 procedure P_RecursiveSound(sec: Psector_t; soundblocks: integer);
 var
   i: integer;
@@ -400,11 +925,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_NoiseAlert
 // If a monster yells at a player,
 // it will alert other monsters to the player.
 //
+//==============================================================================
 procedure P_NoiseAlert(target: Pmobj_t; emmiter: Pmobj_t);
 begin
   soundtarget := target;
@@ -412,12 +939,14 @@ begin
   P_RecursiveSound(Psubsector_t(emmiter.subsector).sector, 0);
 end;
 
+//==============================================================================
 //
 // P_WakeUpThing
 //
 // villsa [STRIFE] New function
 // Wakes up an mobj.nearby when somebody has been punched.
 //
+//==============================================================================
 procedure P_WakeUpThing(puncher: Pmobj_t; bystander: Pmobj_t);
 begin
   if bystander.flags and MF_NODIALOG = 0 then
@@ -429,6 +958,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_DoPunchAlert
 //
@@ -436,6 +966,7 @@ end;
 // Wake up buddies nearby when the player thinks he's gotten too clever
 // with the punch dagger. Walks sector links.
 //
+//==============================================================================
 procedure P_DoPunchAlert(puncher: Pmobj_t; punchee: Pmobj_t);
 var
   rover: Pmobj_t;
@@ -487,47 +1018,83 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_MeleeRange
+//
+//==============================================================================
+function P_MeleeRange(actor: Pmobj_t): fixed_t;
+begin
+  result := actor.info.meleerange;
+  if result = 0 then
+    result := MELEERANGE
+  else if result < FRACUNIT then
+    result := result * FRACUNIT;
+end;
+
+//==============================================================================
 //
 // P_CheckMeleeRange
 //
 // [STRIFE] Minor change to meleerange.
 //
-function P_CheckMeleeRange(actor: Pmobj_t): boolean;
+//==============================================================================
+function P_CheckMeleeRange(actor: Pmobj_t; const factor: Integer = 1): boolean;
 var
-  pl: Pmobj_t;
+  mo: Pmobj_t;
   dist: fixed_t;
   mrange: integer;
 begin
-  if actor.target = nil then
+  mo := actor.target;
+  if mo = nil then
   begin
     result := false;
     exit;
   end;
 
-  pl := actor.target;
-  if actor.z + 3 * actor.height div 2 < pl.z then // villsa [STRIFE]
+  // Friendly monsters do not attack each other
+  if P_BothFriends(mo, actor) then
   begin
     result := false;
     exit;
   end;
 
-  dist := P_AproxDistance(pl.x - actor.x, pl.y - actor.y);
-
-  mrange := actor.info.meleerange;
-  if mrange = 0 then
-    mrange := MELEERANGE
-  else if mrange < FRACUNIT then
-    mrange := mrange * FRACUNIT;
-
-  if dist >= mrange - 20 * FRACUNIT + pl.info.radius then
+  if actor.z + 3 * actor.height div 2 < mo.z then // villsa [STRIFE]
   begin
     result := false;
     exit;
+  end;
+
+  dist := P_AproxDistance(mo.x - actor.x, mo.y - actor.y);
+
+  mrange := P_MeleeRange(actor) * factor;
+
+  if dist >= mrange - 20 * FRACUNIT + mo.info.radius then
+  begin
+    result := false;
+    exit;
+  end;
+
+  // JVAL: 20220122 - Added MF3_EX_MELEECHECKZ
+  if actor.flags3_ex and MF3_EX_MELEECHECKZ <> 0 then
+  begin
+    if mo.z > actor.z + actor.height then
+    begin // Target is higher than the attacker
+      result := false;
+      exit;
+    end;
+
+    if actor.z > mo.z + mo.height then
+    begin // Attacker is higher
+      result := false;
+      exit;
+    end;
   end;
 
   result := P_CheckSight(actor, actor.target);
 end;
 
+//==============================================================================
 //
 // P_CheckMissileRange
 //
@@ -536,6 +1103,7 @@ end;
 // varying attack ranges for Strife monsters, as well as a general tweak
 // to considered distance for all monsters.
 //
+//==============================================================================
 function P_CheckMissileRange(actor: Pmobj_t): boolean;
 var
   dist: fixed_t;
@@ -548,7 +1116,7 @@ begin
 
   if actor.flags and MF_JUSTHIT <> 0 then
   begin
-    // the target just hit the enemy,
+    // The target just hit the enemy,
     // so fight back!
     actor.flags := actor.flags and not MF_JUSTHIT;
     result := true;
@@ -557,7 +1125,14 @@ begin
 
   if actor.reactiontime <> 0 then
   begin
-    result := false; // do not attack yet
+    result := false; // Don't attack yet
+    exit;
+  end;
+
+  // Friendly monsters do not attack each other
+  if P_BothFriends(actor, actor.target) then
+  begin
+    result := false;
     exit;
   end;
 
@@ -569,6 +1144,27 @@ begin
     dist := dist - 128 * FRACUNIT;  // no melee attack, so fire more
 
   dist := FixedInt(dist);
+
+  if actor.flags4_ex and MF4_EX_SHORTMRANGE <> 0 then
+    if dist > 14 * 64 then
+    begin
+      result := false; // too far away
+      exit;
+    end;
+
+  if actor.info.meleethreshold > 0 then
+    if dist < actor.info.meleethreshold then
+    begin
+      result := false; // close for fist attack
+      exit;
+    end;
+
+  if actor.flags4_ex and MF4_EX_LONGMELEERANGE <> 0 then
+    if dist < 196 then
+    begin
+      result := false; // close for fist attack
+      exit;
+    end;
 
   // villsa [STRIFE] checks for acolytes
   //  haleyjd 09/05/10: Repaired to match disassembly: Was including
@@ -586,21 +1182,22 @@ begin
         // oddly, not all Acolytes are included here...
         dist := dist div 16;
       end;
-    Ord(MT_SHADOWGUARD),
-    Ord(MT_CRUSADER),
-    Ord(MT_SENTINEL):
-      begin
-        dist := dist div 2;
-      end;
   end;
+
+  if actor.flags4_ex and MF4_EX_RANGEHALF <> 0 then
+    dist := dist div 2;
 
   // villsa [STRIFE] changed to 150
   if dist > 150 then
     dist := 150;
 
   // haleyjd 20100910: Hex-Rays was leaving this out completely:
-  if (actor._type = Ord(MT_CRUSADER)) and (dist > 120) then
-    dist := 120;
+  // JVAL: 20220105 - Added the MF4_EX_HIGHERMPROB to MT_CRUSADER
+  //if (actor._type = Ord(MT_CRUSADER)) and (dist > 120) then
+  //  dist := 120;
+
+  if (actor.flags4_ex and MF4_EX_HIGHERMPROB <> 0) and (dist > 120) then
+    dist := 120;  // JVAL: Changed to 120
 
   if actor.flags3_ex and MF3_EX_MISSILEMORE <> 0 then
     dist := dist div 2;
@@ -615,16 +1212,25 @@ begin
   result := dist < P_Random;
 end;
 
+//==============================================================================
 //
 // P_CheckRobotRange
 //
 // villsa [STRIFE] New function
 //
+//==============================================================================
 function P_CheckRobotRange(actor: Pmobj_t): boolean;
 var
   dist: fixed_t;
 begin
   if not P_CheckSight(actor, actor.target) then
+  begin
+    result := false;
+    exit;
+  end;
+
+  // Friendly monsters do not attack each other
+  if P_BothFriends(actor, actor.target) then
   begin
     result := false;
     exit;
@@ -642,6 +1248,7 @@ begin
   result := dist < 200 * FRACUNIT;
 end;
 
+//==============================================================================
 //
 // P_Move
 // Move in the current direction,
@@ -649,21 +1256,16 @@ end;
 //
 // [STRIFE]
 // villsa/haleyjd 09/05/10: Modified for terrain types and 3D object
-// clipping. Below constants are verified to be unmodified:
+// clipping. xspeed & yspeed constants are verified to be unmodified
 //
-const
-  xspeed: array[0..7] of fixed_t =
-    (FRACUNIT, 47000, 0, -47000, -FRACUNIT, -47000, 0, 47000);
-
-  yspeed: array[0..7] of fixed_t =
-    (0, 47000, FRACUNIT, 47000, 0, -47000, -FRACUNIT, -47000);
-
+//==============================================================================
 function P_Move(actor: Pmobj_t): boolean;
 var
   tryx: fixed_t;
   tryy: fixed_t;
   ld: Pline_t;
   try_ok: boolean;
+  ret1, ret2: boolean;
 begin
   if actor.movedir = Ord(DI_NODIR) then
   begin
@@ -672,7 +1274,7 @@ begin
   end;
 
   if Ord(actor.movedir) >= 8 then
-    I_Error('P_Move(): Weird actor->movedir = %d', [Ord(actor.movedir)]);
+    I_Error('P_Move(): Weird actor.movedir = %d', [Ord(actor.movedir)]);
 
   tryx := actor.x + actor.info.speed * xspeed[actor.movedir];
   tryy := actor.y + actor.info.speed * yspeed[actor.movedir];
@@ -715,8 +1317,9 @@ begin
       // if the special is not a door
       // that can be opened,
       // return false
-      if P_UseSpecialLine(actor, ld, 0) then
-        result := true;
+      ret1 := P_ActivateLine(ld, actor, 0, ULAC_USE);
+      ret2 := P_UseSpecialLine(actor, ld, 0);
+      result := ret1 or ret2;
     end;
     exit;
   end
@@ -743,6 +1346,8 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// P_TryWalk
 //
 // TryWalk
 // Attempts to move actor on
@@ -754,6 +1359,7 @@ end;
 // If a door is in the way,
 // an OpenDoor call is made to start it opening.
 //
+//==============================================================================
 function P_TryWalk(actor: Pmobj_t): boolean;
 begin
   if not P_Move(actor) then
@@ -765,18 +1371,130 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_NewChaseDir
+//
+//==============================================================================
 procedure P_NewChaseDir(actor: Pmobj_t);
 var
   deltax: fixed_t;
   deltay: fixed_t;
+  target: Pmobj_t;
   d: array[0..2] of dirtype_t;
-  tdir: dirtype_t;
   olddir: dirtype_t;
   turnaround: dirtype_t;
   idx: integer;
+  dist: fixed_t;
+
+  procedure _DoNewChaseDir;
+  var
+    tdir: dirtype_t;
+  begin
+    if deltax > 10 * FRACUNIT then
+      d[1] := DI_EAST
+    else if deltax < -10 * FRACUNIT then
+      d[1] := DI_WEST
+    else
+      d[1] := DI_NODIR;
+
+    if deltay < -10 * FRACUNIT then
+      d[2] := DI_SOUTH
+    else if deltay > 10 * FRACUNIT then
+      d[2] := DI_NORTH
+    else
+      d[2] := DI_NODIR;
+
+    // try direct route
+    if (d[1] <> DI_NODIR) and (d[2] <> DI_NODIR) then
+    begin
+      if deltay < 0 then
+        idx := 2
+      else
+        idx := 0;
+      if deltax > 0 then
+        inc(idx);
+      actor.movedir := Ord(diags[idx]);
+      if (actor.movedir <> Ord(turnaround)) and P_TryWalk(actor) then
+        exit;
+    end;
+
+    // try other directions
+    if (P_Random > 200) or (abs(deltay) > abs(deltax)) then
+    begin
+      tdir := d[1];
+      d[1] := d[2];
+      d[2] := tdir;
+    end;
+
+    if d[1] = turnaround then
+      d[1] := DI_NODIR;
+    if d[2] = turnaround then
+      d[2] := DI_NODIR;
+
+    if d[1] <> DI_NODIR then
+    begin
+      actor.movedir := Ord(d[1]);
+      if P_TryWalk(actor) then
+        exit; // either moved forward or attacked
+    end;
+
+    if d[2] <> DI_NODIR then
+    begin
+      actor.movedir := Ord(d[2]);
+      if P_TryWalk(actor) then
+        exit;
+    end;
+
+    // there is no direct path to the player,
+    // so pick another direction.
+    if olddir <> DI_NODIR then
+    begin
+      actor.movedir := Ord(olddir);
+      if P_TryWalk(actor) then
+        exit;
+    end;
+
+    // randomly determine direction of search
+    if P_Random and 1 <> 0 then
+    begin
+      for tdir := DI_EAST to DI_SOUTHEAST do
+      begin
+        if tdir <> turnaround then
+        begin
+          actor.movedir := Ord(tdir);
+          if P_TryWalk(actor) then
+            exit;
+        end;
+      end;
+    end
+    else
+    begin
+      for tdir := DI_SOUTHEAST downto DI_EAST do
+      begin
+        if tdir <> turnaround then
+        begin
+          actor.movedir := Ord(tdir);
+          if P_TryWalk(actor) then
+            exit;
+        end;
+      end;
+    end;
+
+    if turnaround <> DI_NODIR then
+    begin
+      actor.movedir := Ord(turnaround);
+      if P_TryWalk(actor) then
+        exit;
+    end;
+
+    actor.movedir := Ord(DI_NODIR); // can not move
+  end;
+
 begin
+  target := actor.target;
   // villsa [STRIFE] don't bomb out and instead set spawnstate
-  if actor.target = nil then
+  if target = nil then
   begin
     P_SetMobjState(actor, statenum_t(actor.info.spawnstate));
     exit;
@@ -785,11 +1503,13 @@ begin
   olddir := dirtype_t(actor.movedir);
   turnaround := opposite[Ord(olddir)];
 
-  deltax := actor.target.x - actor.x;
-  deltay := actor.target.y - actor.y;
+  deltax := target.x - actor.x;
+  deltay := target.y - actor.y;
+
+  actor.strafecount := 0;
 
   // JVAL: 20210209 - MF3_EX_CAUSEFEAR & MF3_EX_NOFEAR flags
-  if actor.target.flags3_ex and MF3_EX_CAUSEFEAR <> 0 then
+  if target.flags3_ex and MF3_EX_CAUSEFEAR <> 0 then
     if actor.flags3_ex and MF3_EX_NOFEAR <> 0 then
       actor.flags2_ex := actor.flags2_ex or MF2_EX_FRIGHTENED;
 
@@ -797,108 +1517,31 @@ begin
   begin
     deltax := -deltax;
     deltay := -deltay;
-  end;
-
-  if deltax > 10 * FRACUNIT then
-    d[1] := DI_EAST
-  else if deltax < -10 * FRACUNIT then
-    d[1] := DI_WEST
-  else
-    d[1] := DI_NODIR;
-
-  if deltay < -10 * FRACUNIT then
-    d[2] := DI_SOUTH
-  else if deltay > 10 * FRACUNIT then
-    d[2] := DI_NORTH
-  else
-    d[2] := DI_NODIR;
-
-  // try direct route
-  if (d[1] <> DI_NODIR) and (d[2] <> DI_NODIR) then
-  begin
-    if deltay < 0 then
-      idx := 2
-    else
-      idx := 0;
-    if deltax > 0 then
-      inc(idx);
-    actor.movedir := Ord(diags[idx]);
-    if (actor.movedir <> Ord(turnaround)) and P_TryWalk(actor) then
-      exit;
-  end;
-
-  // try other directions
-  if (P_Random > 200) or (abs(deltay) > abs(deltax)) then
-  begin
-    tdir := d[1];
-    d[1] := d[2];
-    d[2] := tdir;
-  end;
-
-  if d[1] = turnaround then
-    d[1] := DI_NODIR;
-  if d[2] = turnaround then
-    d[2] := DI_NODIR;
-
-  if d[1] <> DI_NODIR then
-  begin
-    actor.movedir := Ord(d[1]);
-    if P_TryWalk(actor) then
-      exit; // either moved forward or attacked
-  end;
-
-  if d[2] <> DI_NODIR then
-  begin
-    actor.movedir := Ord(d[2]);
-    if P_TryWalk(actor) then
-      exit;
-  end;
-
-  // there is no direct path to the player,
-  // so pick another direction.
-  if olddir <> DI_NODIR then
-  begin
-    actor.movedir := Ord(olddir);
-    if P_TryWalk(actor) then
-      exit;
-  end;
-
-  // randomly determine direction of search
-  if P_Random and 1 <> 0 then
-  begin
-    for tdir := DI_EAST to DI_SOUTHEAST do
-    begin
-      if tdir <> turnaround then
-      begin
-        actor.movedir := Ord(tdir);
-        if P_TryWalk(actor) then
-          exit;
-      end;
-    end;
   end
-  else
+  else if (target.health > 0) and (actor.flags4_ex and MF4_EX_BACKINGMELEE <> 0) and not P_BothFriends(actor, actor.target) then
   begin
-    for tdir := DI_SOUTHEAST downto DI_EAST do
+    if G_PlayingEngineVersion >= VERSION207 then
     begin
-      if tdir <> turnaround then
-      begin
-        actor.movedir := Ord(tdir);
-        if P_TryWalk(actor) then
-          exit;
+      dist := P_AproxDistance(deltax, deltay);
+      if (actor.info.missilestate <> 0) and
+        (((target.info.missilestate = 0) and (dist < P_MeleeRange(target) * 2)) or
+         ((target.player <> nil) and (dist < P_MeleeRange(target) * 3) and
+          (weaponinfo[Ord(Pplayer_t(target.player).readyweapon)].mbf21bits and WPF_FLEEMELEE <> 0))) then
+      begin// Back away from melee attacker
+        actor.strafecount := P_Random and 15;
+        deltax := -deltax;
+        deltay := -deltay;
       end;
     end;
   end;
 
-  if turnaround <> DI_NODIR then
-  begin
-    actor.movedir := Ord(turnaround);
-    if P_TryWalk(actor) then
-      exit;
-  end;
+  _DoNewChaseDir;
 
-  actor.movedir := Ord(DI_NODIR); // can not move
+  if actor.strafecount > 0 then
+    actor.movecount := actor.strafecount;
 end;
 
+//==============================================================================
 //
 // P_NewRandomDir
 //
@@ -910,6 +1553,7 @@ end;
 //
 // Shockingly similar to the RandomWalk pointer in Eternity :)
 //
+//==============================================================================
 procedure P_NewRandomDir(actor: Pmobj_t);
 var
   dir: integer;
@@ -985,6 +1629,7 @@ begin
   end;      // end else
 end;
 
+//==============================================================================
 //
 // P_LookForPlayers
 // If allaround is false, only look 180 degrees in front.
@@ -993,6 +1638,7 @@ end;
 // [STRIFE]
 // haleyjd 09/05/10: Modifications to support friendly units.
 //
+//==============================================================================
 function P_LookForPlayers(actor: Pmobj_t; allaround: boolean): boolean;
 var
   c: integer;
@@ -1024,6 +1670,8 @@ begin
       begin
         // haleyjd 09/06/10: Note that this sets actor->target in Strife!
         P_BulletSlope(actor);
+        if linetarget <> nil then
+          actor.target := linetarget;
 
         // Clear target if nothing is visible, or if the target is a
         // friendly Rebel or the allied player.
@@ -1050,9 +1698,11 @@ begin
 
       // haleyjd 09/06/10: Note that this sets actor->target in Strife!
       P_BulletSlope(actor);
+      if linetarget <> nil then
+        actor.target := linetarget;
 
       // Clear target if nothing is visible, or if the target is an ally.
-      if (linetarget = nil) or (actor.target.flags and MF_ALLY <> 0) then
+      if (linetarget = nil) or (actor.target.flags and MF_ALLY <> 0) or P_BothFriends(actor, actor.target) then
       begin
         actor.target := nil;
         result := false;
@@ -1119,14 +1769,32 @@ begin
   result := false;
 end;
 
+//==============================================================================
+//
+// P_LookForTargets
+//
+//==============================================================================
+function P_LookForTargets(actor: Pmobj_t; allaround: boolean): boolean;
+begin
+  if actor.flags2_ex and MF2_EX_FRIEND <> 0 then
+  begin
+    result := P_LookForMonsters(actor);
+    if not result then
+      if P_Random < 200 then
+        result := P_LookForPlayers(actor, true);
+  end
+  else
+    result := P_LookForPlayers(actor, allaround);
+end;
+
+//==============================================================================
 //
 // ACTION ROUTINES
-//
-
 //
 // A_Look
 // Stay in state until a player is sighted.
 //
+//==============================================================================
 procedure A_Look(actor: Pmobj_t);
 var
   targ: Pmobj_t;
@@ -1161,7 +1829,7 @@ begin
     // as a parameter to control allaround look behavior. Did they just run out of
     // flags, or what?
     // STRIFE-TODO: Needs serious verification.
-    if not P_LookForPlayers(actor, (actor.flags_ex and MF_EX_LOOKALLAROUND <> 0) or
+    if not P_LookForTargets(actor, (actor.flags_ex and MF_EX_LOOKALLAROUND <> 0) or
                                    (actor.flags and MF_GIVEQUEST <> 0)) then
       exit;
   end;
@@ -1171,9 +1839,9 @@ begin
   begin
     sound := actor.info.seesound;
 
-    if actor.info.flags_ex and MF_EX_RANDOMSEESOUND <> 0 then
+    if actor.flags_ex and MF_EX_RANDOMSEESOUND <> 0 then
     begin
-      if (actor._type = Ord(MT_INQUISITOR)) or (actor.info.flags_ex and MF_EX_BOSS <> 0) then
+      if (actor._type = Ord(MT_INQUISITOR)) or (actor.flags_ex and MF_EX_BOSS <> 0) then
         // full volume
         P_RandomSound(nil, sound)
       else
@@ -1181,7 +1849,7 @@ begin
     end
     else
     begin
-      if (actor._type = Ord(MT_INQUISITOR)) or (actor.info.flags_ex and MF_EX_BOSS <> 0) then
+      if (actor._type = Ord(MT_INQUISITOR)) or (actor.flags_ex and MF_EX_BOSS <> 0) then
         // full volume
         S_StartSound(nil, sound)
       else
@@ -1195,13 +1863,14 @@ begin
   P_SetMobjState(actor, statenum_t(actor.info.seestate));
 end;
 
-
+//==============================================================================
 //
 // A_RandomWalk
 //
 // [STRIFE] New function.
 // haleyjd 09/05/10: Action routine used to meander about.
 //
+//==============================================================================
 procedure A_RandomWalk(actor: Pmobj_t);
 var
   delta: integer;
@@ -1237,6 +1906,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_FriendLook
 //
@@ -1244,6 +1914,7 @@ end;
 // haleyjd 09/05/10: Action function used mostly by mundane characters such as
 // peasants.
 //
+//==============================================================================
 procedure A_FriendLook(actor: Pmobj_t);
 var
   soundtarget: Pmobj_t;
@@ -1259,7 +1930,7 @@ begin
        ((gamemap <> 3) and (gamemap <> 34)) then
     begin
       // STRIFE-TODO: Needs serious verification.
-      if P_LookForPlayers(actor, (actor.flags_ex and MF_EX_LOOKALLAROUND <> 0) or
+      if P_LookForTargets(actor, (actor.flags_ex and MF_EX_LOOKALLAROUND <> 0) or
                                  (actor.flags and MF_GIVEQUEST <> 0)) then
       begin
         P_SetMobjState(actor, statenum_t(actor.info.seestate));
@@ -1289,12 +1960,14 @@ begin
     P_SetMobjState(actor, statenum_t(actor.info.spawnstate + 3));
 end;
 
+//==============================================================================
 //
 // A_Listen
 //
 // [STRIFE] New function
 // haleyjd 09/05/10: Action routine used to strictly listen for a target.
 //
+//==============================================================================
 procedure A_Listen(actor: Pmobj_t);
 var
   soundtarget: Pmobj_t;
@@ -1317,6 +1990,8 @@ begin
     end;
 end;
 
+//==============================================================================
+// P_DoChase
 //
 // A_Chase
 // Actor has a melee attack,
@@ -1324,6 +1999,7 @@ end;
 //
 // haleyjd 09/05/10: [STRIFE] Various minor changes
 //
+//==============================================================================
 procedure P_DoChase(actor: Pmobj_t; const fast: boolean);
 var
   delta: integer;
@@ -1344,7 +2020,10 @@ begin
   end;
 
   // turn towards movement direction if not there yet
-  if actor.movedir < 8 then
+  // killough 9/7/98: keep facing towards target if strafing or backing out
+  if actor.strafecount > 0 then
+    A_FaceTarget(actor)
+  else if actor.movedir < 8 then
   begin
     actor.angle := actor.angle and $E0000000;
     delta := actor.angle - _SHLW(actor.movedir, 29);
@@ -1359,7 +2038,7 @@ begin
      (actor.target.flags and MF_SHOOTABLE = 0) then
   begin
     // look for a new target
-    if P_LookForPlayers(actor, true) then
+    if P_LookForTargets(actor, true) then
       exit; // got a new target
 
     if actor.state <> @states[actor.info.spawnstate] then
@@ -1384,10 +2063,10 @@ begin
     exit;
   end;
 
-  nomissile := false;
   // check for missile attack
   if actor.info.missilestate <> 0 then
   begin
+    nomissile := false;
     if not fastparm and (actor.movecount <> 0) then
       nomissile := true
     else if not P_CheckMissileRange(actor) then
@@ -1405,7 +2084,7 @@ begin
     (actor.threshold = 0) and
     not P_CheckSight(actor, actor.target) then
   begin
-    if P_LookForPlayers(actor, true) then
+    if P_LookForTargets(actor, true) then
       exit;  // got a new target
   end;
 
@@ -1453,19 +2132,29 @@ begin
     else
       A_ActiveSound1(actor);
   end;
+
+  if actor.strafecount > 0 then
+    Dec(actor.strafecount);
 end;
 
+//==============================================================================
+//
+// A_Chase
+//
+//==============================================================================
 procedure A_Chase(actor: Pmobj_t);
 begin
   P_DoChase(actor, false);
 end;
 
+//==============================================================================
 //
 // A_FaceTarget
 //
 // [STRIFE]
 // haleyjd 09/05/10: Handling for visibility-modifying flags.
 //
+//==============================================================================
 procedure A_FaceTarget(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1485,6 +2174,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_PeasantPunch
 //
@@ -1493,6 +2183,7 @@ end;
 // when the player or a monster injures them. Weak doesn't begin to
 // describe it :P
 //
+//==============================================================================
 procedure A_PeasantPunch(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1503,6 +2194,7 @@ begin
     P_DamageMobj(actor.target, actor, actor, 2 * (P_Random mod 5) + 2);
 end;
 
+//==============================================================================
 //
 // A_ReaverAttack
 //
@@ -1512,6 +2204,7 @@ end;
 // it too often, as they're content to blow your face off with their
 // HE grenades instead.
 //
+//==============================================================================
 procedure A_ReaverAttack(actor: Pmobj_t);
 var
   i: integer;
@@ -1538,6 +2231,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_BulletAttack
 //
@@ -1545,6 +2239,7 @@ end;
 // haleyjd 09/06/10: Action function for generic bullet attacks. Used by
 // a lot of different characters, including Acolytes, Rebels, and Macil.
 //
+//==============================================================================
 procedure A_BulletAttack(actor: Pmobj_t);
 var
   t, damage: integer;
@@ -1565,7 +2260,7 @@ begin
   P_LineAttack(actor, shootangle, 2048 * FRACUNIT, slope, damage);
 end;
 
-
+//==============================================================================
 //
 // A_CheckTargetVisible
 //
@@ -1574,6 +2269,7 @@ end;
 // seestate at random, or if it cannot see its target, or its target
 // is dead. Used by diverse actors.
 //
+//==============================================================================
 procedure A_CheckTargetVisible(actor: Pmobj_t);
 var
   target: Pmobj_t;
@@ -1589,7 +2285,7 @@ begin
   end;
 end;
 
-
+//==============================================================================
 //
 // A_SentinelAttack
 //
@@ -1597,6 +2293,7 @@ end;
 // haleyjd 09/06/10: Action function implementing the Sentinel's laser attack
 // villsa 09/06/10 implemented
 //
+//==============================================================================
 procedure A_SentinelAttack(actor: Pmobj_t);
 var
   mo, mo2: Pmobj_t;
@@ -1624,12 +2321,14 @@ begin
   mo.z := mo.z + mo.momz div 4;
 end;
 
+//==============================================================================
 //
 // A_StalkerThink
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Action function to drive Stalker logic.
 //
+//==============================================================================
 procedure A_StalkerThink(actor: Pmobj_t);
 var
   statenum: statenum_t;
@@ -1646,6 +2345,7 @@ begin
   P_SetMobjState(actor, statenum);
 end;
 
+//==============================================================================
 //
 // A_StalkerSetLook
 //
@@ -1653,6 +2353,7 @@ end;
 // haleyjd 09/06/10: Action function to marshall transitions to the
 // Stalker's spawnstate.
 //
+//==============================================================================
 procedure A_StalkerSetLook(actor: Pmobj_t);
 var
   statenum: statenum_t;
@@ -1676,23 +2377,27 @@ begin
   P_SetMobjState(actor, statenum);
 end;
 
+//==============================================================================
 //
 // A_StalkerDrop
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Dead simple: removes NOGRAVITY status.
 //
+//==============================================================================
 procedure A_StalkerDrop(actor: Pmobj_t);
 begin
   A_NoGravity(actor);
 end;
 
+//==============================================================================
 //
 // A_StalkerScratch
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Action function for Stalker's attack.
 //
+//==============================================================================
 procedure A_StalkerScratch(actor: Pmobj_t);
 begin
   if actor.flags and MF_NOGRAVITY <> 0 then
@@ -1710,6 +2415,7 @@ begin
     P_DamageMobj(actor.target, actor, actor, 2 * (P_Random mod 8) + 2);
 end;
 
+//==============================================================================
 //
 // A_FloatWeave
 //
@@ -1718,6 +2424,7 @@ end;
 // actors' constant upward and downward movement. Probably a really bad
 // idea in retrospect given how dodgy the 3D clipping implementation is.
 //
+//==============================================================================
 procedure A_FloatWeave(actor: Pmobj_t);
 var
   z, height: fixed_t;
@@ -1745,12 +2452,14 @@ begin
     actor.threshold := 8;
 end;
 
+//==============================================================================
 //
 // A_RobotMelee
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Action function for Reaver and Templar melee attacks.
 //
+//==============================================================================
 procedure A_RobotMelee(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1764,12 +2473,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_TemplarMauler
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Exactly what it sounds like. Kicks your ass.
 //
+//==============================================================================
 procedure A_TemplarMauler(actor: Pmobj_t);
 var
   i, t: integer;
@@ -1797,6 +2508,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_CrusaderAttack
 //
@@ -1805,6 +2517,7 @@ end;
 // Very similar to the player's flamethrower, seeing how it was ripped
 // off a Crusader by the Rat People ;)
 //
+//==============================================================================
 procedure A_CrusaderAttack(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1840,11 +2553,13 @@ begin
   actor.z := actor.z - (8 * FRACUNIT);
 end;
 
+//==============================================================================
 //
 // A_CrusaderLeft
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_CrusaderLeft(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1855,11 +2570,13 @@ begin
    mo.z := mo.z + (16 * FRACUNIT);
 end;
 
+//==============================================================================
 //
 // A_CrusaderRight
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_CrusaderRight(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1870,6 +2587,7 @@ begin
   mo.z := mo.z + (16 * FRACUNIT);
 end;
 
+//==============================================================================
 //
 // A_CheckTargetVisible2
 //
@@ -1877,6 +2595,7 @@ end;
 // haleyjd 09/06/10: Mostly the same as CheckTargetVisible, except without
 // the randomness.
 //
+//==============================================================================
 procedure A_CheckTargetVisible2(actor: Pmobj_t);
 begin
   if (actor.target = nil) or (actor.target.health <= 0) or
@@ -1884,6 +2603,7 @@ begin
     P_SetMobjState(actor, statenum_t(actor.info.seestate));
 end;
 
+//==============================================================================
 //
 // A_InqFlyCheck
 //
@@ -1891,6 +2611,7 @@ end;
 // haleyjd 09/06/10: Action function to check if an Inquisitor wishes
 // to take to flight.
 //
+//==============================================================================
 procedure A_InqFlyCheck(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -1908,12 +2629,14 @@ begin
       P_SetMobjState(actor, S_ROB3_17); // 1064
 end;
 
+//==============================================================================
 //
 // A_InqGrenade
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Inquisitor grenade attack action routine.
 //
+//==============================================================================
 procedure A_InqGrenade(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -1938,12 +2661,14 @@ begin
   actor.z := actor.z - MAXRADIUS;
 end;
 
+//==============================================================================
 //
 // A_InqTakeOff
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Makes an Inquisitor start flying.
 //
+//==============================================================================
 procedure A_InqTakeOff(actor: Pmobj_t);
 var
   an: angle_t;
@@ -1982,6 +2707,7 @@ end;
 // [STRIFE] New function
 // haleyjd 09/06/10: Handles an Inquisitor in flight.
 //
+//==============================================================================
 procedure A_InqFly(actor: Pmobj_t);
 begin
   if leveltime and 7 = 0 then
@@ -1998,12 +2724,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_FireSigilWeapon
 //
 // [STRIFE] New function
 // haleyjd 09/06/10: Action function for the Entity's attack.
 //
+//==============================================================================
 procedure A_FireSigilWeapon(actor: Pmobj_t);
 var
   choice: integer;
@@ -2012,15 +2740,16 @@ begin
 
   // STRIFE-TODO: Needs verification. This switch is just weird.
   case choice of
-    0:  A_ProgrammerAttack(actor);
-    2:  A_FireSigilEOffshoot(actor);
-    3:  A_SpectreCAttack(actor);
+    0: A_ProgrammerAttack(actor);
+    2: A_FireSigilEOffshoot(actor);
+    3: A_SpectreCAttack(actor);
     4: A_SpectreDAttack(actor);
   end;
 {    5: // BUG: never used? wtf were they thinking?
         A_SpectreEAttack(actor);}
 end;
 
+//==============================================================================
 //
 // A_ProgrammerAttack
 //
@@ -2028,6 +2757,7 @@ end;
 // haleyjd 09/06/10: Action function for the Programmer's main
 // attack; equivalent to the player's first Sigil.
 //
+//==============================================================================
 procedure A_ProgrammerAttack(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2042,6 +2772,7 @@ begin
   mo.tracer := actor.target;
 end;
 
+//==============================================================================
 //
 // A_Sigil_A_Action
 //
@@ -2049,6 +2780,7 @@ end;
 // haleyjd 09/06/10: Called by MT_SIGIL_A_GROUND to zot anyone nearby with
 // corny looking lightning bolts.
 //
+//==============================================================================
 procedure A_Sigil_A_Action(actor: Pmobj_t);
 var
   t, x, y, _type: integer;
@@ -2083,6 +2815,7 @@ begin
   mo.health := actor.health;
 end;
 
+//==============================================================================
 //
 // A_SpectreEAttack
 //
@@ -2090,6 +2823,7 @@ end;
 // haleyjd 09/06/10: Action function for the Loremaster's Spectre.
 // Equivalent to the player's final Sigil attack.
 //
+//==============================================================================
 procedure A_SpectreEAttack(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2101,7 +2835,7 @@ begin
   mo.health := -2;
 end;
 
-
+//==============================================================================
 //
 // A_SpectreCAttack
 //
@@ -2109,6 +2843,7 @@ end;
 // 09/06/10: Action routine for the Oracle's Spectre. Equivalent to the player's
 // third Sigil attack.
 //
+//==============================================================================
 procedure A_SpectreCAttack(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2134,6 +2869,7 @@ begin
   actor.angle := actor.angle - ANG90;
 end;
 
+//==============================================================================
 //
 // A_AlertSpectreC
 //
@@ -2141,6 +2877,7 @@ end;
 // haleyjd 09/06/10: Action function called by the Oracle when it is
 // killed. Finds an MT_SPECTRE_C anywhere on the map and awakens it.
 //
+//==============================================================================
 procedure A_AlertSpectreC(actor: Pmobj_t);
 var
   th: Pthinker_t;
@@ -2167,6 +2904,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_Sigil_E_Action
 //
@@ -2174,6 +2912,7 @@ end;
 // 09/06/10: Action routine for Sigil "E" shots. Spawns the room-filling
 // lightning bolts that seem to often do almost nothing.
 //
+//==============================================================================
 procedure A_Sigil_E_Action(actor: Pmobj_t);
 begin
   actor.angle := actor.angle + ANG90;
@@ -2186,11 +2925,13 @@ begin
   P_SpawnMortar(actor, Ord(MT_SIGIL_E_OFFSHOOT));
 end;
 
+//==============================================================================
 //
 // A_SigilTrail
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_SigilTrail(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2203,6 +2944,7 @@ begin
   mo.health := actor.health;
 end;
 
+//==============================================================================
 //
 // A_SpectreDAttack
 //
@@ -2210,6 +2952,7 @@ end;
 // haleyjd 09/06/10: Action function for Macil's Spectre.
 // Equivalent of the player's fourth Sigil attack.
 //
+//==============================================================================
 procedure A_SpectreDAttack(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2222,6 +2965,7 @@ begin
   mo.tracer := actor.target;
 end;
 
+//==============================================================================
 //
 // A_FireSigilEOffshoot
 //
@@ -2229,6 +2973,7 @@ end;
 // haleyjd 09/06/10: Action function to fire part of a Sigil E
 // attack. Used at least by the Entity.
 //
+//==============================================================================
 procedure A_FireSigilEOffshoot(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2240,46 +2985,54 @@ begin
   mo.health := -2;
 end;
 
+//==============================================================================
 //
 // A_ShadowOff
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Disables SHADOW and MVIS flags.
 //
+//==============================================================================
 procedure A_ShadowOff(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not (MF_SHADOW or MF_MVIS);
 end;
 
+//==============================================================================
 //
 // A_ModifyVisibility
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Turns on SHADOW, and turns off MVIS.
 //
+//==============================================================================
 procedure A_ModifyVisibility(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_SHADOW;
   actor.flags := actor.flags and not MF_MVIS;
 end;
 
+//==============================================================================
 //
 // A_ShadowOn
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Turns on SHADOW and MVIS.
 //
+//==============================================================================
 procedure A_ShadowOn(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or (MF_SHADOW or MF_MVIS);
 end;
 
+//==============================================================================
 //
 // A_SetTLOptions
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Sets SHADOW and/or MVIS based on the thing's spawnpoint options.
 //
+//==============================================================================
 procedure A_SetTLOptions(actor: Pmobj_t);
 begin
   if actor.spawnpoint.options and MTF_TRANSLUCENT <> 0 then
@@ -2288,6 +3041,7 @@ begin
     actor.flags := actor.flags or MF_MVIS;
 end;
 
+//==============================================================================
 //
 // A_BossMeleeAtk
 //
@@ -2296,6 +3050,7 @@ end;
 // just for the sake of having one. It's not like anybody in their right
 // mind would get close to any of the maniacs that use this ;)
 //
+//==============================================================================
 procedure A_BossMeleeAtk(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -2304,12 +3059,14 @@ begin
   P_DamageMobj(actor.target, actor, actor, 10 * (P_Random and 9));
 end;
 
+//==============================================================================
 //
 // A_BishopAttack
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Bishop's homing missile attack.
 //
+//==============================================================================
 procedure A_BishopAttack(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2325,12 +3082,14 @@ begin
   actor.z := actor.z - MAXRADIUS;
 end;
 
+//==============================================================================
 //
 // A_FireHookShot
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Action function for the Loremaster's hookshot attack.
 //
+//==============================================================================
 procedure A_FireHookShot(actor: Pmobj_t);
 begin
   if actor.target = nil then
@@ -2339,6 +3098,7 @@ begin
   P_SpawnMissile(actor, actor.target, Ord(MT_HOOKSHOT));
 end;
 
+//==============================================================================
 //
 // A_FireChainShot
 //
@@ -2346,6 +3106,7 @@ end;
 // 09/06/10: Action function for the hookshot projectile. Spawns echoes
 // to create a chain-like appearance.
 //
+//==============================================================================
 procedure A_FireChainShot(actor: Pmobj_t);
 begin
   S_StartSound(actor, Ord(sfx_tend));
@@ -2361,11 +3122,13 @@ begin
               actor.z, Ord(MT_CHAINSHOT));
 end;
 
+//==============================================================================
 //
 // A_MissileSmoke
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_MissileSmoke(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2379,11 +3142,13 @@ begin
   mo.momz := FRACUNIT;
 end;
 
+//==============================================================================
 //
 // A_SpawnSparkPuff
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_SpawnSparkPuff(actor: Pmobj_t);
 var
   r: integer;
@@ -2400,6 +3165,7 @@ begin
   mo.momz := FRACUNIT;
 end;
 
+//==============================================================================
 //
 // A_ProgrammerMelee
 //
@@ -2407,6 +3173,7 @@ end;
 // 09/08/10: Melee attack for the Programmer.
 // haleyjd - fixed damage formula
 //
+//==============================================================================
 procedure A_ProgrammerMelee(actor: Pmobj_t);
 var
   damage: integer;
@@ -2427,6 +3194,11 @@ end;
 const
   TRACEANGLE = $E000000;  // villsa [STRIFE] changed from 0xC000000 to 0xE000000
 
+//==============================================================================
+//
+// A_Tracer
+//
+//==============================================================================
 procedure A_Tracer(actor: Pmobj_t);
 var
   exact: angle_t;
@@ -2482,23 +3254,34 @@ begin
     actor.momz := actor.momz + FRACUNIT div 8;
 end;
 
+//==============================================================================
+//
+// A_Scream
+//
+//==============================================================================
 procedure A_Scream(actor: Pmobj_t);
 begin
   A_DeathSound1(actor);
 end;
 
+//==============================================================================
+//
+// A_XScream
+//
+//==============================================================================
 procedure A_XScream(actor: Pmobj_t);
 begin
   if actor.flags and MF_NOBLOOD <> 0 then
+  begin
     if actor.info.deathsound <> 0 then
-    begin
       A_DeathSound1(actor);
-      exit;
-    end;
+    exit;
+  end;
 
   S_StartSound(actor, Ord(sfx_slop));
 end;
 
+//==============================================================================
 //
 // A_Pain
 //
@@ -2507,6 +3290,7 @@ end;
 //
 // JVAL: adjusted for MF_EX_RANDOMPAINSOUND flag
 //
+//==============================================================================
 procedure A_Pain(actor: Pmobj_t);
 var
   sound: integer;
@@ -2516,7 +3300,7 @@ begin
   if (sound >= Ord(sfx_pespna)) and (sound <= Ord(sfx_pespnd)) then
   begin
     sound := Ord(sfx_pespna) + (P_Random mod 4);
-    if actor.info.flags2_ex and MF2_EX_FULLVOLPAIN <> 0 then
+    if actor.flags2_ex and MF2_EX_FULLVOLPAIN <> 0 then
      S_StartSound(nil, sound)
     else
      S_StartSound(actor, sound);
@@ -2526,6 +3310,7 @@ begin
   A_PainSound1(actor);
 end;
 
+//==============================================================================
 //
 // A_PeasantCrash
 //
@@ -2535,6 +3320,7 @@ end;
 // critical but sub-fatal damage. It will "bleed out" the rest of its
 // health by calling this function repeatedly.
 //
+//==============================================================================
 procedure A_PeasantCrash(actor: Pmobj_t);
 begin
   // Set NODIALOG, because you probably wouldn't feel like talking either
@@ -2551,12 +3337,14 @@ begin
     P_KillMobj(actor.target, actor);
 end;
 
+//==============================================================================
 //
 // A_HideZombie
 //
 // villsa [STRIFE] new codepointer
 // Used by the "Becoming" Acolytes on the Loremaster's level.
 //
+//==============================================================================
 procedure A_HideZombie(actor: Pmobj_t);
 var
   junk: line_t;
@@ -2569,6 +3357,7 @@ begin
       P_NoiseAlert(actor.target, actor); // inlined in asm
 end;
 
+//==============================================================================
 //
 // A_MerchantPain
 //
@@ -2576,6 +3365,7 @@ end;
 // 09/08/10: Pain pointer for merchant characters. They close up shop for
 // a while and set off the alarm.
 //
+//==============================================================================
 procedure A_MerchantPain(actor: Pmobj_t);
 var
   junk: line_t;
@@ -2588,22 +3378,7 @@ begin
       P_NoiseAlert(actor.target, actor); // inlined in asm
 end;
 
-//
-// P_ThrustMobj
-//
-// villsa [STRIFE] new function
-// Thrusts an thing in a specified force/direction
-// Beware! This is inlined everywhere in the asm
-//
-procedure P_ThrustMobj(actor: Pmobj_t; angle: angle_t; force: fixed_t);
-var
-  an: angle_t;
-begin
-  an := angle div ANGLETOFINEUNIT;
-  actor.momx := actor.momx + FixedMul(finecosine[an], force);
-  actor.momy := actor.momy + FixedMul(finesine[an], force);
-end;
-
+//==============================================================================
 //
 // A_ProgrammerDie
 //
@@ -2612,6 +3387,7 @@ end;
 // separate mechanical base object and sends it flying off in some random
 // direction.
 //
+//==============================================================================
 procedure A_ProgrammerDie(actor: Pmobj_t);
 var
   r: integer;
@@ -2630,12 +3406,14 @@ begin
   mo.momz := P_Random * 512;
 end;
 
+//==============================================================================
 //
 // A_InqTossArm
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: Inquisitor death action. Spawns an arm and tosses it.
 //
+//==============================================================================
 procedure A_InqTossArm(actor: Pmobj_t);
 var
   r: integer;
@@ -2653,6 +3431,7 @@ begin
   mo.momz := P_Random * 1024;
 end;
 
+//==============================================================================
 //
 // A_SpawnSpectreA
 //
@@ -2662,6 +3441,7 @@ end;
 // Catacombs in the final version, was originally meant to be spawned
 // after his death.
 //
+//==============================================================================
 procedure A_SpawnSpectreA(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2670,12 +3450,14 @@ begin
   mo.momz := P_Random * 512;
 end;
 
+//==============================================================================
 //
 // A_SpawnSpectreB
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: Action function to spawn the Bishop's spectre.
 //
+//==============================================================================
 procedure A_SpawnSpectreB(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2684,6 +3466,7 @@ begin
   mo.momz := P_Random * 512;
 end;
 
+//==============================================================================
 //
 // A_SpawnSpectreC
 //
@@ -2693,6 +3476,7 @@ end;
 // map and is awakened on his death. Also left over from the
 // unreleased beta (and demo) versions.
 //
+//==============================================================================
 procedure A_SpawnSpectreC(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2701,12 +3485,14 @@ begin
   mo.momz := P_Random * 512;
 end;
 
+//==============================================================================
 //
 // A_SpawnSpectreD
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: Action function to spawn Macil's Spectre.
 //
+//==============================================================================
 procedure A_SpawnSpectreD(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2715,12 +3501,14 @@ begin
   mo.momz := P_Random * 512;
 end;
 
+//==============================================================================
 //
 // A_SpawnSpectreE
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: Action function to spawn the Loremaster's Spectre.
 //
+//==============================================================================
 procedure A_SpawnSpectreE(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2735,12 +3523,14 @@ var
   entity_pos_y: fixed_t = 0;
   entity_pos_z: fixed_t = 0;
 
+//==============================================================================
 //
 // A_SpawnEntity
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: You will fall on your knees before the True God, the One Light.
 //
+//==============================================================================
 procedure A_SpawnEntity(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -2753,6 +3543,7 @@ begin
   entity_pos_z := mo.z;
 end;
 
+//==============================================================================
 //
 // A_EntityDeath
 //
@@ -2761,6 +3552,7 @@ end;
 // three subentities, which are significantly less dangerous on their
 // own but threatening together.
 //
+//==============================================================================
 procedure A_EntityDeath(actor: Pmobj_t);
 var
   subentity: Pmobj_t;
@@ -2797,21 +3589,25 @@ begin
   A_FaceTarget(subentity);
 end;
 
+//==============================================================================
 //
 // A_SpawnZombie
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_SpawnZombie(actor: Pmobj_t);
 begin
   P_SpawnMobj(actor.x, actor.y, actor.z, Ord(MT_ZOMBIE));
 end;
 
+//==============================================================================
 //
 // A_ZombieInSpecialSector
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_ZombieInSpecialSector(actor: Pmobj_t);
 var
   sector: Psector_t;
@@ -2834,6 +3630,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_CrystalExplode
 //
@@ -2843,6 +3640,7 @@ end;
 // level-changing action is done by an object in this fashion in any of
 // the DOOM engine games... they usually call a line special instead)
 //
+//==============================================================================
 procedure A_CrystalExplode(actor: Pmobj_t);
 var
   sector: Psector_t;
@@ -2865,6 +3663,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_FreePrisoners
 //
@@ -2872,6 +3671,7 @@ end;
 // * Called when the prisoners get freed, obviously. Gives a
 //   message and awards quest token 13.
 //
+//==============================================================================
 procedure P_FreePrisoners;
 var
   i: integer;
@@ -2886,6 +3686,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_DestroyConverter
 //
@@ -2893,6 +3694,7 @@ end;
 // * Called when the converter is shut down in the factory.
 //   Gives several items and a message.
 //
+//==============================================================================
 procedure P_DestroyConverter;
 var
   i: integer;
@@ -2909,6 +3711,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_QuestMsg
 //
@@ -2916,6 +3719,7 @@ end;
 // Displays text based on quest item's name
 // Quest item is based on actor's speed
 //
+//==============================================================================
 procedure A_QuestMsg(actor: Pmobj_t);
 var
   name: string;
@@ -2934,6 +3738,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_ExtraLightOff
 //
@@ -2941,6 +3746,7 @@ end;
 // 09/08/10: Called by the Power Crystal to turn off the extended
 // flash of light caused by its explosion.
 //
+//==============================================================================
 procedure A_ExtraLightOff(actor: Pmobj_t);
 var
   p: Pplayer_t;
@@ -2955,12 +3761,14 @@ begin
   p.extralight := 0;
 end;
 
+//==============================================================================
 //
 // A_CrystalRadiusAtk
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: Called by the power crystal when it dies.
 //
+//==============================================================================
 procedure A_CrystalRadiusAtk(actor: Pmobj_t);
 var
   p: Pplayer_t;
@@ -2978,11 +3786,14 @@ begin
   p.extralight := 5;
 end;
 
+//==============================================================================
+// P_DeathExplode
 //
 // A_DeathExplode5
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure P_DeathExplode(actor: Pmobj_t; damage: integer);
 begin
   P_RadiusAttack(actor, actor.target, damage);
@@ -2991,47 +3802,60 @@ begin
       P_NoiseAlert(actor.target, actor);
 end;
 
+//==============================================================================
+//
+// A_DeathExplode5
+//
+//==============================================================================
 procedure A_DeathExplode5(actor: Pmobj_t);
 begin
   P_DeathExplode(actor, 192);
 end;
 
+//==============================================================================
 //
 // A_DeathExplode1
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_DeathExplode1(actor: Pmobj_t);
 begin
   P_DeathExplode(actor, 128);
 end;
 
+//==============================================================================
 //
 // A_DeathExplode2
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_DeathExplode2(actor: Pmobj_t);
 begin
   P_DeathExplode(actor, 64);
 end;
 
+//==============================================================================
 //
 // A_DeathExplode3
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_DeathExplode3(actor: Pmobj_t);
 begin
   P_DeathExplode(actor, 32);
 end;
 
+//==============================================================================
 //
 // A_RaiseAlarm
 //
 // villsa [STRIFE] new codepointer
 // 09/08/10: Set off the infamous alarm. This is just a noise alert.
 //
+//==============================================================================
 procedure A_RaiseAlarm(actor: Pmobj_t);
 begin
   if actor.target <> nil then
@@ -3039,10 +3863,12 @@ begin
       P_NoiseAlert(actor.target, actor); // inlined in asm
 end;
 
+//==============================================================================
 //
 // A_MissileTick
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_MissileTick(actor: Pmobj_t);
 begin
   dec(actor.reactiontime);
@@ -3053,21 +3879,25 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_SpawnGrenadeFire
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_SpawnGrenadeFire(actor: Pmobj_t);
 begin
   P_SpawnMobj(actor.x, actor.y, actor.z, Ord(MT_PFLAME));
 end;
 
+//==============================================================================
 //
 // A_NodeChunk
 //
 // villsa [STRIFE] - new codepointer
 // Throw out "nodes" from a spectral entity
 //
+//==============================================================================
 procedure A_NodeChunk(actor: Pmobj_t);
 var
   r: integer;
@@ -3081,12 +3911,14 @@ begin
   mo.momz := (P_Random and $0f) * FRACUNIT;
 end;
 
+//==============================================================================
 //
 // A_HeadChunk
 //
 // villsa [STRIFE] - new codepointer
 // Throw out the little "eye"-like object from a spectral entity when it dies.
 //
+//==============================================================================
 procedure A_HeadChunk(actor: Pmobj_t);
 var
   r: integer;
@@ -3100,10 +3932,12 @@ begin
   mo.momz := (P_Random and 7) * FRACUNIT;
 end;
 
+//==============================================================================
 //
 // A_BurnSpread
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_BurnSpread(actor: Pmobj_t);
 var
   t: integer;
@@ -3138,12 +3972,14 @@ begin
   mo.reactiontime := (P_Random and 3) + 2;
 end;
 
+//==============================================================================
 //
 // A_Explode
 //
+//==============================================================================
 procedure A_Explode(thingy: Pmobj_t);
 begin
-  if thingy.info.flags_ex and MF_EX_CUSTOMEXPLODE <> 0 then
+  if thingy.flags_ex and MF_EX_CUSTOMEXPLODE <> 0 then
     P_RadiusAttackEx(thingy, thingy.target, thingy.info.explosiondamage, thingy.info.explosionradius)
   else if thingy.state.params <> nil then
     P_RadiusAttackEx(thingy, thingy.target, thingy.state.params.IntVal[0], thingy.state.params.IntVal[1])
@@ -3154,6 +3990,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_BossDeath
 //
@@ -3163,6 +4000,7 @@ end;
 // haleyjd 09/17/10: [STRIFE]
 // * Modified to handle all Strife bosses.
 //
+//==============================================================================
 procedure A_BossDeath(actor: Pmobj_t);
 var
   th: Pthinker_t;
@@ -3170,6 +4008,20 @@ var
   junk: line_t;
   i: integer;
 begin
+  if gamemap = 7 then
+  begin
+    if actor.flags4_ex and MF4_EX_MAP07BOSS1 <> 0 then
+    begin
+      junk.tag := 666;
+      EV_DoFloor(@junk, lowerFloorToLowest);
+    end
+    else if actor.flags4_ex and MF4_EX_MAP07BOSS2 <> 0 then
+    begin
+      junk.tag := 667;
+      EV_DoFloor(@junk, raiseToTexture);
+    end;
+  end;
+
   // only the following types can be a boss:
   if actor._type <> Ord(MT_CRUSADER) then
     if actor._type <> Ord(MT_SPECTRE_A) then
@@ -3315,12 +4167,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_AcolyteSpecial
 //
 // villsa [STRIFE] - new codepointer
 // Awards quest #7 when all the Blue Acolytes are killed in Tarnhill
 //
+//==============================================================================
 procedure A_AcolyteSpecial(actor: Pmobj_t);
 var
   i: integer;
@@ -3362,32 +4216,38 @@ begin
   P_GiveVoiceObjective('VOC14', 'LOG14', 0);
 end;
 
+//==============================================================================
 //
 // A_InqChase
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_InqChase(actor: Pmobj_t);
 begin
   S_StartSound(actor, Ord(sfx_inqact));
   A_Chase(actor);
 end;
 
+//==============================================================================
 //
 // A_StalkerChase
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_StalkerChase(actor: Pmobj_t);
 begin
   S_StartSound(actor, Ord(sfx_spdwlk));
   A_Chase(actor);
 end;
 
+//==============================================================================
 //
 // A_PlayerScream
 //
 // [STRIFE]
 // * Modified to eliminate gamemode check and to use Strife sound.
 //
+//==============================================================================
 procedure A_PlayerScream(mo: Pmobj_t);
 var
   sound: integer;
@@ -3403,11 +4263,13 @@ begin
   S_StartSound(mo, sound);
 end;
 
+//==============================================================================
 //
 // A_TeleportBeacon
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_TeleportBeacon(actor: Pmobj_t);
 var
   mobj, fog, targ: Pmobj_t;
@@ -3465,6 +4327,7 @@ begin
     P_RemoveMobj(actor);
 end;
 
+//==============================================================================
 //
 // A_BodyParts
 //
@@ -3472,6 +4335,7 @@ end;
 // 09/06/10: Spawns gibs when organic actors get splattered, or junk
 // when robots explode.
 //
+//==============================================================================
 procedure A_BodyParts(actor: Pmobj_t);
 var
   typ: integer;
@@ -3484,6 +4348,9 @@ begin
     typ := Ord(MT_MEAT);
 
   mo := P_SpawnMobj(actor.x, actor.y, actor.z + (24 * FRACUNIT), typ);
+  if typ = Ord(MT_MEAT) then
+    if actor.bloodcolor <> 0 then
+      R_SetMobjBloodTranslation(mo, actor.bloodcolor);
   P_SetMobjState(mo, statenum_t(mo.info.spawnstate + (P_Random mod 19)));
 
   an := (P_Random * 8192) div 256;
@@ -3494,12 +4361,14 @@ begin
   mo.momz := (P_Random and $0f) * FRACUNIT;
 end;
 
+//==============================================================================
 //
 // A_ClaxonBlare
 //
 // [STRIFE] New function
 // haleyjd 09/08/10: The ever-dreadful Strife alarm!
 //
+//==============================================================================
 procedure A_ClaxonBlare(actor: Pmobj_t);
 begin
   // Timer ran down?
@@ -3530,6 +4399,7 @@ begin
     S_StartSound(actor, Ord(sfx_alarm));
 end;
 
+//==============================================================================
 //
 // A_ActiveSound
 //
@@ -3537,18 +4407,21 @@ end;
 // 09/06/10: Plays an object's active sound periodically.
 //
 // JVAL: Changed to A_ActiveSoundSTRF
+//
+//==============================================================================
 procedure A_ActiveSoundSTRF(actor: Pmobj_t);
 begin
   if actor.info.activesound <> 0 then
     if leveltime and 7 = 0 then // haleyjd: added parens
     begin
-      if (actor.info.flags2_ex and MF2_EX_FULLVOLACTIVE <> 0) then
+      if (actor.flags2_ex and MF2_EX_FULLVOLACTIVE <> 0) then
         S_StartSound(actor, actor.info.activesound)
       else
         S_StartSound(actor, actor.info.activesound);
     end;
 end;
 
+//==============================================================================
 //
 // A_ClearSoundTarget
 //
@@ -3557,16 +4430,19 @@ end;
 // will not be continually alerted/awakened ad infinitum. Used by
 // shopkeepers.
 //
+//==============================================================================
 procedure A_ClearSoundTarget(actor: Pmobj_t);
 begin
   Psubsector_t(actor.subsector).sector.soundtarget := nil;
 end;
 
+//==============================================================================
 //
 // A_DropBurnFlesh
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_DropBurnFlesh(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -3582,18 +4458,21 @@ begin
   actor._type := typ;
 end;
 
+//==============================================================================
 //
 // A_FlameDeath
 //
 // villsa [STRIFE] new codepointer
 // 09/06/10: Death animation for flamethrower fireballs.
 //
+//==============================================================================
 procedure A_FlameDeath(actor: Pmobj_t);
 begin
   A_NoGravity(actor);
   actor.momz := (P_Random and 3) * FRACUNIT;
 end;
 
+//==============================================================================
 //
 // A_ClearForceField
 //
@@ -3601,6 +4480,7 @@ end;
 // check for all matching lines in the sector
 // and disable blocking/midtextures
 //
+//==============================================================================
 procedure A_ClearForceField(actor: Pmobj_t);
 var
   i: integer;
@@ -3638,7 +4518,8 @@ end;
 // Kills all monsters.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_Massacre;
 var
   mo: Pmobj_t;
@@ -3662,5 +4543,4 @@ begin
 end;
 
 end.
-
 

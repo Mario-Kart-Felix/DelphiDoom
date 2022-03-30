@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,105 +45,224 @@ uses
   m_fixed,
   p_mobj_h;
 
+//==============================================================================
+//
+// A_LowGravity
+//
+//==============================================================================
 procedure A_LowGravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NoGravity
+//
+//==============================================================================
 procedure A_NoGravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Gravity
+//
+//==============================================================================
 procedure A_Gravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NoBlocking
+//
+//==============================================================================
 procedure A_NoBlocking(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MeleeAttack
+//
+//==============================================================================
 procedure A_MeleeAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Die
+//
+//==============================================================================
 procedure A_Die(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_CustomBulletAttack
+//
+//==============================================================================
 procedure A_CustomBulletAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_Countdown
+//
+//==============================================================================
 procedure A_Countdown(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FastChase
+//
+//==============================================================================
 procedure A_FastChase(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SetInvulnerable
+//
+//==============================================================================
 procedure A_SetInvulnerable(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_UnSetInvulnerable
+//
+//==============================================================================
 procedure A_UnSetInvulnerable(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FloatBob
+//
+//==============================================================================
 procedure A_FloatBob(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_NoFloatBob
+//
+//==============================================================================
 procedure A_NoFloatBob(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_ComboAttack
+//
+//==============================================================================
 procedure A_ComboAttack(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_MediumGravity
+//
+//==============================================================================
 procedure A_MediumGravity(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HideThing
+//
+//==============================================================================
 procedure A_HideThing(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_UnHideThing
+//
+//==============================================================================
 procedure A_UnHideThing(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnDebris
+//
+//==============================================================================
 procedure A_SpawnDebris(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSmokeUp
+//
+//==============================================================================
 procedure A_SpawnSmokeUp(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSmokeDown
+//
+//==============================================================================
 procedure A_SpawnSmokeDown(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnSmokeHorz
+//
+//==============================================================================
 procedure A_SpawnSmokeHorz(actor: Pmobj_t);
 
-procedure A_SetInteractive(actor: Pmobj_t);
-
-procedure A_UnSetInteractive(actor: Pmobj_t);
-
-procedure A_SetMonsterInfight(actor: Pmobj_t);
-
-procedure A_UnSetMonsterInfight(actor: Pmobj_t);
-
-procedure A_NoiseAlert(actor: Pmobj_t);
-
+//==============================================================================
+//
+// A_SetShootable
+//
+//==============================================================================
 procedure A_SetShootable(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_UnSetShootable
+//
+//==============================================================================
 procedure A_UnSetShootable(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PlayerMessage
+//
+//==============================================================================
 procedure A_PlayerMessage(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_PlayerFaceMe
+//
+//==============================================================================
 procedure A_PlayerFaceMe(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SetFloorClip
+//
+//==============================================================================
 procedure A_SetFloorClip(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_UnSetFloorClip
+//
+//==============================================================================
 procedure A_UnSetFloorClip(actor: Pmobj_t);
-
 
 implementation
 
 uses
-  d_delphi,
   doomdef,
   d_player,
   g_game,
-  i_system,
   info_h,
   info,
   info_common,
   r_defs,
   m_rnd,
-  m_vectors,
   p_enemy,
   p_mobj,
   p_inter,
   p_user,
   p_map,
-  p_maputl,
   p_local,
-  p_pspr,
   p_sounds,
   p_terrain,
-  sounds,
-  s_sound,
-  sc_states,
   p_common,
   tables;
 
+//==============================================================================
+// A_LowGravity
 //
 // JVAL
 // Low gravity
 //
+//==============================================================================
 procedure A_LowGravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -151,10 +270,13 @@ begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
+// A_NoGravity
 //
 // JVAL
 // Remove gravity
 //
+//==============================================================================
 procedure A_NoGravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_NOGRAVITY;
@@ -162,10 +284,13 @@ begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
+// A_Gravity
 //
 // JVAL
 // Normal gravity
 //
+//==============================================================================
 procedure A_Gravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -173,20 +298,25 @@ begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
+// A_NoBlocking
 //
 // JVAL
 // Remove blocking flag
 //
+//==============================================================================
 procedure A_NoBlocking(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_SOLID;
 end;
 
+//==============================================================================
 //
 // JVAL
 // Close distance attack
 // A_MeleeAttack(mindamage=0; maxdamage=0);
 //
+//==============================================================================
 procedure A_MeleeAttack(actor: Pmobj_t);
 var
   dmin, dmax: integer;  // Minimum and maximum damage
@@ -225,6 +355,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_Die
+//
+//==============================================================================
 procedure A_Die(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex and not MF_EX_INVULNERABLE;  // Clear invulnerability flag
@@ -235,9 +370,12 @@ begin
     P_DamageMobj(actor, nil, nil, actor.health);
 end;
 
+//==============================================================================
+// A_CustomBulletAttack
 //
 // CustomBulletAttack(spread_xy, numbullets, damageperbullet, range)
 //
+//==============================================================================
 procedure A_CustomBulletAttack(actor: Pmobj_t);
 var
   spread_xy: angle_t;
@@ -279,9 +417,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_Countdown(void)
 //
+//==============================================================================
 procedure A_Countdown(actor: Pmobj_t);
 begin
   dec(actor.reactiontime);
@@ -291,44 +431,81 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_FastChase
+//
+//==============================================================================
 procedure A_FastChase(actor: Pmobj_t);
 begin
   P_DoChase(actor, true);
 end;
 
+//==============================================================================
+//
+// A_SetInvulnerable
+//
+//==============================================================================
 procedure A_SetInvulnerable(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex or MF_EX_INVULNERABLE;
 end;
 
+//==============================================================================
+//
+// A_UnSetInvulnerable
+//
+//==============================================================================
 procedure A_UnSetInvulnerable(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex and not MF_EX_INVULNERABLE;
 end;
 
+//==============================================================================
+//
+// A_FloatBob
+//
+//==============================================================================
 procedure A_FloatBob(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex or MF_EX_FLOATBOB;
 end;
 
+//==============================================================================
+//
+// A_NoFloatBob
+//
+//==============================================================================
 procedure A_NoFloatBob(actor: Pmobj_t);
 begin
   actor.flags_ex := actor.flags_ex and not MF_EX_FLOATBOB;
 end;
 
+//==============================================================================
+//
+// A_Missile
+//
+//==============================================================================
 procedure A_Missile(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_MISSILE;
 end;
 
+//==============================================================================
+//
+// A_NoMissile
+//
+//==============================================================================
 procedure A_NoMissile(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_MISSILE;
 end;
 
+//==============================================================================
 //
 // A_ComboAttack(void)
 //
+//==============================================================================
 procedure A_ComboAttack(actor: Pmobj_t);
 var
   missile: Pmobj_t;
@@ -357,16 +534,19 @@ begin
 
     if missile <> nil then
     begin
-      if missile.info.flags_ex and MF_EX_SEEKERMISSILE <> 0 then
+      if missile.flags_ex and MF_EX_SEEKERMISSILE <> 0 then
         missile.tracer := actor.target;
     end;
   end;
 end;
 
+//==============================================================================
+// A_MediumGravity
 //
 // JVAL
 // Medium gravity
 //
+//==============================================================================
 procedure A_MediumGravity(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_NOGRAVITY;
@@ -374,25 +554,31 @@ begin
   actor.flags2_ex := actor.flags2_ex or MF2_EX_MEDIUMGRAVITY;
 end;
 
+//==============================================================================
 //
 // PROC A_HideThing
 //
+//==============================================================================
 procedure A_HideThing(actor: Pmobj_t);
 begin
   actor.flags2_ex := actor.flags2_ex or MF2_EX_DONTDRAW;
 end;
 
+//==============================================================================
 //
 // A_UnHideThing
 //
+//==============================================================================
 procedure A_UnHideThing(actor: Pmobj_t);
 begin
   actor.flags2_ex := actor.flags2_ex and not MF2_EX_DONTDRAW;
 end;
 
+//==============================================================================
 //
 // A_SpawnDebris(mobj_no, count, mult_h, mult_v
 //
+//==============================================================================
 procedure A_SpawnDebris(actor: Pmobj_t);
 var
   i, count: integer;
@@ -439,6 +625,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_SpawnSmokeUp
+//
+//==============================================================================
 procedure A_SpawnSmokeUp(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -447,6 +638,11 @@ begin
   mo.momz := FRACUNIT + (P_Random * 128);
 end;
 
+//==============================================================================
+//
+// A_SpawnSmokeDown
+//
+//==============================================================================
 procedure A_SpawnSmokeDown(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -455,6 +651,11 @@ begin
   mo.momz := -2 * FRACUNIT + (P_Random * 128);
 end;
 
+//==============================================================================
+//
+// A_SpawnSmokeHorz
+//
+//==============================================================================
 procedure A_SpawnSmokeHorz(actor: Pmobj_t);
 var
   mo: Pmobj_t;
@@ -475,49 +676,31 @@ begin
   mo.momy := FixedMul(speed, finesine[an]);
 end;
 
-procedure A_SetInteractive(actor: Pmobj_t);
-begin
-  actor.flags2_ex := actor.flags2_ex or MF2_EX_INTERACTIVE;
-end;
-
-procedure A_UnSetInteractive(actor: Pmobj_t);
-begin
-  actor.flags2_ex := actor.flags2_ex and not MF2_EX_INTERACTIVE;
-end;
-
-procedure A_SetMonsterInfight(actor: Pmobj_t);
-begin
-  actor.flags2_ex := actor.flags2_ex or MF2_EX_DONTINFIGHTMONSTERS;
-end;
-
-procedure A_UnSetMonsterInfight(actor: Pmobj_t);
-begin
-  actor.flags2_ex := actor.flags2_ex and not MF2_EX_DONTINFIGHTMONSTERS;
-end;
-
-procedure A_NoiseAlert(actor: Pmobj_t);
-begin
-  if actor.target = nil then
-    exit;
-  if actor.target.player = nil then
-    exit;
-
-  P_NoiseAlert(actor.target, actor);
-end;
-
+//==============================================================================
+//
+// A_SetShootable
+//
+//==============================================================================
 procedure A_SetShootable(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_SHOOTABLE;
 end;
 
+//==============================================================================
+//
+// A_UnSetShootable
+//
+//==============================================================================
 procedure A_UnSetShootable(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_SHOOTABLE;
 end;
 
+//==============================================================================
 //
 // A_PlayerMessage
 //
+//==============================================================================
 procedure A_PlayerMessage(actor: Pmobj_t);
 var
   p: Pplayer_t;
@@ -543,6 +726,11 @@ begin
   p._message := msg;
 end;
 
+//==============================================================================
+//
+// A_PlayerFaceMe
+//
+//==============================================================================
 procedure A_PlayerFaceMe(actor: Pmobj_t);
 begin
   if not P_CheckStateParams(actor, 1) then
@@ -557,6 +745,11 @@ begin
   P_PlayerFaceMobj(actor.target.player, actor, actor.state.params.IntVal[0]);
 end;
 
+//==============================================================================
+//
+// A_SetFloorClip
+//
+//==============================================================================
 procedure A_SetFloorClip(actor: Pmobj_t);
 begin
   actor.flags := actor.flags or MF_FEETCLIPPED;
@@ -567,6 +760,11 @@ begin
       actor.floorclip := 0;
 end;
 
+//==============================================================================
+//
+// A_UnSetFloorClip
+//
+//==============================================================================
 procedure A_UnSetFloorClip(actor: Pmobj_t);
 begin
   actor.flags := actor.flags and not MF_FEETCLIPPED;

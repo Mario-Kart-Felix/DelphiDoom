@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -32,7 +32,7 @@
 //  BSP traversal, handling of LineSegs for rendering.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,13 +45,36 @@ uses
   d_delphi,
   r_defs;
 
+{$IFNDEF OPENGL}
+//==============================================================================
+// R_ClearClipSegs
+//
 // BSP?
+//
+//==============================================================================
 procedure R_ClearClipSegs;
+
+{$ENDIF}
+
+//==============================================================================
+//
+// R_ClearDrawSegs
+//
+//==============================================================================
 procedure R_ClearDrawSegs;
 
-
+//==============================================================================
+//
+// R_RenderBSPNode
+//
+//==============================================================================
 procedure R_RenderBSPNode(bspnum: integer);
 
+//==============================================================================
+//
+// R_FakeFlat
+//
+//==============================================================================
 function R_FakeFlat(sec: Psector_t; tempsec: Psector_t;
   floorlightlevel, ceilinglightlevel: PSmallInt; back: boolean): Psector_t;
 
@@ -71,6 +94,11 @@ var
   drawsegs: array[0..MAXDRAWSEGS - 1] of Pdrawseg_t;
   doorclosed: boolean;
 
+//==============================================================================
+//
+// R_UnderWater
+//
+//==============================================================================
 function R_UnderWater: boolean;
 
 implementation
@@ -83,24 +111,27 @@ uses
   m_bbox,
   p_setup,
   p_slopes, // JVAL: Slopes
-  {$IFNDEF OPENGL}
-  r_segs,
-  r_3dfloors, // JVAL: 3d Floors
-  r_slopes,   // JVAL: Slopes
-  {$ENDIF}
-  r_main,
-  r_plane,
-  r_things,
-  r_draw,
-  r_sky
-  {$IFDEF OPENGL},
+  {$IFDEF OPENGL}
   doomtype,
   r_data,
   r_visplanes,
   gl_render, // JVAL OPENGL
   gl_clipper, // JVAL OPENGL
-  gl_defs{$ENDIF}; // JVAL OPENGL
+  gl_defs, // JVAL OPENGL
+  {$ELSE}
+  p_tick,
+  r_segs,
+  r_3dfloors, // JVAL: 3d Floors
+  r_slopes,   // JVAL: Slopes
+  r_draw,
+  {$ENDIF}
+  r_main,
+  r_plane,
+  r_things,
+  r_sky;
 
+//==============================================================================
+// R_FakeFlat
 //
 // killough 3/7/98: Hack floor/ceiling heights for deep water etc.
 //
@@ -113,7 +144,7 @@ uses
 //
 // killough 4/11/98, 4/13/98: fix bugs, add 'back' parameter
 //
-
+//==============================================================================
 function R_FakeFlat(sec: Psector_t; tempsec: Psector_t;
   floorlightlevel, ceilinglightlevel: PSmallInt; back: boolean): Psector_t;
 var
@@ -157,7 +188,6 @@ begin
     tempsec.floorheight := ss.floorheight;
     tempsec.ceilingheight := ss.ceilingheight;
 
-
     // Replace floor and ceiling height with other sector's heights.
     if (underwater and notback1) or (viewz <= ss.floorheight) then
     begin                   // head-below-floor hack
@@ -191,7 +221,7 @@ begin
         end;
       end;
 
-      tempsec.lightlevel  := ss.lightlevel;
+      tempsec.lightlevel := ss.lightlevel;
 
       if floorlightlevel <> nil then
       begin
@@ -270,6 +300,11 @@ begin
   result := sec;
 end;
 
+//==============================================================================
+//
+// R_UnderWater
+//
+//==============================================================================
 function R_UnderWater: boolean;
 begin
   if viewplayer <> nil then
@@ -282,9 +317,11 @@ begin
   result := false;
 end;
 
+//==============================================================================
 //
 // R_ClearDrawSegs
 //
+//==============================================================================
 procedure R_ClearDrawSegs;
 begin
   ds_p := 0;
@@ -321,17 +358,21 @@ type
 const
   MAXSEGS = MAXWIDTH div 2 + 1;
 
+{$IFNDEF OPENGL}
 var
 // newend is one past the last valid seg
   newend: Pcliprange_t;
   solidsegs: array[0..MAXSEGS - 1] of cliprange_t;
 
+//==============================================================================
+//
 // R_ClipSolidWallSegment
+//
 // Does handle solid walls,
 //  e.g. single sided LineDefs (middle texture)
 //  that entirely block the view.
 //
-{$IFNDEF OPENGL}
+//==============================================================================
 procedure R_ClipSolidWallSegment(first, last: integer);
 var
   next: Pcliprange_t;
@@ -423,13 +464,16 @@ begin
   crunch;
 end;
 
+//==============================================================================
 //
 // R_ClipPassWallSegment
+//
 // Clips the given range of columns,
 //  but does not includes it in the clip list.
 // Does handle windows,
 //  e.g. LineDefs with upper and lower texture.
 //
+//==============================================================================
 procedure R_ClipPassWallSegment(first, last: integer);
 var
   start: Pcliprange_t;
@@ -473,11 +517,12 @@ begin
   // There is a fragment after *next.
   R_StoreWallRange(start.last + 1, last);
 end;
-{$ENDIF}
 
+//==============================================================================
 //
 // R_ClearClipSegs
 //
+//==============================================================================
 procedure R_ClearClipSegs;
 begin
   newend := @solidsegs[0];
@@ -487,7 +532,9 @@ begin
   newend.first := viewwidth;
   newend.last := $7fffffff;
   inc(newend);
+  ZeroMemory(@solidcol, SCREENWIDTH);
 end;
+{$ENDIF}
 
 var
   ftempsec: sector_t;     // killough 3/8/98: ceiling/water hack
@@ -499,6 +546,11 @@ var
 var
   tempsec_back, tempsec_front: sector_t;
 
+//==============================================================================
+//
+// R_CheckClip
+//
+//==============================================================================
 function R_CheckClip(seg: Pseg_t; frontsector, backsector: Psector_t): boolean;
 begin
   backsector := R_FakeFlat(backsector, @tempsec_back, nil, nil, true);
@@ -565,12 +617,17 @@ begin
   result := false;
 end;
 {$ELSE}
+
+//==============================================================================
+// R_DoorClosed
+//
 // killough 1/18/98 -- This function is used to fix the automap bug which
 // showed lines behind closed doors simply because the door had a dropoff.
 //
 // It assumes that Doom has already ruled out a door being closed because
 // of front-back closure (e.g. front floor is taller than back ceiling).
-
+//
+//==============================================================================
 function R_DoorClosed: boolean;
 begin
   result :=
@@ -589,13 +646,48 @@ begin
     ((backsector.ceilingpic <> skyflatnum) or
      (frontsector.ceilingpic <> skyflatnum));
 end;
+
+//==============================================================================
+//
+// R_RecalcLineIgnorePassFlag
+//
+//==============================================================================
+procedure R_RecalcLineIgnorePassFlag(const l: Pline_t; const bsec, fsec: Psector_t);
+begin
+  l.rendervalidcount := leveltime;
+  if (bsec.ceilingpic = fsec.ceilingpic) and
+     (bsec.floorpic = fsec.floorpic) and
+     (bsec.lightlevel = fsec.lightlevel) and
+     (bsec.floorangle = fsec.floorangle) and
+     (bsec.flooranglex = fsec.flooranglex) and
+     (bsec.floorangley = fsec.floorangley) and
+     (bsec.ceilingangle = fsec.ceilingangle) and
+     (bsec.ceilinganglex = fsec.ceilinganglex) and
+     (bsec.ceilingangley = fsec.ceilingangley) and
+     // killough 3/7/98: Take flats offsets into account
+     (bsec.floor_xoffs = fsec.floor_xoffs) and
+     (bsec.floor_yoffs = fsec.floor_yoffs) and
+     (bsec.ceiling_xoffs = fsec.ceiling_xoffs) and
+     (bsec.ceiling_yoffs = fsec.ceiling_yoffs) and
+      // killough 4/16/98: consider altered lighting
+     (bsec.floorlightsec = fsec.floorlightsec) and
+     (bsec.ceilinglightsec = fsec.ceilinglightsec) and
+     (bsec.midsec = fsec.midsec) then // JVAL: 3d Floors
+  begin
+    l.renderflags := l.renderflags or LRF_IGNOREPASS;
+    exit;
+  end;
+  l.renderflags := l.renderflags and not LRF_IGNOREPASS;
+end;
 {$ENDIF}
 
+//==============================================================================
 //
 // R_AddLine
 // Clips the given segment
 // and adds any visible pieces to the line list.
 //
+//==============================================================================
 procedure R_AddLine(line: Pseg_t);
 var
 {$IFNDEF OPENGL}
@@ -603,6 +695,8 @@ var
   x2: integer;
   tspan: angle_t;
   clipangle2: angle_t;
+  sd: Pside_t;
+  ln: Pline_t;
 {$ENDIF}
   angle1: angle_t;
   angle2: angle_t;
@@ -691,6 +785,12 @@ begin
   if x1 >= x2 then
     exit;
 
+  sd := line.sidedef;
+  line.specialoffsets :=
+    (sd.toptextureoffset <> 0) or
+    (sd.midtextureoffset <> 0) or
+    (sd.bottomtextureoffset <> 0);
+
   backsector := line.backsector;
 
   // Single sided line?
@@ -742,27 +842,14 @@ begin
   // Identical floor and ceiling on both sides,
   // identical light levels on both sides,
   // and no middle texture.
-  if (backsector.ceilingpic = frontsector.ceilingpic) and
-     (backsector.floorpic = frontsector.floorpic) and
-     (backsector.lightlevel = frontsector.lightlevel) and
-     (backsector.floorangle = frontsector.floorangle) and
-     (backsector.flooranglex = frontsector.flooranglex) and
-     (backsector.floorangley = frontsector.floorangley) and
-     (backsector.ceilingangle = frontsector.ceilingangle) and
-     (backsector.ceilinganglex = frontsector.ceilinganglex) and
-     (backsector.ceilingangley = frontsector.ceilingangley) and
-     (curline.sidedef.midtexture = 0) and
-     // killough 3/7/98: Take flats offsets into account
-     (backsector.floor_xoffs = frontsector.floor_xoffs) and
-     (backsector.floor_yoffs = frontsector.floor_yoffs) and
-     (backsector.ceiling_xoffs = frontsector.ceiling_xoffs) and
-     (backsector.ceiling_yoffs = frontsector.ceiling_yoffs) and
-      // killough 4/16/98: consider altered lighting
-     (backsector.floorlightsec = frontsector.floorlightsec) and
-     (backsector.ceilinglightsec = frontsector.ceilinglightsec) and
-     (backsector.midsec = frontsector.midsec) then // JVAL: 3d Floors
-
-    exit;
+  if sd.midtexture = 0 then
+  begin
+    ln := line.linedef;
+    if ln.rendervalidcount <> leveltime then
+      R_RecalcLineIgnorePassFlag(ln, backsector, frontsector);
+    if ln.renderflags and LRF_IGNOREPASS <> 0 then
+      exit;
+  end;
 
   R_ClipPassWallSegment(x1, x2 - 1);
 {$ENDIF}
@@ -790,6 +877,11 @@ const
     (0, 0, 0, 0)
   );
 
+//==============================================================================
+//
+// R_CheckBBox
+//
+//==============================================================================
 function R_CheckBBox(bspcoordA: Pfixed_tArray; const side: integer): boolean;
 var
   bspcoord: Pfixed_tArray;
@@ -896,7 +988,6 @@ begin
     angle2 := -clipangle;
   end;
 
-
   // Find the first clippost
   //  that touches the source post
   //  (adjacent pixels are touching).
@@ -933,18 +1024,22 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
 //
 // R_Subsector
 // Determine floor/ceiling planes.
 // Add sprites of things in sector.
 // Draw one or more line segments.
 //
+//==============================================================================
 procedure R_Subsector(const num: integer);
 var
   count: integer;
   line: Pseg_t;
   i_line: integer;
   sub: Psubsector_t;
+  polyCount: integer;
+  polySeg: PPseg_t;
   floorlightlevel: smallint;     // killough 3/16/98: set floor lightlevel
   ceilinglightlevel: smallint;   // killough 4/11/98
   floorrenderflags: LongWord;
@@ -959,6 +1054,8 @@ begin
   sub := @subsectors[num];
 
   frontsector := sub.sector;
+  frontsector.rendervalidcount := rendervalidcount;
+
   count := sub.numlines;
   i_line := sub.firstline;
   line := @segs[i_line];
@@ -1175,6 +1272,23 @@ begin
   R_AddSprites(sub.sector); //jff 9/11/98 passing frontsector here was
                             //causing the underwater fireball medusa problem
                             //when R_FakeFlat substituted a fake sector
+  if sub.poly <> nil then
+  begin // Render the polyobj in the subsector first
+    polyCount := Ppolyobj_t(sub.poly).numsegs;
+    polySeg := Ppolyobj_t(sub.poly).segs;
+    while polyCount > 0 do
+    begin
+      {$IFDEF OPENGL}
+      if not polySeg^.miniseg then
+        gld_AddWall(polySeg^, true, frontsector);
+      {$ELSE}
+      if not polySeg^.miniseg then
+        R_AddLine(polySeg^);
+      {$ENDIF}
+      inc(polySeg);
+      dec(polyCount);
+    end;
+  end;
 
 {$IFDEF OPENGL}
   if gl_add_all_lines then
@@ -1216,11 +1330,15 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+// R_RenderBSPNode
 //
 // RenderBSPNode
 // Renders all subsectors below a given node,
 //  traversing subtree recursively.
 // Just call with BSP root.
+//
+//==============================================================================
 procedure R_RenderBSPNode(bspnum: integer);
 var
   bsp: Pnode_t;

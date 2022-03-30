@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -35,79 +35,272 @@ uses
   d_think,
   m_fixed;
 
+//==============================================================================
+//
+// DEH_NextLine
+//
+//==============================================================================
 function DEH_NextLine(const s: TDStringList; var str: string; var counter: integer; const skipblanc: boolean = true): boolean;
 
+//==============================================================================
+//
+// DEH_ParseText
+//
+//==============================================================================
 procedure DEH_ParseText(const deh_tx: string);
 
+//==============================================================================
+//
+// DEH_ParseLumpName
+//
+//==============================================================================
 function DEH_ParseLumpName(const lumpname: string): boolean;
 
+//==============================================================================
+//
+// DEH_ParseLumpNames
+//
+//==============================================================================
 function DEH_ParseLumpNames(const lumpname: string): boolean;
 
+//==============================================================================
+//
+// DEH_ParseLumpNum
+//
+//==============================================================================
 procedure DEH_ParseLumpNum(const lump: integer);
 
+//==============================================================================
+//
+// DEH_ParseFile
+//
+//==============================================================================
 procedure DEH_ParseFile(const filename: string);
 
+//==============================================================================
+//
+// DEH_StringToCString
+//
+//==============================================================================
 function DEH_StringToCString(const s: string): string;
 
+//==============================================================================
+//
+// DEH_CStringToString
+//
+//==============================================================================
 function DEH_CStringToString(const s: string): string;
 
+//==============================================================================
+//
+// DEH_StringValue
+//
+//==============================================================================
 function DEH_StringValue(const s: string): string;
 
+//==============================================================================
+//
+// DEH_PrintCurrentSettings
+//
+//==============================================================================
 procedure DEH_PrintCurrentSettings;
 
+//==============================================================================
+//
+// DEH_SaveCurrentSettings
+//
+//==============================================================================
 procedure DEH_SaveCurrentSettings(const fname: string);
 
+//==============================================================================
+//
+// DEH_CurrentActordef
+//
+//==============================================================================
 function DEH_CurrentActordef: string;
 
+//==============================================================================
+//
+// DEH_PrintActordef
+//
+//==============================================================================
 procedure DEH_PrintActordef;
 
+//==============================================================================
+//
+// DEH_SaveActordef
+//
+//==============================================================================
 procedure DEH_SaveActordef(const fname: string);
 
+//==============================================================================
+//
+// DEH_CurrentWeapondef
+//
+//==============================================================================
 function DEH_CurrentWeapondef: string;
 
+//==============================================================================
+//
+// DEH_PrintWeapondef
+//
+//==============================================================================
 procedure DEH_PrintWeapondef;
 
+//==============================================================================
+//
+// DEH_SaveWeapondef
+//
+//==============================================================================
 procedure DEH_SaveWeapondef(const fname: string);
 
+//==============================================================================
+//
+// DEH_CurrentStateOwners
+//
+//==============================================================================
 function DEH_CurrentStateOwners: string;
 
+//==============================================================================
+//
+// DEH_PrintStateOwners
+//
+//==============================================================================
 procedure DEH_PrintStateOwners;
 
+//==============================================================================
+//
+// DEH_SaveStateOwners
+//
+//==============================================================================
 procedure DEH_SaveStateOwners(const fname: string);
 
+//==============================================================================
+//
+// DEH_PrintActions
+//
+//==============================================================================
 procedure DEH_PrintActions;
 
+//==============================================================================
+//
+// DEH_FixedOrFloat
+//
+//==============================================================================
 function DEH_FixedOrFloat(const token: string; const tolerance: integer): fixed_t;
 
+//==============================================================================
+//
+// DEH_MobjInfoCSV
+//
+//==============================================================================
 function DEH_MobjInfoCSV: TDStringList;
 
+//==============================================================================
+//
+// DEH_SaveMobjInfoCSV
+//
+//==============================================================================
 procedure DEH_SaveMobjInfoCSV(const fname: string);
 
+//==============================================================================
+//
+// DEH_StatesCSV
+//
+//==============================================================================
 function DEH_StatesCSV: TDStringList;
 
+//==============================================================================
+//
+// DEH_SaveStatesCSV
+//
+//==============================================================================
 procedure DEH_SaveStatesCSV(const fname: string);
 
+//==============================================================================
+//
+// DEH_SpritesCSV
+//
+//==============================================================================
 function DEH_SpritesCSV: TDStringList;
 
+//==============================================================================
+//
+// DEH_SaveSpritesCSV
+//
+//==============================================================================
 procedure DEH_SaveSpritesCSV(const fname: string);
 
+//==============================================================================
+//
+// DEH_ActionName
+//
+//==============================================================================
 function DEH_ActionName(action: actionf_t): string;
 
+//==============================================================================
+//
+// DEH_InitActionsHash
+//
+//==============================================================================
 procedure DEH_InitActionsHash;
 
+//==============================================================================
+//
+// DEH_ShutDownActionsHash
+//
+//==============================================================================
 procedure DEH_ShutDownActionsHash;
 
+//==============================================================================
+//
+// DEH_AddActionToHash
+//
+//==============================================================================
 procedure DEH_AddActionToHash(const act: string; const idpos: integer);
 
+//==============================================================================
+//
+// DEH_SearchActionFromHash
+//
+//==============================================================================
 function DEH_SearchActionFromHash(const act: string): integer;
 
+//==============================================================================
+//
+// DEH_AmmoType
+//
+//==============================================================================
 function DEH_AmmoType(const str: string): integer;
 
+//==============================================================================
+//
+// DEH_WeaponType
+//
+//==============================================================================
 function DEH_WeaponType(const str: string): integer;
 
-procedure DEH_AddAction(const acp1: actionf_p1; const desc: string);
+//==============================================================================
+//
+// DEH_AddAction
+//
+//==============================================================================
+procedure DEH_AddAction(const acp1: actionf_p1; const desc: string); overload;
+
+//==============================================================================
+//
+// DEH_AddAction
+//
+//==============================================================================
+procedure DEH_AddAction(const acp1: actionf_p1; const desc: string; const def_args: array of integer); overload;
 
 {$IFDEF  HEXEN}
+
+//==============================================================================
+//
+// DEH_PlayerClass
+//
+//==============================================================================
 function DEH_PlayerClass(const str: string): integer;
 {$ENDIF}
 
@@ -147,6 +340,11 @@ uses
   w_pak,
   w_wad;
 
+//==============================================================================
+//
+// DEH_NextLine
+//
+//==============================================================================
 function DEH_NextLine(const s: TDStringList; var str: string; var counter: integer; const skipblanc: boolean = true): boolean;
 var
   trimmed: string;
@@ -165,7 +363,7 @@ begin
     result := DEH_NextLine(s, str, counter);
     exit;
   end;
-  if Pos('#', trimmed) = 1 then
+  if CharPos('#', trimmed) = 1 then
   begin
     result := DEH_NextLine(s, str, counter);
     exit;
@@ -175,9 +373,14 @@ begin
     result := DEH_NextLine(s, str, counter);
     exit;
   end;
-  str := strupper(str);
+  strupperproc(str);
 end;
 
+//==============================================================================
+//
+// DEH_ParseText
+//
+//==============================================================================
 procedure DEH_ParseText(const deh_tx: string);
 var
   s: TDStringList;
@@ -191,6 +394,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_ParseLumpName
+//
+//==============================================================================
 function DEH_ParseLumpName(const lumpname: string): boolean;
 var
   lump: integer;
@@ -205,6 +413,11 @@ begin
     result := false;
 end;
 
+//==============================================================================
+//
+// DEH_ParseLumpNames
+//
+//==============================================================================
 function DEH_ParseLumpNames(const lumpname: string): boolean;
 var
   i: integer;
@@ -227,6 +440,11 @@ begin
   result := cnt > 0;
 end;
 
+//==============================================================================
+//
+// DEH_ParseLumpNum
+//
+//==============================================================================
 procedure DEH_ParseLumpNum(const lump: integer);
 begin
   if lump < 0 then
@@ -235,6 +453,11 @@ begin
   DEH_ParseText(W_TextLumpNum(lump));
 end;
 
+//==============================================================================
+//
+// DEH_ParseFile
+//
+//==============================================================================
 procedure DEH_ParseFile(const filename: string);
 var
   fname: string;
@@ -253,7 +476,7 @@ begin
   fnames := TDStringList.Create;
   s := TDStringList.Create;
   try
-    if Pos('.', filename) = 0 then
+    if CharPos('.', filename) = 0 then
     begin
       fnames.Add('%s.%s', [filename, 'deh']);
       fnames.Add('%s.%s', [filename, 'bex']);
@@ -296,6 +519,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_StringToCString
+//
+//==============================================================================
 function DEH_StringToCString(const s: string): string;
 var
   i, len: integer;
@@ -319,6 +547,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_CStringToString
+//
+//==============================================================================
 function DEH_CStringToString(const s: string): string;
 var
   i, len: integer;
@@ -363,6 +596,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_StringValue
+//
+//==============================================================================
 function DEH_StringValue(const s: string): string;
 var
   i: integer;
@@ -375,6 +613,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_PrintCurrentSettings
+//
+//==============================================================================
 procedure DEH_PrintCurrentSettings;
 var
   s: TDSTringList;
@@ -389,6 +632,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_SaveCurrentSettings
+//
+//==============================================================================
 procedure DEH_SaveCurrentSettings(const fname: string);
 var
   s: TDSTringList;
@@ -400,7 +648,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.bex'
   else
     fname1 := fname;
@@ -416,6 +664,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_CurrentActordef
+//
+//==============================================================================
 function DEH_CurrentActordef: string;
 var
   m: integer;
@@ -425,6 +678,11 @@ begin
     result := result + SC_GetActordefDeclaration(@mobjinfo[m]);
 end;
 
+//==============================================================================
+//
+// DEH_PrintActordef
+//
+//==============================================================================
 procedure DEH_PrintActordef;
 var
   s: TDSTringList;
@@ -440,6 +698,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_SaveActordef
+//
+//==============================================================================
 procedure DEH_SaveActordef(const fname: string);
 var
   s: TDSTringList;
@@ -451,7 +714,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -468,6 +731,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_CurrentWeapondef
+//
+//==============================================================================
 function DEH_CurrentWeapondef: string;
 var
   w: integer;
@@ -486,6 +754,11 @@ begin
       result := result + SC_GetWeapondefDeclaration(w{$IFDEF HERETIC_OR_HEXEN}, i{$ENDIF});
 end;
 
+//==============================================================================
+//
+// DEH_PrintWeapondef
+//
+//==============================================================================
 procedure DEH_PrintWeapondef;
 var
   s: TDSTringList;
@@ -501,6 +774,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_SaveWeapondef
+//
+//==============================================================================
 procedure DEH_SaveWeapondef(const fname: string);
 var
   s: TDSTringList;
@@ -512,7 +790,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -529,6 +807,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_CurrentStateOwners
+//
+//==============================================================================
 function DEH_CurrentStateOwners: string;
 var
   i, j: integer;
@@ -543,12 +826,17 @@ begin
     begin
       for j := 0 to states[i].owners.Count - 1 do
         s2 := s2 + '"' + strtrim(mobjinfo[states[i].owners.Numbers[j]].name) + '" ';
-      s2 := strtrim(s2);
+      trimproc(s2);
     end;
     result := result + s1 + '=' + s2 + #13#10;
   end;
 end;
 
+//==============================================================================
+//
+// DEH_PrintStateOwners
+//
+//==============================================================================
 procedure DEH_PrintStateOwners;
 var
   s: TDSTringList;
@@ -564,6 +852,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_SaveStateOwners
+//
+//==============================================================================
 procedure DEH_SaveStateOwners(const fname: string);
 var
   s: TDSTringList;
@@ -575,7 +868,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.txt'
   else
     fname1 := fname;
@@ -592,6 +885,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_PrintActions
+//
+//==============================================================================
 procedure DEH_PrintActions;
 var
   i: integer;
@@ -600,6 +898,11 @@ begin
     printf('A_%s'#13#10, [deh_actions[i].name]);
 end;
 
+//==============================================================================
+//
+// DEH_FixedOrFloat
+//
+//==============================================================================
 function DEH_FixedOrFloat(const token: string; const tolerance: integer): fixed_t;
 var
   fv: float;
@@ -616,10 +919,16 @@ begin
     result := atoi(token);
 end;
 
+//==============================================================================
+//
+// DEH_MobjInfoCSV
+//
+//==============================================================================
 function DEH_MobjInfoCSV: TDStringList;
 var
   i, idx1, idx2: integer;
   s1, s2, headstr, datstr: string;
+  csstring: string;
   cs: TDStringList;
 begin
   DEH_Init;
@@ -629,12 +938,14 @@ begin
   idx2 := cs.IndexOf('# States');
 
   headstr := '';
-  for i := idx1 + 1 to idx2 + 1 do
-    if strtrim(cs.Strings[i]) <> '' then
-      if Pos('#', strtrim(cs.Strings[i])) <> 1 then
-        if Pos('//', strtrim(cs.Strings[i])) < 1 then
+  for i := idx1 + 1 to idx2 - 1 do
+  begin
+    csstring := strtrim(cs.Strings[i]);
+    if csstring <> '' then
+      if CharPos('#', csstring) <> 1 then
+        if Pos('//', csstring) < 1 then
         begin
-          if Pos('THING ', strtrim(strupper(cs.Strings[i]))) = 1 then
+          if Pos('THING ', strupper(csstring)) = 1 then
           begin
             if headstr = '' then
               headstr := '"id"'
@@ -643,10 +954,12 @@ begin
           end
           else if headstr <> '' then
           begin
-            splitstring(strtrim(cs.Strings[i]), s1, s2, '=');
-            headstr := headstr + ';' + '"' + strtrim(s1) + '"';
+            splitstring_ch(csstring, s1, s2, '=');
+            trimproc(s1);
+            headstr := headstr + ';' + '"' + s1 + '"';
           end;
         end;
+  end;
 
   result := TDStringList.Create;
   result.Add(headstr);
@@ -654,13 +967,17 @@ begin
   datstr := '';
   for i := idx1 + 1 to idx2 - 1 do
   begin
-    if strtrim(cs.Strings[i]) <> '' then
-      if Pos('#', strtrim(cs.Strings[i])) <> 1 then
-        if Pos('//', strtrim(cs.Strings[i])) < 1 then
-          if Pos('THING ', strtrim(strupper(cs.Strings[i]))) < 1 then
+    csstring := strtrim(cs.Strings[i]);
+    if csstring <> '' then
+      if CharPos('#', csstring) <> 1 then
+        if Pos('//', csstring) < 1 then
+          if Pos('THING ', strupper(csstring)) < 1 then
           begin
-            splitstring(strtrim(cs.Strings[i]), s1, s2, '=');
-            datstr := datstr + ';' + '"' + strtrim(s2) + '"';
+            splitstring_ch(csstring, s1, s2, '=');
+            trimproc(s2);
+            if s2 = '' then
+              s2 := '-';
+            datstr := datstr + ';' + '"' + s2 + '"';
           end
           else
           begin
@@ -674,6 +991,11 @@ begin
   cs.Free;
 end;
 
+//==============================================================================
+//
+// DEH_SaveMobjInfoCSV
+//
+//==============================================================================
 procedure DEH_SaveMobjInfoCSV(const fname: string);
 var
   s: TDSTringList;
@@ -685,7 +1007,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.csv'
   else
     fname1 := fname;
@@ -701,6 +1023,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_StatesCSV
+//
+//==============================================================================
 function DEH_StatesCSV: TDStringList;
 var
   i, j, idx1, idx2: integer;
@@ -725,7 +1052,7 @@ begin
   headstr := '';
   for i := idx1 + 1 to idx2 - 1 do
     if strtrim(cs.Strings[i]) <> '' then
-      if Pos('#', strtrim(cs.Strings[i])) <> 1 then
+      if CharPos('#', strtrim(cs.Strings[i])) <> 1 then
         if Pos('//', strtrim(cs.Strings[i])) < 1 then
         begin
           if Pos('FRAME ', strtrim(strupper(cs.Strings[i]))) = 1 then
@@ -737,24 +1064,24 @@ begin
           end
           else if headstr <> '' then
           begin
-            splitstring(strtrim(cs.Strings[i]), s1, s2, '=');
+            splitstring_ch(strtrim(cs.Strings[i]), s1, s2, '=');
             headstr := headstr + ';' + '"' + strtrim(s1) + '"';
           end;
         end;
 
   result := TDStringList.Create;
   result.Add(headstr);
-  result.Add('"S_NULL";"0";"0";"0";"0";"-1";"0";"NULL";"0";"0";"0"');
+  result.Add('"S_NULL";"0";"0";"0";"0";"-1";"0";"NULL";"0";"0";"0";"0"');
 
   datstr := '';
   for i := idx1 + 1 to idx2 - 1 do
   begin
     if strtrim(cs.Strings[i]) <> '' then
-      if Pos('#', strtrim(cs.Strings[i])) <> 1 then
+      if CharPos('#', strtrim(cs.Strings[i])) <> 1 then
         if Pos('//', strtrim(cs.Strings[i])) < 1 then
           if Pos('FRAME ', strtrim(strupper(cs.Strings[i]))) <> 1 then
           begin
-            splitstring(strtrim(cs.Strings[i]), s1, s2, '=');
+            splitstring_ch(strtrim(cs.Strings[i]), s1, s2, '=');
             for j := 1 to length(s2) do
               if s2[j] = '"' then
                 s2[j] := ' ';
@@ -772,6 +1099,11 @@ begin
   cs.Free;
 end;
 
+//==============================================================================
+//
+// DEH_SaveStatesCSV
+//
+//==============================================================================
 procedure DEH_SaveStatesCSV(const fname: string);
 var
   s: TDSTringList;
@@ -783,7 +1115,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.csv'
   else
     fname1 := fname;
@@ -799,6 +1131,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_SpritesCSV
+//
+//==============================================================================
 function DEH_SpritesCSV: TDStringList;
 var
   i: integer;
@@ -815,6 +1152,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_SaveSpritesCSV
+//
+//==============================================================================
 procedure DEH_SaveSpritesCSV(const fname: string);
 var
   s: TDSTringList;
@@ -826,7 +1168,7 @@ begin
     exit;
   end;
 
-  if Pos('.', fname) = 0 then
+  if CharPos('.', fname) = 0 then
     fname1 := fname + '.csv'
   else
     fname1 := fname;
@@ -842,6 +1184,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_ActionName
+//
+//==============================================================================
 function DEH_ActionName(action: actionf_t): string;
 var
   i: integer;
@@ -863,6 +1210,11 @@ const
 var
   dehactionshasttable: array[0..DEH_ACTIONS_HASH_SIZE - 1] of TDStringList;
 
+//==============================================================================
+//
+// DEH_InitActionsHash
+//
+//==============================================================================
 procedure DEH_InitActionsHash;
 var
   i: integer;
@@ -871,6 +1223,11 @@ begin
     dehactionshasttable[i] := TDStringList.Create;
 end;
 
+//==============================================================================
+//
+// DEH_ShutDownActionsHash
+//
+//==============================================================================
 procedure DEH_ShutDownActionsHash;
 var
   i, j: integer;
@@ -883,6 +1240,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DEH_FixActionName
+//
+//==============================================================================
 function DEH_FixActionName(const act: string): string;
 begin
   if Pos('A_', act) = 1 then
@@ -893,6 +1255,11 @@ begin
     result := strupper(act);
 end;
 
+//==============================================================================
+//
+// dehactionhash
+//
+//==============================================================================
 function dehactionhash(const act: string): LongWord;
 var
   i: integer;
@@ -911,6 +1278,11 @@ begin
   result := result and (DEH_ACTIONS_HASH_SIZE - 1);
 end;
 
+//==============================================================================
+//
+// DEH_AddActionToHash
+//
+//==============================================================================
 procedure DEH_AddActionToHash(const act: string; const idpos: integer);
 var
   hash: LongWord;
@@ -921,6 +1293,11 @@ begin
   dehactionshasttable[hash].AddObject(str, TInteger.Create(idpos));
 end;
 
+//==============================================================================
+//
+// DEH_SearchActionFromHash
+//
+//==============================================================================
 function DEH_SearchActionFromHash(const act: string): integer;
 var
   hash: LongWord;
@@ -939,6 +1316,11 @@ begin
   result := -1;
 end;
 
+//==============================================================================
+//
+// dehstringhash
+//
+//==============================================================================
 function dehstringhash(const s: string): LongWord;
 var
   i: integer;
@@ -957,7 +1339,11 @@ begin
   result := result and (DEH_STRINGLIST_HASH_SIZE - 1);
 end;
 
-
+//==============================================================================
+//
+// TDEHStringsHashTable.Create
+//
+//==============================================================================
 constructor TDEHStringsHashTable.Create;
 var
   i: integer;
@@ -968,6 +1354,11 @@ begin
   fList := nil;
 end;
 
+//==============================================================================
+//
+// TDEHStringsHashTable.Destroy
+//
+//==============================================================================
 destructor TDEHStringsHashTable.Destroy;
 var
   i: integer;
@@ -977,6 +1368,11 @@ begin
   Inherited Destroy;
 end;
 
+//==============================================================================
+//
+// TDEHStringsHashTable.AssignList
+//
+//==============================================================================
 procedure TDEHStringsHashTable.AssignList(const s: TDTextList);
 var
   i: integer;
@@ -992,6 +1388,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TDEHStringsHashTable.IndexOf
+//
+//==============================================================================
 function TDEHStringsHashTable.IndexOf(const value: string): integer;
 var
   h: integer;
@@ -1021,6 +1422,11 @@ begin
   result := fList.IndexOf(check);
 end;
 
+//==============================================================================
+//
+// DEH_AmmoType
+//
+//==============================================================================
 function DEH_AmmoType(const str: string): integer;
 var
   stmp: string;
@@ -1046,6 +1452,11 @@ begin
   result := ammotype_tokens.IndexOf(stmp);
 end;
 
+//==============================================================================
+//
+// DEH_WeaponType
+//
+//==============================================================================
 function DEH_WeaponType(const str: string): integer;
 var
   stmp: string;
@@ -1069,9 +1480,15 @@ begin
   result := weapontype_tokens.IndexOf(stmp);
 end;
 
+//==============================================================================
+//
+// DEH_AddAction
+//
+//==============================================================================
 procedure DEH_AddAction(const acp1: actionf_p1; const desc: string);
 var
   aname: string;
+  i: integer;
 begin
   if dehnumactions >= DEHMAXACTIONS then
     I_Error('DEH_AddAction(): Trying to add more than %d actions', [DEHMAXACTIONS]);
@@ -1082,11 +1499,49 @@ begin
     Delete(aname, 1, 2);
   deh_actions[dehnumactions].originalname := aname;
   deh_actions[dehnumactions].name := strupper(aname);
+  deh_actions[dehnumactions].argcount := 0;
+  for i := 0 to MAX_STATE_ARGS - 1 do
+    deh_actions[dehnumactions].default_args[i] := 0;
   {$IFDEF DLL}deh_actions[dehnumactions].decl := desc;{$ENDIF}
   Inc(dehnumactions);
 end;
 
-{$IFDEF  HEXEN}
+//==============================================================================
+//
+// DEH_AddAction
+//
+//==============================================================================
+procedure DEH_AddAction(const acp1: actionf_p1; const desc: string; const def_args: array of integer); overload;
+var
+  aname: string;
+  n_args, i: integer;
+begin
+  if dehnumactions >= DEHMAXACTIONS then
+    I_Error('DEH_AddAction(): Trying to add more than %d actions', [DEHMAXACTIONS]);
+
+  deh_actions[dehnumactions].action.acp1 := @acp1;
+  aname := firstword(desc, [' ', ';', '(', '[', ':', #7, #9, #10, #13]);
+  if Pos('A_', strupper(aname)) = 1 then
+    Delete(aname, 1, 2);
+  deh_actions[dehnumactions].originalname := aname;
+  deh_actions[dehnumactions].name := strupper(aname);
+  n_args := Length(def_args);
+  deh_actions[dehnumactions].argcount := n_args;
+  for i := 0 to n_args - 1 do
+    deh_actions[dehnumactions].default_args[i] := def_args[i];
+  for i := n_args to MAX_STATE_ARGS - 1 do
+    deh_actions[dehnumactions].default_args[i] := 0;
+  {$IFDEF DLL}deh_actions[dehnumactions].decl := desc;{$ENDIF}
+  Inc(dehnumactions);
+end;
+
+{$IFDEF HEXEN}
+
+//==============================================================================
+//
+// DEH_PlayerClass
+//
+//==============================================================================
 function DEH_PlayerClass(const str: string): integer;
 var
   stmp: string;

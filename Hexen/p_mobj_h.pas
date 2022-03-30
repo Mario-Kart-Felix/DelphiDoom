@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Map Objects, MObj, definition and handling.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -190,11 +190,9 @@ const
   //  using an internal color lookup table for re-indexing.
   // If 0x4 0x8 or 0xc,
   //  use a translation table for player colormaps
-  MF_TRANSLATION = $c000000;
+  MF_TRANSLATION = $1c000000;
   // Hmm ???.
   MF_TRANSSHIFT = 26;
-
-  MF_JUSTAPPEARED = $40000000;
 
 const
   MF2_LOGRAV = $00000001;           // alternate gravity setting
@@ -289,6 +287,8 @@ const
   MF_EX_STATE_RANDOM_SELECT = $40;
   MF_EX_STATE_RANDOM_RANGE = $80;
   MF_EX_STATE_PARAMS_ERROR = $100;
+  MF_EX_STATE_ARGS_CHECKED = $200;
+  MF_EX_STATE_ARGS_ERROR = $400;
 
   // Float BOB
   MF_EX_FLOATBOB = $40;
@@ -380,6 +380,12 @@ const
   MF2_EX_DONTBLOCKPLAYER = $40000;
   // Interactive mobj - can be set to interactstate
   MF2_EX_INTERACTIVE = $80000;
+  // Just appeared
+  MF2_EX_JUSTAPPEARED = $100000;
+  // Don't return fire
+  MF2_EX_DONTINFIGHTMONSTERS = $200000;
+  // Friendly monsters
+  MF2_EX_FRIEND = $400000;
 
 const
   // Bounce on floor
@@ -393,7 +399,7 @@ const
   // No max move
   MF3_EX_NOMAXMOVE = 8;
   // No Crush
-  MF3_EX_NOCRASH = 16;
+  MF3_EX_NOCRUSH = 16;
   // No render interpolation
   MF3_EX_NORENDERINTERPOLATION = 32;
   // Line Activate (MBF)
@@ -444,6 +450,46 @@ const
   MF4_EX_THRUMONSTERS = 2;
   // Drop item in actual z
   MF4_EX_ABSOLUTEDROPITEMPOS = 4;
+  // Can not step up
+  MF4_EX_CANNOTSTEP = 8;
+  // Can not drop off
+  MF4_EX_CANNOTDROPOFF = $10;
+  // Force radius damage
+  MF4_EX_FORCERADIUSDMG = $20;
+  // short missile range (14 * 64)
+  MF4_EX_SHORTMRANGE = $40;
+  // other things ignore its attacks
+  MF4_EX_DMGIGNORED = $80;
+  // higher missile attack probability
+  MF4_EX_HIGHERMPROB = $100;
+  // use half distance for missile attack probability
+  MF4_EX_RANGEHALF = $200;
+  // no targeting threshold
+  MF4_EX_NOTHRESHOLD = $400;
+  // long melee range
+  MF4_EX_LONGMELEERANGE = $800;
+  // Follow trace
+  MF4_EX_TRACEDEFINED = $1000;
+  // Tag 666 "boss" on map 7
+  MF4_EX_MAP07BOSS1 = $2000;
+  // Tag 667 "boss" on map 7
+  MF4_EX_MAP07BOSS2 = $4000;
+  // Tag 666 or 667 "boss" on map 7
+  MF4_EX_MAP07BOSS = MF4_EX_MAP07BOSS1 or MF4_EX_MAP07BOSS2;
+  // Self applying lighmap
+  MF4_EX_SELFAPPLYINGLIGHT = $8000;
+  // Full volume rip sound
+  MF4_EX_FULLVOLRIP = $10000;
+  // Random rip sound
+  MF4_EX_RANDOMRIPSOUND = $20000;
+  // Ignore full_sounds console variable and always finishes sounds
+  MF4_EX_ALWAYSFINISHSOUND = $40000;
+  // Ignore full_sounds console variable and never finishes sounds
+  MF4_EX_NEVERFINISHSOUND = $80000;
+  // Do not gib
+  MF4_EX_DONTGIB = $100000;
+  // Backing in melee attack
+  MF4_EX_BACKINGMELEE = $200000;
 
 type
 // Map Object definition.
@@ -588,6 +634,21 @@ type
     painchance: integer;
     spriteDX: integer;
     spriteDY: integer;
+    flags5_ex: integer;  // JVAL extended flags (MF5_EX_????)
+    flags6_ex: integer;  // JVAL extended flags (MF6_EX_????)
+    playerfollowtime: integer;      // JVAL 20211224 - Dogs follow player
+    tracefollowtimestamp: integer;  // JVAL 20211224 - Dogs follow player
+    tracex: integer;
+    tracey: integer;
+    tracez: integer;
+    // mbf21+
+    infighting_group: integer;
+    projectile_group: integer;
+    splash_group: integer;
+    strafecount: integer;
+    bloodcolor: integer;
+    translationname: string[8];
+    translationtable: Pointer;
   end;
   Tmobj_tPArray = array[0..$FFFF] of Pmobj_t;
   Pmobj_tPArray = ^Tmobj_tPArray;

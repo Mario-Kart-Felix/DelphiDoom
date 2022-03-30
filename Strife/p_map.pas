@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -32,7 +32,7 @@
 //  Shooting and aiming.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -53,33 +53,92 @@ uses
   tables,
   d_player,
   r_defs,
-// State.
 // Data.
-  sounds;
+  sounddata;
 
+//==============================================================================
+//
+// P_TeleportMove
+//
+//==============================================================================
 function P_TeleportMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 
+//==============================================================================
+//
+// P_CheckPosition
+//
+//==============================================================================
 function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
 
+//==============================================================================
+//
+// P_TryMove
+//
+//==============================================================================
 function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 
-function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t): fixed_t;
+//==============================================================================
+//
+// P_AimLineAttack
+//
+//==============================================================================
+function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t; mask2_ex: integer = 0): fixed_t;
 
+//==============================================================================
+//
+// P_LineAttack
+//
+//==============================================================================
 procedure P_LineAttack(t1: Pmobj_t; angle: angle_t;
   distance: fixed_t; slope: fixed_t; damage: integer);
 
+//==============================================================================
+//
+// P_UseLines
+//
+//==============================================================================
 procedure P_UseLines(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_RadiusAttack
+//
+//==============================================================================
 procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; const damage: integer);
 
+//==============================================================================
+//
+// P_RadiusAttackEx
+//
+//==============================================================================
 procedure P_RadiusAttackEx(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
 
+//==============================================================================
+//
+// P_RadiusAttackPlayer
+//
+//==============================================================================
 procedure P_RadiusAttackPlayer(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
 
+//==============================================================================
+//
+// P_ChangeSector
+//
+//==============================================================================
 function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
 
+//==============================================================================
+//
+// P_SlideMove
+//
+//==============================================================================
 procedure P_SlideMove(mo: Pmobj_t);
 
+//==============================================================================
+//
+// P_TestMobjLocation
+//
+//==============================================================================
 function P_TestMobjLocation(mobj: Pmobj_t): boolean;
 
 var
@@ -112,17 +171,37 @@ var
 
   attackrange: fixed_t;
 
+//==============================================================================
+//
+// P_SectorJumpOverhead
+//
+//==============================================================================
 function P_SectorJumpOverhead(const s: Psector_t): integer;
 
+//==============================================================================
+// P_CreateSecNodeList
+//
 // Boom compatibility
+//
+//==============================================================================
 procedure P_CreateSecNodeList(thing: Pmobj_t; x, y: fixed_t);
 
+//==============================================================================
+//
+// P_DelSecnode
+//
+//==============================================================================
 function P_DelSecnode(node: Pmsecnode_t): Pmsecnode_t;
 
 var
   tmbbox: array[0..3] of fixed_t;
   sector_list: Pmsecnode_t;
 
+//==============================================================================
+//
+// P_CheckPositionZ
+//
+//==============================================================================
 function P_CheckPositionZ(thing: Pmobj_t; height: fixed_t): boolean;
 
 // JVAL: 3d Floors move from implementation section to interface
@@ -141,6 +220,7 @@ uses
   info,
   info_common,
   info_rnd,
+  p_common,
   p_setup,
   p_maputl,
   p_inter,
@@ -153,24 +233,45 @@ uses
   p_tick,
   p_terrain,
   p_enemy,
-  ps_main,
+  p_sounds,
+  p_udmf,
+  udmf_spec,
+  ps_main,  // JVAL: Script Events
   r_main,
   r_sky,
   r_intrpl,
+  r_translations,
   z_zone;
 
 var
   tmflags: integer;
 
+//==============================================================================
+// P_CheckForPushSpecial
+//
+// CheckForPushSpecial
+//
+//==============================================================================
+procedure P_CheckForPushSpecial(line: Pline_t; side: integer; mobj: Pmobj_t);
+begin
+  if line.special <> 0 then
+  begin
+    if mobj.flags5_ex and MF5_EX_PUSHWALL <> 0 then
+      P_ActivateLine(line, mobj, side, ULAC_PUSH)
+    else if mobj.flags5_ex and MF5_EX_IMPACT <> 0 then
+      P_ActivateLine(line, mobj, side, ULAC_IMPACT);
+  end;
+end;
+
+//==============================================================================
 //
 // TELEPORT MOVE
-//
-
 //
 // PIT_StompThing
 //
 // [STRIFE] haleyjd 09/15/10: Modified so monsters can telestomp.
 //
+//==============================================================================
 function PIT_StompThing(thing: Pmobj_t): boolean;
 var
   blockdist: fixed_t;
@@ -249,12 +350,14 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_TeleportMove
 //
 // [STRIFE]
 // haleyjd 09/15/10: Modified to set thing z position.
 //
+//==============================================================================
 function P_TeleportMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 var
   xl: integer;
@@ -342,15 +445,14 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // MOVEMENT ITERATOR FUNCTIONS
-//
-
-
 //
 // PIT_CheckLine
 // Adjusts tmfloorz and tmceilingz as lines are contacted
 //
+//==============================================================================
 function PIT_CheckLine(ld: Pline_t): boolean;
 begin
   if (tmbbox[BOXRIGHT] <= ld.bbox[BOXLEFT]) or
@@ -381,6 +483,7 @@ begin
 
   if ld.backsector = nil then
   begin
+    P_CheckForPushSpecial(ld, 0, tmthing);
     result := false;  // one sided line
     tmbounceline := ld;
     exit;
@@ -388,35 +491,68 @@ begin
 
   if tmthing.flags and MF_MISSILE = 0 then
   begin
-    // villsa [STRIFE] include jumpover flag
-    if (ld.flags and ML_BLOCKING <> 0) and
-       ((ld.flags and ML_JUMPOVER = 0) or (tmfloorz + (32 * FRACUNIT) > tmthing.z)) then
+    if G_PlayingEngineVersion <= VERSION206 then
     begin
-      if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
+      // villsa [STRIFE] include jumpover flag
+      if (ld.flags and ML_BLOCKING <> 0) and
+         ((ld.flags and ML_JUMPOVER = 0) or (tmfloorz + (32 * FRACUNIT) > tmthing.z)) then
       begin
+        if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
+        begin
+          P_CheckForPushSpecial(ld, 0, tmthing);
+          result := false;  // explicitly blocking everything
+          tmbounceline := ld;
+          exit;
+        end;
+      end;
+
+      // villsa [STRIFE] exclude floaters from blockmonster lines
+      if (tmthing.player = nil) and (ld.flags and ML_BLOCKMONSTERS <> 0) and
+         (tmthing.flags and MF_FLOAT = 0) then
+      begin
+        result := false;  // block monsters only
+        tmbounceline := ld;
+        exit;
+      end;
+
+      // villsa [STRIFE]
+      if (ld.flags and ML_BLOCKFLOATERS <> 0) and (tmthing.flags and MF_FLOAT <> 0) then
+      begin
+        result := false;  // block floaters only
+        tmbounceline := ld;
+        exit;
+      end;
+    end
+    else
+    begin
+      // villsa [STRIFE] include jumpover flag
+      if (ld.flags and ML_BLOCKING <> 0) and
+         ((ld.flags and ML_JUMPOVER = 0) or (tmfloorz + (32 * FRACUNIT) > tmthing.z)) then
+      begin
+        P_CheckForPushSpecial(ld, 0, tmthing);
         result := false;  // explicitly blocking everything
         tmbounceline := ld;
         exit;
       end;
-    end;
 
-    // villsa [STRIFE] exclude floaters from blockmonster lines
-    if (tmthing.player = nil) and (ld.flags and ML_BLOCKMONSTERS <> 0) and
-       (tmthing.flags and MF_FLOAT = 0) then
-    begin
-      result := false;  // block monsters only
-      tmbounceline := ld;
-      exit;
-    end;
+      // villsa [STRIFE] exclude floaters from blockmonster lines
+      if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
+        if (tmthing.player = nil) and (ld.flags and ML_BLOCKMONSTERS <> 0) and
+           (tmthing.flags and MF_FLOAT = 0) then
+        begin
+          result := false;  // block monsters only
+          tmbounceline := ld;
+          exit;
+        end;
 
-    // villsa [STRIFE]
-    if (ld.flags and ML_BLOCKFLOATERS <> 0) and (tmthing.flags and MF_FLOAT <> 0) then
-    begin
-      result := false;  // block floaters only
-      tmbounceline := ld;
-      exit;
+      // villsa [STRIFE]
+      if (ld.flags and ML_BLOCKFLOATERS <> 0) and (tmthing.flags and MF_FLOAT <> 0) then
+      begin
+        result := false;  // block floaters only
+        tmbounceline := ld;
+        exit;
+      end;
     end;
-
   end;
 
   // set openrange, opentop, openbottom
@@ -457,7 +593,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// PIT_CheckLineTM
+//
 // JVAL: Slopes
+//
+//==============================================================================
 function PIT_CheckLineTM(ld: Pline_t): boolean;
 begin
   if (tmbbox[BOXRIGHT] <= ld.bbox[BOXLEFT]) or
@@ -495,8 +636,9 @@ begin
 
   if ld.backsector = nil then
   begin
+    P_CheckForPushSpecial(ld, 0, tmthing);
     result := false;  // one sided line
-      tmbounceline := ld;
+    tmbounceline := ld;
     exit;
   end;
 
@@ -515,12 +657,27 @@ begin
     end;
 
     // villsa [STRIFE] exclude floaters from blockmonster lines
-    if (tmthing.player = nil) and (ld.flags and ML_BLOCKMONSTERS <> 0) and
-       (tmthing.flags and MF_FLOAT = 0) then
+    if G_PlayingEngineVersion <= VERSION206 then
     begin
-      result := false;  // block monsters only
-      tmbounceline := ld;
-      exit;
+      if (tmthing.player = nil) and (ld.flags and ML_BLOCKMONSTERS <> 0) and
+         (tmthing.flags and MF_FLOAT = 0) then
+      begin
+          P_CheckForPushSpecial(ld, 0, tmthing);
+        result := false;  // block monsters only
+        tmbounceline := ld;
+        exit;
+      end;
+    end
+    else
+    begin
+      if tmthing.flags3_ex and MF3_EX_NOBLOCKMONST = 0 then
+        if (tmthing.player = nil) and (ld.flags and ML_BLOCKMONSTERS <> 0) and
+           (tmthing.flags and MF_FLOAT = 0) then
+        begin
+          result := false;  // block monsters only
+          tmbounceline := ld;
+          exit;
+        end;
     end;
 
     // villsa [STRIFE]
@@ -574,11 +731,27 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// JVAL: 20220313 - New function
+// P_ThingHeightOffsZ
+//
+//==============================================================================
+function P_ThingHeightOffsZ(const mo: Pmobj_t): fixed_t;
+begin
+  if mo.flags and MF_SPAWNCEILING <> 0 then
+    result := mo.height
+  else
+    result := 0;
+end;
+
+//==============================================================================
 //
 // JVAL: 20200308 - New function
-// P_ThingsInSameZ
+// P_ThingsInSameZ206
 //
-function P_ThingsInSameZ(const A, B: Pmobj_t): boolean;
+//==============================================================================
+function P_ThingsInSameZ206(const A, B: Pmobj_t): boolean;
 var
   Az1, Az2, Bz1, Bz2: fixed_t;
 begin
@@ -613,9 +786,57 @@ begin
     IsIntegerInRange(Bz2, Az1, Az2);
 end;
 
+//==============================================================================
+//
+// P_ThingsInSameZ
+//
+//==============================================================================
+function P_ThingsInSameZ(const A, B: Pmobj_t): boolean;
+var
+  Az1, Az2, Bz1, Bz2: fixed_t;
+begin
+  if G_PlayingEngineVersion < VERSION207 then
+  begin
+    result := P_ThingsInSameZ206(A, B);
+    exit;
+  end;
+
+  Az1 := A.z - P_ThingHeightOffsZ(A);
+  if Az1 < A.floorz then
+    Az1 := A.floorz;
+  Az2 := Az1 + A.height;
+  if Az2 > A.ceilingz then
+  begin
+    Az2 := A.ceilingz;
+    Az1 := Az2 - A.height;
+    if Az1 < A.floorz then
+      Az1 := A.floorz;
+  end;
+
+  Bz1 := B.z - P_ThingHeightOffsZ(B);
+  if Bz1 < B.floorz then
+    Bz1 := B.floorz;
+  Bz2 := Bz1 + B.height;
+  if Bz2 > B.ceilingz then
+  begin
+    Bz2 := B.ceilingz;
+    Bz1 := Bz2 - B.height;
+    if Bz1 < B.floorz then
+      Bz1 := B.floorz;
+  end;
+
+  result :=
+    IsIntegerInRange(Az1, Bz1 + 1, Bz2 - 1) or
+    IsIntegerInRange(Az2, Bz1 + 1, Bz2 - 1) or
+    IsIntegerInRange(Bz1, Az1 + 1, Az2 - 1) or
+    IsIntegerInRange(Bz2, Az1 + 1, Az2 - 1);
+end;
+
+//==============================================================================
 //
 // PIT_CheckThing
 //
+//==============================================================================
 function PIT_CheckThing(thing: Pmobj_t): boolean;
 var
   blockdist: fixed_t;
@@ -623,7 +844,7 @@ var
   damage: integer;
   pushfactor: fixed_t;
 begin
-  if (thing.flags and (MF_SOLID or MF_SPECIAL or MF_SHOOTABLE)) = 0 then
+  if thing.flags and (MF_SOLID or MF_SPECIAL or MF_SHOOTABLE) = 0 then
   begin
     result := true;
     exit;
@@ -751,19 +972,22 @@ begin
        // JVAL: 20211126 - Inherited actors do not hurt each other
        (Info_GetInheritance(tmthing.target.info) = Info_GetInheritance(thing.info))) then
     begin
-      // Don't hit same species as originator.
-      if thing = tmthing.target then
+      if (G_PlayingEngineVersion <= VERSION206) or P_ProjectileImmune(thing, tmthing.target) then
       begin
-        result := true;
-        exit;
-      end;
+        // Don't hit same species as originator.
+        if thing = tmthing.target then
+        begin
+          result := true;
+          exit;
+        end;
 
-      if (thing._type <> Ord(MT_PLAYER)) and (thing.flags2_ex and MF2_EX_MISSILEHURTSPECIES = 0) then
-      begin
-        // Explode, but do no damage.
-        // Let players missile other players.
-        result := false;
-        exit;
+        if (thing._type <> Ord(MT_PLAYER)) and (thing.flags2_ex and MF2_EX_MISSILEHURTSPECIES = 0) then
+        begin
+          // Explode, but do no damage.
+          // Let players missile other players.
+          result := false;
+          exit;
+        end;
       end;
     end;
 
@@ -794,6 +1018,47 @@ begin
     if (thing.flags and MF_SPECTRAL <> 0) and (tmthing.flags and MF_SPECTRAL = 0) then
     begin
       result := true; // keep going
+      exit;
+    end;
+
+    // mbf21: ripper projectile
+    if tmthing.flags4_ex and MF4_EX_RIP <> 0 then
+    begin
+      damage := ((P_Random and 3) + 2) * tmthing.info.damage;
+      if (thing.flags and MF_NOBLOOD = 0) and
+         (thing.flags_ex and MF_EX_INVULNERABLE = 0) then
+      begin
+        if thing.flags2_ex and MF2_EX_BLUEBLOOD <> 0 then
+          P_SpawnBlueBlood(tmthing.x, tmthing.y, tmthing.z, damage)
+        else if thing.flags2_ex and MF2_EX_GREENBLOOD <> 0 then
+          P_SpawnGreenBlood(tmthing.x, tmthing.y, tmthing.z, damage)
+        else
+          P_SpawnBlood(tmthing.x, tmthing.y, tmthing.z, damage, thing);
+      end;
+
+      A_RipSound1(tmthing);
+
+      P_DamageMobj(thing, tmthing, tmthing.target, damage);
+
+      // JVAL: Pushable things
+      if (thing.flags2_ex and MF2_EX_PUSHABLE <> 0) and (tmthing.flags2_ex and MF2_EX_CANNOTPUSH = 0) then
+      begin // Push thing
+        pushfactor := thing.pushfactor;
+        if pushfactor <= 0 then
+        begin
+          thing.momx := thing.momx + tmthing.momx div 4;
+          thing.momy := thing.momy + tmthing.momy div 4;
+        end
+        else
+        begin
+          thing.momx := thing.momx + FixedMul(tmthing.momx, pushfactor);
+          thing.momy := thing.momy + FixedMul(tmthing.momy, pushfactor);
+        end;
+      end;
+
+      numspechit := 0;
+
+      result := true;
       exit;
     end;
 
@@ -847,6 +1112,7 @@ end;
 // MOVEMENT CLIPPING
 //
 
+//==============================================================================
 //
 // P_CheckPosition
 // This is purely informative, nothing is modified
@@ -874,6 +1140,7 @@ end;
 // haleyjd 20110203:
 // [STRIFE] Modified to clear blockingline in advance of P_BlockLinesIterator
 //
+//==============================================================================
 function P_CheckPosition(thing: Pmobj_t; x, y: fixed_t): boolean;
 var
   xl: integer;
@@ -1006,11 +1273,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_TryMove
 // Attempt to move to a new position,
 // crossing special lines.
 //
+//==============================================================================
 function P_TryMove(thing: Pmobj_t; x, y: fixed_t): boolean;
 var
   oldx: fixed_t;
@@ -1023,6 +1292,25 @@ var
   oldonfloorz: boolean;
   dropoffmargin: fixed_t;
   jumpupmargin: fixed_t;
+
+  procedure pushline;
+  var
+    numSpecHitTemp: integer;
+  begin
+    if thing.flags and MF_NOCLIP = 0 then
+    begin
+      numSpecHitTemp := numspechit;
+      while numSpecHitTemp > 0 do
+      begin
+        dec(numSpecHitTemp);
+        // see if the line was crossed
+        ld := spechit[numSpecHitTemp];
+        side := P_PointOnLineSide(thing.x, thing.y, ld);
+        P_CheckForPushSpecial(ld, side, thing);
+      end;
+    end;
+  end;
+
 begin
   floatok := false;
   if not P_CheckPosition(thing, x, y) then
@@ -1035,6 +1323,7 @@ begin
   begin
     if tmceilingz - tmfloorz < thing.height then
     begin
+      pushline;
       result := false;  // doesn't fit
       exit;
     end;
@@ -1043,6 +1332,7 @@ begin
 
     if tmceilingz - thing.z < thing.height then
     begin
+      pushline;
       result := false;  // mobj must lower itself to fit
       exit;
     end;
@@ -1065,14 +1355,19 @@ begin
         end;
 
     // JVAL: 20210210 - maxstepheight field
-    if thing.info.maxstepheight > 0 then
-    begin
-      jumpupmargin := thing.info.maxstepheight;
-      if jumpupmargin < 64 then
-        jumpupmargin := jumpupmargin * FRACUNIT;
-    end
+    if thing.flags4_ex and MF4_EX_CANNOTSTEP <> 0 then
+      jumpupmargin := 0
     else
-      jumpupmargin := 24 * FRACUNIT;
+    begin
+      if thing.info.maxstepheight > 0 then
+      begin
+        jumpupmargin := thing.info.maxstepheight;
+        if jumpupmargin < 64 then
+          jumpupmargin := jumpupmargin * FRACUNIT;
+      end
+      else
+        jumpupmargin := 24 * FRACUNIT;
+    end;
 
     // JVAL: Version 205
     if G_PlayingEngineVersion >= VERSION205 then
@@ -1081,6 +1376,7 @@ begin
 
     if  tmfloorz - thing.z > jumpupmargin then
     begin
+      pushline;
       result := false;  // too big a step up
       exit;
     end;
@@ -1092,15 +1388,20 @@ begin
       exit;
     end;
 
-    // JVAL: 20210210 - maxdropoffheight field
-    if thing.info.maxdropoffheight > 0 then
-    begin
-      dropoffmargin := thing.info.maxdropoffheight;
-      if dropoffmargin < 64 then
-        dropoffmargin := dropoffmargin * FRACUNIT;
-    end
+    if thing.flags4_ex and MF4_EX_CANNOTDROPOFF <> 0 then
+      dropoffmargin := 0
     else
-      dropoffmargin := 32 * FRACUNIT; // haleyjd 20110204 [STRIFE]: dropoff height changed 24 -> 32
+    begin
+      // JVAL: 20210210 - maxdropoffheight field
+      if thing.info.maxdropoffheight > 0 then
+      begin
+        dropoffmargin := thing.info.maxdropoffheight;
+        if dropoffmargin < 64 then
+          dropoffmargin := dropoffmargin * FRACUNIT;
+      end
+      else
+        dropoffmargin := 32 * FRACUNIT; // haleyjd 20110204 [STRIFE]: dropoff height changed 24 -> 32
+    end;
 
     // JVAL: Version 204
     if G_PlayingEngineVersion >= VERSION204 then
@@ -1190,7 +1491,21 @@ begin
             PS_EventCrossLine(thing, pDiff(ld, lines, SizeOf(line_t)), oldside);
 
         if ld.special <> 0 then
+        begin
           P_CrossSpecialLine(pDiff(ld, lines, SizeOf(line_t)), oldside, thing);
+          if thing.player <> nil then
+          begin
+            P_ActivateLine(ld, thing, oldside, ULAC_CROSS);
+          end
+          else if thing.flags5_ex and MF5_EX_MCROSS <> 0 then
+          begin
+            P_ActivateLine(ld, thing, oldside, ULAC_MCROSS);
+          end
+          else if thing.flags5_ex and MF5_EX_PCROSS <> 0 then
+          begin
+            P_ActivateLine(ld, thing, oldside, ULAC_PCROSS);
+          end;
+        end;
       end;
     end;
   end;
@@ -1198,12 +1513,14 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_CheckPositionZ
 //
 // villsa [STRIFE] new function
 // Check colliding things on top of one another; ie., 3D Object Clipping
 //
+//==============================================================================
 function P_CheckPositionZ(thing: Pmobj_t; height: fixed_t): boolean;
 var
   x, y, z: fixed_t;
@@ -1280,6 +1597,7 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_ThingHeightClip
 // Takes a valid thing and adjusts the thing->floorz,
@@ -1290,6 +1608,7 @@ end;
 // the z will be set to the lowest value
 // and false will be returned.
 //
+//==============================================================================
 function P_ThingHeightClip(thing: Pmobj_t): boolean;
 var
   onfloor: boolean;
@@ -1331,11 +1650,13 @@ var
   tmxmove: fixed_t;
   tmymove: fixed_t;
 
+//==============================================================================
 //
 // P_HitSlideLine
 // Adjusts the xmove / ymove
 // so that the next move will slide along the wall.
 //
+//==============================================================================
 procedure P_HitSlideLine(ld: Pline_t);
 var
   side: integer;
@@ -1386,14 +1707,17 @@ begin
   tmymove := FixedMul(newlen, finesine[lineangle]);
 end;
 
+//==============================================================================
 //
 // PTR_SlideTraverse
 //
 // [STRIFE] Modified for smaller step-up height
 //
+//==============================================================================
 function PTR_SlideTraverse(intr: Pintercept_t): boolean;
 var
   li: Pline_t;
+  margin: integer;
 
   procedure isblocking;
   begin
@@ -1442,8 +1766,22 @@ begin
     exit;
   end;
 
-  // villsa [STRIFE] change from 24 to 16
-  if openbottom - slidemo.z > 16 * FRACUNIT then
+  if slidemo.flags4_ex and MF4_EX_CANNOTSTEP <> 0 then
+    margin := 0
+  else
+  begin
+    // villsa [STRIFE] change from 24 to 16
+    margin := 16 * FRACUNIT;
+    if G_PlayingEngineVersion >= VERSION207 then
+      if slidemo.info.maxstepheight > 0 then
+      begin
+        margin := slidemo.info.maxstepheight;
+        if margin < 64 then
+          margin := margin * FRACUNIT
+      end;
+  end;
+
+  if openbottom - slidemo.z > margin then
   begin
     isblocking; // too big a step up
     result := false; // stop
@@ -1454,6 +1792,7 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_SlideMove
 // The momx / momy move is bad, so try to slide
@@ -1463,6 +1802,7 @@ end;
 //
 // This is a kludgy mess.
 //
+//==============================================================================
 procedure P_SlideMove(mo: Pmobj_t);
 var
   leadx: fixed_t;
@@ -1582,15 +1922,18 @@ var
 
   aimslope: fixed_t;
 
+  aim_flags_mask2_ex: integer;  // JVAL: 20220111 - MBF21
+
 // JVAL: 3d floors : Moved from P_Sight
   bottomslope: fixed_t; // slopes to top and bottom of target
   topslope: fixed_t;
 
-
+//==============================================================================
 //
 // PTR_AimTraverse
 // Sets linetaget and aimslope when a target is aimed at.
 //
+//==============================================================================
 function PTR_AimTraverse(intr: Pintercept_t): boolean;
 var
   li: Pline_t;
@@ -1667,6 +2010,14 @@ begin
     exit;
   end;
 
+  // killough 7/19/98, 8/2/98:
+  // friends don't aim at friends (except players), at least not first
+  if (th.flags2_ex and shootthing.flags2_ex and aim_flags_mask2_ex <> 0) and (th.player = nil) then
+  begin
+    result := true; // corpse or something
+    exit;
+  end;
+
   // JVAL: 20210210 - MF3_EX_NOTAUTOAIMED flag
   if th.flags3_ex and MF3_EX_NOTAUTOAIMED <> 0 then
   begin
@@ -1705,11 +2056,13 @@ begin
   result := false; // don't go any farther
 end;
 
+//==============================================================================
 //
 // PTR_ShootTraverse
 //
 // [STRIFE] Changes for Spectres and Mauler puff/damage inflictor
 //
+//==============================================================================
 function PTR_ShootTraverse(intr: Pintercept_t): boolean;
 var
   x: fixed_t;
@@ -1837,7 +2190,10 @@ begin
         PS_EventShootLine(shootthing, pDiff(li, lines, SizeOf(line_t)), P_PointOnLineSide(shootthing.x, shootthing.y, li));
 
     if li.special <> 0 then
+    begin
       P_ShootSpecialLine(shootthing, li);
+      P_ActivateLine(li, shootthing, 0, ULAC_IMPACT);
+    end;
 
     if li.flags and ML_TWOSIDED = 0 then
     begin
@@ -1968,7 +2324,7 @@ begin
     else if intr.d.thing.flags2_ex and MF2_EX_GREENBLOOD <> 0 then
       P_SpawnGreenBlood(x, y, z, la_damage)
     else
-      P_SpawnBlood(x, y, z, la_damage);
+      P_SpawnBlood(x, y, z, la_damage, intr.d.thing);
   end;
 
   P_DamageMobj(th, shootthing, shootthing, la_damage);
@@ -1977,11 +2333,12 @@ begin
   result := false;
 end;
 
+//==============================================================================
 //
 // P_AimLineAttack
 //
-
-function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t): fixed_t;
+//==============================================================================
+function P_AimLineAttack(t1: Pmobj_t; angle: angle_t; distance: fixed_t; mask2_ex: integer = 0): fixed_t;
 var
   x2: fixed_t;
   y2: fixed_t;
@@ -2004,6 +2361,9 @@ begin
   attackrange := distance;
   linetarget := nil;
 
+  // killough 8/2/98: prevent friends from aiming at friends
+  aim_flags_mask2_ex := mask2_ex;
+
   P_PathTraverse(t1.x, t1.y, x2, y2, PT_ADDLINES or PT_ADDTHINGS, PTR_AimTraverse);
 
   if linetarget <> nil then
@@ -2015,6 +2375,7 @@ begin
     result := 0;
 end;
 
+//==============================================================================
 //
 // P_LineAttack
 // If damage == 0, it is just a test trace
@@ -2022,6 +2383,7 @@ end;
 //
 // [STRIFE] Modified to check lines only if damage <= 0 (see P_RadiusAttack)
 //
+//==============================================================================
 procedure P_LineAttack(t1: Pmobj_t; angle: angle_t;
   distance: fixed_t; slope: fixed_t; damage: integer);
 var
@@ -2054,6 +2416,11 @@ end;
 var
   usething: Pmobj_t;
 
+//==============================================================================
+//
+// PTR_UseTraverse
+//
+//==============================================================================
 function PTR_UseTraverse(intr: Pintercept_t): boolean;
 var
   side: integer;
@@ -2082,6 +2449,7 @@ begin
   end;
 
   P_UseSpecialLine(usething, li, side);
+  P_ActivateLine(intr.d.line, usething, 0, ULAC_USE);
 
   // can't use for than one special line in a row
   //WAS can't use for than one special line in a row
@@ -2090,10 +2458,16 @@ begin
   result := not G_NeedsCompatibilityMode and ((li.flags and ML_PASSUSE) <> 0);
 end;
 
+//==============================================================================
+// PTR_UseThingTraverse
+//
 // JVAL: mobjs interaction
+//
+//==============================================================================
 function PTR_UseThingTraverse(intr: Pintercept_t): boolean;
 var
   mobj: Pmobj_t;
+  p: Pplayer_t;
 begin
   if intr.isaline then
     if intr.d.line.flags and ML_TWOSIDED <> 0 then
@@ -2121,7 +2495,7 @@ begin
     result := true;
     exit;
   end;
-  if (mobj.flags2_ex and MF2_EX_INTERACTIVE) = 0 then
+  if mobj.flags2_ex and MF2_EX_INTERACTIVE = 0 then
   begin
     result := true;
     exit;
@@ -2140,13 +2514,19 @@ begin
   end;
   mobj.target := usething;
   P_SetMobjState(mobj, statenum_t(mobj.info.interactstate));
+  p := usething.player;
+  if p <> nil then
+    if G_PlayingEngineVersion >= VERSION207 then
+      p.nextfire := leveltime + TICRATE div 2;
   result := false;
 end;
 
+//==============================================================================
 //
 // P_UseLines
 // Looks for special lines in front of the player to activate.
 //
+//==============================================================================
 procedure P_UseLines(player: Pplayer_t);
 var
   angle: angle_t;
@@ -2186,7 +2566,7 @@ var
   bombdamage: integer;
   bombradius: integer;
 
-
+//==============================================================================
 //
 // PIT_RadiusAttack
 // "bombsource" is the creature
@@ -2194,6 +2574,7 @@ var
 //
 // [STRIFE] Modified for Spectral and Inquisitor exclusions
 //
+//==============================================================================
 function PIT_RadiusAttack(thing: Pmobj_t): boolean;
 var
   dx: fixed_t;
@@ -2201,6 +2582,12 @@ var
   dist: fixed_t;
 begin
   if thing.flags and MF_SHOOTABLE = 0 then
+  begin
+    result := true;
+    exit;
+  end;
+
+  if P_SplashImmune(thing, bombspot) then
   begin
     result := true;
     exit;
@@ -2231,8 +2618,19 @@ begin
 
   if thing.flags_ex and MF_EX_NORADIUSDMG <> 0 then
   begin
-    result := true;
-    exit;
+    if bombsource <> nil then
+    begin
+      if bombsource.flags4_ex and MF4_EX_FORCERADIUSDMG = 0 then
+      begin
+        result := true;
+        exit;
+      end;
+    end
+    else
+    begin
+      result := true;
+      exit;
+    end;
   end;
 
   if bombsource <> nil then
@@ -2254,7 +2652,7 @@ begin
     if thing.player = nil then
       if bombsource.info.doomednum > 0 then
       begin
-        if bombsource.info.flags_ex and MF_EX_DONTHURTSPECIES <> 0 then
+        if bombsource.flags_ex and MF_EX_DONTHURTSPECIES <> 0 then
           if Info_GetInheritance(thing.info) = Info_GetInheritance(bombsource.info) then
           begin
             result := true;
@@ -2290,6 +2688,7 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // P_RadiusAttack
 // Source is the creature that caused the explosion at spot.
@@ -2297,6 +2696,7 @@ end;
 // [STRIFE] Modified to emit "test" tracers which can shatter glass screens
 //          and windows.
 //
+//==============================================================================
 procedure P_RadiusAttack(spot: Pmobj_t; source: Pmobj_t; const damage: integer);
 var
   x: integer;
@@ -2341,10 +2741,13 @@ begin
 
 end;
 
+//==============================================================================
+// P_RadiusAttackEx
 //
 // P_RadiusAttack
 // Source is the creature that caused the explosion at spot.
 //
+//==============================================================================
 procedure P_RadiusAttackEx(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
 var
   x: integer;
@@ -2389,6 +2792,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// PIT_RadiusAttackPlayer
+//
+//==============================================================================
 function PIT_RadiusAttackPlayer(thing: Pmobj_t): boolean;
 var
   dx: fixed_t;
@@ -2398,6 +2806,12 @@ var
   damage: integer;
 begin
   if thing.player = nil then
+  begin
+    result := true;
+    exit;
+  end;
+
+  if P_SplashImmune(thing, bombspot) then
   begin
     result := true;
     exit;
@@ -2419,6 +2833,23 @@ begin
   begin
     result := true; // out of range
     exit;
+  end;
+
+  if thing.flags_ex and MF_EX_NORADIUSDMG <> 0 then
+  begin
+    if bombsource <> nil then
+    begin
+      if bombsource.flags4_ex and MF4_EX_FORCERADIUSDMG = 0 then
+      begin
+        result := true;
+        exit;
+      end;
+    end
+    else
+    begin
+      result := true;
+      exit;
+    end;
   end;
 
   if bombsource.flags3_ex and MF3_EX_FREEZEDAMAGE <> 0 then
@@ -2453,6 +2884,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// P_RadiusAttackPlayer
+//
+//==============================================================================
 procedure P_RadiusAttackPlayer(spot: Pmobj_t; source: Pmobj_t; const damage, distance: integer);
 var
   x: integer;
@@ -2506,11 +2942,13 @@ var
   crushchange: boolean;
   nofit: boolean;
 
+//==============================================================================
 //
 // PIT_ChangeSector
 //
 // [STRIFE] Changes to crushing behavior
 //
+//==============================================================================
 function PIT_ChangeSector(thing: Pmobj_t): boolean;
 var
   mo: Pmobj_t;
@@ -2523,8 +2961,8 @@ begin
     exit;
   end;
 
-  // JVAL: 20200329 - New flag, can not be crashed by sector
-  if thing.flags3_ex and MF3_EX_NOCRASH <> 0 then
+  // JVAL: 20200329 - New flag, can not be crushed by sector
+  if thing.flags3_ex and MF3_EX_NOCRUSH <> 0 then
   begin
     result := true;
     exit;
@@ -2542,7 +2980,23 @@ begin
         exit;
       end;
 
-    A_BodyParts(thing); // villsa [STRIFE] spit out meat/junk stuff
+    if G_PlayingEngineVersion >= VERSION207 then
+    begin
+      if (thing.flags4_ex and MF4_EX_DONTGIB = 0) and (thing.info.crushstate > 0) then
+      begin
+        if thing.state <> @states[thing.info.crushstate] then
+        begin
+          P_SetMobjState(thing, statenum_t(thing.info.crushstate));
+          if thing.bloodcolor <> 0 then
+            R_SetMobjBloodTranslation(thing, thing.bloodcolor);
+        end;
+        thing.flags4_ex := thing.flags4_ex or MF4_EX_DONTGIB;
+      end
+      else if thing.flags4_ex and MF4_EX_DONTGIB = 0 then
+        A_BodyParts(thing); // villsa [STRIFE] spit out meat/junk stuff
+    end
+    else
+      A_BodyParts(thing); // villsa [STRIFE] spit out meat/junk stuff
 
     thing.flags := thing.flags and not MF_SOLID;
     thing.height := 0;
@@ -2585,7 +3039,7 @@ begin
 
     plr := thing.player;
     if plr <> nil then
-     if (plr.cheats and CF_GODMODE <> 0) then
+     if plr.cheats and CF_GODMODE <> 0 then
      begin
        result := true;
        exit;
@@ -2608,9 +3062,12 @@ begin
   result := true;
 end;
 
+//==============================================================================
+// P_DoChangeSector
 //
 // P_ChangeSector
 //
+//==============================================================================
 procedure P_DoChangeSector(sector: Psector_t; crunch: boolean);
 var
   x: integer;
@@ -2663,6 +3120,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// P_ChangeSector
+//
+//==============================================================================
 function P_ChangeSector(sector: Psector_t; crunch: boolean): boolean;
 var
   i: integer;
@@ -2681,8 +3143,12 @@ begin
   result := nofit;
 end;
 
-
+//==============================================================================
+// P_SectorJumpOverhead
+//
 // JVAL Allow jumps in sectors with sky ceiling.... (7/8/2007)
+//
+//==============================================================================
 function P_SectorJumpOverhead(const s: Psector_t): integer;
 begin
   // JVAL: 3d floors
@@ -2711,7 +3177,8 @@ end;
 // already there. If not, it adds a sector node at the head of the list of
 // sectors this object appears in. This is called when creating a list of
 // nodes that will get linked in later. Returns a pointer to the new node.
-
+//
+//==============================================================================
 function P_AddSecnode(s: Psector_t; thing: Pmobj_t; nextnode: Pmsecnode_t): Pmsecnode_t;
 var
   node: Pmsecnode_t;
@@ -2756,11 +3223,11 @@ begin
   result := node;
 end;
 
-
 // P_DelSecnode() deletes a sector node from the list of
 // sectors this object appears in. Returns a pointer to the next node
 // on the linked list, or nil.
-
+//
+//==============================================================================
 function P_DelSecnode(node: Pmsecnode_t): Pmsecnode_t;
 var
   tp: Pmsecnode_t;  // prev node on thing thread
@@ -2807,7 +3274,8 @@ end;  // phares 3/13/98
 // cross through it. You have already decided that the object is allowed
 // at this location, so don't bother with checking impassable or
 // blocking lines.
-
+//
+//==============================================================================
 function PIT_GetSectors(ld: Pline_t): boolean;
 begin
   if (tmbbox[BOXRIGHT] <= ld.bbox[BOXLEFT]) or
@@ -2848,12 +3316,12 @@ begin
   result := true;
 end;
 
-
 // phares 3/14/98
 //
 // P_CreateSecNodeList alters/creates the sector_list that shows what sectors
 // the object resides in.
-
+//
+//==============================================================================
 procedure P_CreateSecNodeList(thing: Pmobj_t; x, y: fixed_t);
 var
   xl: integer;
@@ -2932,15 +3400,15 @@ begin
 
 end;
 
-//----------------------------------------------------------------------------
+//==============================================================================
 //
 // FUNC P_TestMobjLocation
 //
 // Returns true if the mobj is not blocked by anything at its current
 // location, otherwise returns false.
 //
-//----------------------------------------------------------------------------
-
+//
+//==============================================================================
 function P_TestMobjLocation(mobj: Pmobj_t): boolean;
 begin
   if P_CheckPosition(mobj, mobj.x, mobj.y) then

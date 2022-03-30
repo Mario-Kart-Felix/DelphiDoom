@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //   This one is the original DOOM version, preserved.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -54,23 +54,71 @@ type
 var
   states: PstatesArray_t = nil;
   numstates: integer = Ord(DO_NUMSTATES);
+  numrealstates: integer = Ord(DO_NUMSTATES);
   sprnames: PIntegerArray = nil;
   numsprites: integer = Ord(DO_NUMSPRITES);
   mobjinfo: PmobjinfoArray_t = nil;
   pDO_mobjinfo: PmobjinfoArray_t = nil;
   nummobjtypes: integer = Ord(DO_NUMMOBJTYPES);
+  numrealmobjtypes: integer = Ord(DO_NUMMOBJTYPES);
 
+//==============================================================================
+//
+// Info_Init
+//
+//==============================================================================
 procedure Info_Init(const usethinkers: boolean);
 
+//==============================================================================
+//
+// Info_ResolveActordefActors
+//
+//==============================================================================
 procedure Info_ResolveActordefActors;
 
 const
   DEFPUSHFACTOR = FRACUNIT div 4;
 
+const // Doom Original Sprite Names
+  DO_sprnames: array[0..Ord(DO_NUMSPRITES)] of string[4] = (
+    'TROO', 'SHTG', 'PUNG', 'PISG', 'PISF', 'SHTF', 'SHT2', 'CHGG', 'CHGF', 'MISG',
+    'MISF', 'SAWG', 'PLSG', 'PLSF', 'BFGG', 'BFGF', 'BLUD', 'PUFF', 'BAL1', 'BAL2',
+    'PLSS', 'PLSE', 'MISL', 'BFS1', 'BFE1', 'BFE2', 'TFOG', 'IFOG', 'PLAY', 'POSS',
+    'SPOS', 'VILE', 'FIRE', 'FATB', 'FBXP', 'SKEL', 'MANF', 'FATT', 'CPOS', 'SARG',
+    'HEAD', 'BAL7', 'BOSS', 'BOS2', 'SKUL', 'SPID', 'BSPI', 'APLS', 'APBX', 'CYBR',
+    'PAIN', 'SSWV', 'KEEN', 'BBRN', 'BOSF', 'ARM1', 'ARM2', 'BAR1', 'BEXP', 'FCAN',
+    'BON1', 'BON2', 'BKEY', 'RKEY', 'YKEY', 'BSKU', 'RSKU', 'YSKU', 'STIM', 'MEDI',
+    'SOUL', 'PINV', 'PSTR', 'PINS', 'MEGA', 'SUIT', 'PMAP', 'PVIS', 'CLIP', 'AMMO',
+    'ROCK', 'BROK', 'CELL', 'CELP', 'SHEL', 'SBOX', 'BPAK', 'BFUG', 'MGUN', 'CSAW',
+    'LAUN', 'PLAS', 'SHOT', 'SGN2', 'COLU', 'SMT2', 'GOR1', 'POL2', 'POL5', 'POL4',
+    'POL3', 'POL1', 'POL6', 'GOR2', 'GOR3', 'GOR4', 'GOR5', 'SMIT', 'COL1', 'COL2',
+    'COL3', 'COL4', 'CAND', 'CBRA', 'COL6', 'TRE1', 'TRE2', 'ELEC', 'CEYE', 'FSKU',
+    'COL5', 'TBLU', 'TGRN', 'TRED', 'SMBT', 'SMGT', 'SMRT', 'HDB1', 'HDB2', 'HDB3',
+    'HDB4', 'HDB5', 'HDB6', 'POB1', 'POB2', 'BRS1', 'TLMP', 'TLP2', 'TNT1', 'DOGS',
+
+    'PLS1',
+    'PLS2',
+    'BON3',
+    'BON4',
+    // Green blood
+    'DD01',
+    // [BH] 100 extra sprite names to use in dehacked patches
+    'SP00', 'SP01', 'SP02', 'SP03', 'SP04', 'SP05', 'SP06', 'SP07', 'SP08', 'SP09',
+    'SP10', 'SP11', 'SP12', 'SP13', 'SP14', 'SP15', 'SP16', 'SP17', 'SP18', 'SP19',
+    'SP20', 'SP21', 'SP22', 'SP23', 'SP24', 'SP25', 'SP26', 'SP27', 'SP28', 'SP29',
+    'SP30', 'SP31', 'SP32', 'SP33', 'SP34', 'SP35', 'SP36', 'SP37', 'SP38', 'SP39',
+    'SP40', 'SP41', 'SP42', 'SP43', 'SP44', 'SP45', 'SP46', 'SP47', 'SP48', 'SP49',
+    'SP50', 'SP51', 'SP52', 'SP53', 'SP54', 'SP55', 'SP56', 'SP57', 'SP58', 'SP59',
+    'SP60', 'SP61', 'SP62', 'SP63', 'SP64', 'SP65', 'SP66', 'SP67', 'SP68', 'SP69',
+    'SP70', 'SP71', 'SP72', 'SP73', 'SP74', 'SP75', 'SP76', 'SP77', 'SP78', 'SP79',
+    'SP80', 'SP81', 'SP82', 'SP83', 'SP84', 'SP85', 'SP86', 'SP87', 'SP88', 'SP89',
+    'SP90', 'SP91', 'SP92', 'SP93', 'SP94', 'SP95', 'SP96', 'SP97', 'SP98', 'SP99',
+    'NULL', ''
+  );
+
 implementation
 
 uses
-  i_system,
   m_argv,
   p_enemy,
   p_pspr,
@@ -82,8 +130,7 @@ uses
   info_common,
   info_export,
   r_renderstyle,
-  sc_states,
-  sounds;
+  sounddata;
 
 const
   DO_states: array[0..Ord(DO_NUMSTATES) - 1] of state_t = (
@@ -95,7 +142,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_NULL
 
    (
@@ -106,7 +154,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_LIGHTDONE
 
    (
@@ -117,7 +166,8 @@ const
     nextstate: S_PUNCH;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCH
 
    (
@@ -128,7 +178,8 @@ const
     nextstate: S_PUNCHDOWN;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCHDOWN
 
    (
@@ -139,7 +190,8 @@ const
     nextstate: S_PUNCHUP;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCHUP
 
    (
@@ -150,7 +202,8 @@ const
     nextstate: S_PUNCH2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCH1
 
    (
@@ -161,7 +214,8 @@ const
     nextstate: S_PUNCH3;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCH2
 
    (
@@ -172,7 +226,8 @@ const
     nextstate: S_PUNCH4;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCH3
 
    (
@@ -183,7 +238,8 @@ const
     nextstate: S_PUNCH5;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCH4
 
    (
@@ -194,7 +250,8 @@ const
     nextstate: S_PUNCH;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUNCH5
 
    (
@@ -205,7 +262,8 @@ const
     nextstate: S_PISTOL;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOL
 
    (
@@ -216,7 +274,8 @@ const
     nextstate: S_PISTOLDOWN;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOLDOWN
 
    (
@@ -227,7 +286,8 @@ const
     nextstate: S_PISTOLUP;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOLUP
 
    (
@@ -238,7 +298,8 @@ const
     nextstate: S_PISTOL2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOL1
 
    (
@@ -249,7 +310,8 @@ const
     nextstate: S_PISTOL3;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                // S_PISTOL2
 
    (
@@ -260,7 +322,8 @@ const
     nextstate: S_PISTOL4;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOL3
 
    (
@@ -271,7 +334,8 @@ const
     nextstate: S_PISTOL;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOL4
 
    (
@@ -282,7 +346,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PISTOLFLASH
 
    (
@@ -293,7 +358,8 @@ const
     nextstate: S_SGUN;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN
 
    (
@@ -304,7 +370,8 @@ const
     nextstate: S_SGUNDOWN;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUNDOWN
 
    (
@@ -315,7 +382,8 @@ const
     nextstate: S_SGUNUP;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUNUP
 
    (
@@ -326,7 +394,8 @@ const
     nextstate: S_SGUN2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN1
 
    (
@@ -337,7 +406,8 @@ const
     nextstate: S_SGUN3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN2
 
    (
@@ -348,7 +418,8 @@ const
     nextstate: S_SGUN4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN3
 
    (
@@ -359,7 +430,8 @@ const
     nextstate: S_SGUN5;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN4
 
    (
@@ -370,7 +442,8 @@ const
     nextstate: S_SGUN6;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN5
 
    (
@@ -381,7 +454,8 @@ const
     nextstate: S_SGUN7;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN6
 
    (
@@ -392,7 +466,8 @@ const
     nextstate: S_SGUN8;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN7
 
    (
@@ -403,7 +478,8 @@ const
     nextstate: S_SGUN9;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN8
 
    (
@@ -414,7 +490,8 @@ const
     nextstate: S_SGUN;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUN9
 
    (
@@ -425,7 +502,8 @@ const
     nextstate: S_SGUNFLASH2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUNFLASH1
 
    (
@@ -436,7 +514,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SGUNFLASH2
 
    (
@@ -447,7 +526,8 @@ const
     nextstate: S_DSGUN;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN
 
    (
@@ -458,7 +538,8 @@ const
     nextstate: S_DSGUNDOWN;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUNDOWN
 
    (
@@ -469,7 +550,8 @@ const
     nextstate: S_DSGUNUP;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUNUP
 
    (
@@ -480,7 +562,8 @@ const
     nextstate: S_DSGUN2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN1
 
    (
@@ -491,7 +574,8 @@ const
     nextstate: S_DSGUN3;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN2
 
    (
@@ -502,7 +586,8 @@ const
     nextstate: S_DSGUN4;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN3
 
    (
@@ -513,7 +598,8 @@ const
     nextstate: S_DSGUN5;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN4
 
    (
@@ -524,7 +610,8 @@ const
     nextstate: S_DSGUN6;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN5
 
    (
@@ -535,7 +622,8 @@ const
     nextstate: S_DSGUN7;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN6
 
    (
@@ -546,7 +634,8 @@ const
     nextstate: S_DSGUN8;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN7
 
    (
@@ -557,7 +646,8 @@ const
     nextstate: S_DSGUN9;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN8
 
    (
@@ -568,7 +658,8 @@ const
     nextstate: S_DSGUN10;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN9
 
    (
@@ -579,7 +670,8 @@ const
     nextstate: S_DSGUN;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUN10
 
    (
@@ -590,7 +682,8 @@ const
     nextstate: S_DSNR2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSNR1
 
    (
@@ -601,7 +694,8 @@ const
     nextstate: S_DSGUNDOWN;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSNR2
 
    (
@@ -612,7 +706,8 @@ const
     nextstate: S_DSGUNFLASH2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUNFLASH1
 
    (
@@ -623,7 +718,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DSGUNFLASH2
 
    (
@@ -634,7 +730,8 @@ const
     nextstate: S_CHAIN;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAIN
 
    (
@@ -645,7 +742,8 @@ const
     nextstate: S_CHAINDOWN;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAINDOWN
 
    (
@@ -656,7 +754,8 @@ const
     nextstate: S_CHAINUP;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAINUP
 
    (
@@ -667,7 +766,8 @@ const
     nextstate: S_CHAIN2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAIN1
 
    (
@@ -678,7 +778,8 @@ const
     nextstate: S_CHAIN3;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAIN2
 
    (
@@ -689,7 +790,8 @@ const
     nextstate: S_CHAIN;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAIN3
 
    (
@@ -700,7 +802,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAINFLASH1
 
    (
@@ -711,7 +814,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CHAINFLASH2
 
    (
@@ -722,7 +826,8 @@ const
     nextstate: S_MISSILE;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILE
 
    (
@@ -733,7 +838,8 @@ const
     nextstate: S_MISSILEDOWN;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILEDOWN
 
    (
@@ -744,7 +850,8 @@ const
     nextstate: S_MISSILEUP;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILEUP
 
    (
@@ -755,7 +862,8 @@ const
     nextstate: S_MISSILE2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILE1
 
    (
@@ -766,7 +874,8 @@ const
     nextstate: S_MISSILE3;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILE2
 
    (
@@ -777,7 +886,8 @@ const
     nextstate: S_MISSILE;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILE3
 
    (
@@ -788,7 +898,8 @@ const
     nextstate: S_MISSILEFLASH2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILEFLASH1
 
    (
@@ -799,7 +910,8 @@ const
     nextstate: S_MISSILEFLASH3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILEFLASH2
 
    (
@@ -810,7 +922,8 @@ const
     nextstate: S_MISSILEFLASH4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILEFLASH3
 
    (
@@ -821,7 +934,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MISSILEFLASH4
 
    (
@@ -832,7 +946,8 @@ const
     nextstate: S_SAWB;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAW
 
    (
@@ -843,7 +958,8 @@ const
     nextstate: S_SAW;         // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAWB
 
    (
@@ -854,7 +970,8 @@ const
     nextstate: S_SAWDOWN;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAWDOWN
 
    (
@@ -865,7 +982,8 @@ const
     nextstate: S_SAWUP;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAWUP
 
    (
@@ -876,7 +994,8 @@ const
     nextstate: S_SAW2;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAW1
 
    (
@@ -887,7 +1006,8 @@ const
     nextstate: S_SAW3;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAW2
 
    (
@@ -898,7 +1018,8 @@ const
     nextstate: S_SAW;         // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SAW3
 
    (
@@ -909,7 +1030,8 @@ const
     nextstate: S_PLASMA;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMA
 
    (
@@ -920,7 +1042,8 @@ const
     nextstate: S_PLASMADOWN;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMADOWN
 
    (
@@ -931,7 +1054,8 @@ const
     nextstate: S_PLASMAUP;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMAUP
 
    (
@@ -942,7 +1066,8 @@ const
     nextstate: S_PLASMA2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMA1
 
    (
@@ -953,7 +1078,8 @@ const
     nextstate: S_PLASMA;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMA2
 
    (
@@ -964,7 +1090,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMAFLASH1
 
    (
@@ -975,7 +1102,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASMAFLASH2
 
    (
@@ -986,7 +1114,8 @@ const
     nextstate: S_BFG;         // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFG
 
    (
@@ -997,7 +1126,8 @@ const
     nextstate: S_BFGDOWN;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGDOWN
 
    (
@@ -1008,7 +1138,8 @@ const
     nextstate: S_BFGUP;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGUP
 
    (
@@ -1019,7 +1150,8 @@ const
     nextstate: S_BFG2;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFG1
 
    (
@@ -1030,7 +1162,8 @@ const
     nextstate: S_BFG3;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFG2
 
    (
@@ -1041,7 +1174,8 @@ const
     nextstate: S_BFG4;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFG3
 
    (
@@ -1052,7 +1186,8 @@ const
     nextstate: S_BFG;         // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFG4
 
    (
@@ -1063,7 +1198,8 @@ const
     nextstate: S_BFGFLASH2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGFLASH1
 
    (
@@ -1074,7 +1210,8 @@ const
     nextstate: S_LIGHTDONE;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGFLASH2
 
    (
@@ -1085,7 +1222,8 @@ const
     nextstate: S_BLOOD2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOOD1
 
    (
@@ -1096,7 +1234,8 @@ const
     nextstate: S_BLOOD3;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOOD2
 
    (
@@ -1107,7 +1246,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOOD3
 
    (
@@ -1118,7 +1258,8 @@ const
     nextstate: S_PUFF2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUFF1
 
    (
@@ -1129,7 +1270,8 @@ const
     nextstate: S_PUFF3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUFF2
 
    (
@@ -1140,7 +1282,8 @@ const
     nextstate: S_PUFF4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUFF3
 
    (
@@ -1151,7 +1294,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PUFF4
 
    (
@@ -1162,7 +1306,8 @@ const
     nextstate: S_TBALL2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TBALL1
 
    (
@@ -1173,7 +1318,8 @@ const
     nextstate: S_TBALL1;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TBALL2
 
    (
@@ -1184,7 +1330,8 @@ const
     nextstate: S_TBALLX2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TBALLX1
 
    (
@@ -1195,7 +1342,8 @@ const
     nextstate: S_TBALLX3;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TBALLX2
 
    (
@@ -1206,7 +1354,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TBALLX3
 
    (
@@ -1217,7 +1366,8 @@ const
     nextstate: S_RBALL2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RBALL1
 
    (
@@ -1228,7 +1378,8 @@ const
     nextstate: S_RBALL1;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RBALL2
 
    (
@@ -1239,7 +1390,8 @@ const
     nextstate: S_RBALLX2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RBALLX1
 
    (
@@ -1250,7 +1402,8 @@ const
     nextstate: S_RBALLX3;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RBALLX2
 
    (
@@ -1261,7 +1414,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RBALLX3
 
    (
@@ -1272,7 +1426,8 @@ const
     nextstate: S_PLASBALL2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASBALL
 
    (
@@ -1283,7 +1438,8 @@ const
     nextstate: S_PLASBALL;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASBALL2
 
    (
@@ -1294,7 +1450,8 @@ const
     nextstate: S_PLASEXP2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASEXP
 
    (
@@ -1305,7 +1462,8 @@ const
     nextstate: S_PLASEXP3;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASEXP2
 
    (
@@ -1316,7 +1474,8 @@ const
     nextstate: S_PLASEXP4;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASEXP3
 
    (
@@ -1327,7 +1486,8 @@ const
     nextstate: S_PLASEXP5;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASEXP4
 
    (
@@ -1338,7 +1498,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLASEXP5
 
    (
@@ -1349,7 +1510,8 @@ const
     nextstate: S_ROCKET;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ROCKET
 
    (
@@ -1360,7 +1522,8 @@ const
     nextstate: S_BFGSHOT2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGSHOT
 
    (
@@ -1371,7 +1534,8 @@ const
     nextstate: S_BFGSHOT;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGSHOT2
 
    (
@@ -1382,7 +1546,8 @@ const
     nextstate: S_BFGLAND2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGLAND
 
    (
@@ -1393,7 +1558,8 @@ const
     nextstate: S_BFGLAND3;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGLAND2
 
    (
@@ -1404,7 +1570,8 @@ const
     nextstate: S_BFGLAND4;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGLAND3
 
    (
@@ -1415,7 +1582,8 @@ const
     nextstate: S_BFGLAND5;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGLAND4
 
    (
@@ -1426,7 +1594,8 @@ const
     nextstate: S_BFGLAND6;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGLAND5
 
    (
@@ -1437,7 +1606,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGLAND6
 
    (
@@ -1448,7 +1618,8 @@ const
     nextstate: S_BFGEXP2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGEXP
 
    (
@@ -1459,7 +1630,8 @@ const
     nextstate: S_BFGEXP3;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGEXP2
 
    (
@@ -1470,7 +1642,8 @@ const
     nextstate: S_BFGEXP4;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGEXP3
 
    (
@@ -1481,7 +1654,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFGEXP4
 
    (
@@ -1492,7 +1666,8 @@ const
     nextstate: S_EXPLODE2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_EXPLODE1
 
    (
@@ -1525,7 +1700,8 @@ const
     nextstate: S_TFOG01;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG
 
    (
@@ -1536,7 +1712,8 @@ const
     nextstate: S_TFOG02;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG01
 
    (
@@ -1547,7 +1724,8 @@ const
     nextstate: S_TFOG2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG02
 
    (
@@ -1558,7 +1736,8 @@ const
     nextstate: S_TFOG3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG2
 
    (
@@ -1569,7 +1748,8 @@ const
     nextstate: S_TFOG4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG3
 
    (
@@ -1580,7 +1760,8 @@ const
     nextstate: S_TFOG5;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG4
 
    (
@@ -1591,7 +1772,8 @@ const
     nextstate: S_TFOG6;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG5
 
    (
@@ -1602,7 +1784,8 @@ const
     nextstate: S_TFOG7;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG6
 
    (
@@ -1613,7 +1796,8 @@ const
     nextstate: S_TFOG8;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG7
 
    (
@@ -1624,7 +1808,8 @@ const
     nextstate: S_TFOG9;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG8
 
    (
@@ -1635,7 +1820,8 @@ const
     nextstate: S_TFOG10;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG9
 
    (
@@ -1646,7 +1832,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TFOG10
 
    (
@@ -1657,7 +1844,8 @@ const
     nextstate: S_IFOG01;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG
 
    (
@@ -1668,7 +1856,8 @@ const
     nextstate: S_IFOG02;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG01
 
    (
@@ -1679,7 +1868,8 @@ const
     nextstate: S_IFOG2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG02
 
    (
@@ -1690,7 +1880,8 @@ const
     nextstate: S_IFOG3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG2
 
    (
@@ -1701,7 +1892,8 @@ const
     nextstate: S_IFOG4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG3
 
    (
@@ -1712,7 +1904,8 @@ const
     nextstate: S_IFOG5;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG4
 
    (
@@ -1723,7 +1916,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_IFOG5
 
    (
@@ -1734,7 +1928,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY
 
    (
@@ -1745,7 +1940,8 @@ const
     nextstate: S_PLAY_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_RUN1
 
    (
@@ -1756,7 +1952,8 @@ const
     nextstate: S_PLAY_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_RUN2
 
    (
@@ -1767,7 +1964,8 @@ const
     nextstate: S_PLAY_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_RUN3
 
    (
@@ -1778,7 +1976,8 @@ const
     nextstate: S_PLAY_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_RUN4
 
    (
@@ -1789,7 +1988,8 @@ const
     nextstate: S_PLAY;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_ATK1
 
    (
@@ -1800,7 +2000,8 @@ const
     nextstate: S_PLAY_ATK1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_ATK2
 
    (
@@ -1811,7 +2012,8 @@ const
     nextstate: S_PLAY_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_PAIN
 
    (
@@ -1822,7 +2024,8 @@ const
     nextstate: S_PLAY;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_PAIN2
 
    (
@@ -1833,7 +2036,8 @@ const
     nextstate: S_PLAY_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE1
 
    (
@@ -1844,7 +2048,8 @@ const
     nextstate: S_PLAY_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE2
 
    (
@@ -1855,7 +2060,8 @@ const
     nextstate: S_PLAY_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE3
 
    (
@@ -1866,7 +2072,8 @@ const
     nextstate: S_PLAY_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE4
 
    (
@@ -1877,7 +2084,8 @@ const
     nextstate: S_PLAY_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE5
 
    (
@@ -1888,7 +2096,8 @@ const
     nextstate: S_PLAY_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE6
 
    (
@@ -1899,7 +2108,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_DIE7
 
    (
@@ -1910,7 +2120,8 @@ const
     nextstate: S_PLAY_XDIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE1
 
    (
@@ -1921,7 +2132,8 @@ const
     nextstate: S_PLAY_XDIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE2
 
    (
@@ -1932,7 +2144,8 @@ const
     nextstate: S_PLAY_XDIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE3
 
    (
@@ -1943,7 +2156,8 @@ const
     nextstate: S_PLAY_XDIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE4
 
    (
@@ -1954,7 +2168,8 @@ const
     nextstate: S_PLAY_XDIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE5
 
    (
@@ -1965,7 +2180,8 @@ const
     nextstate: S_PLAY_XDIE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE6
 
    (
@@ -1976,7 +2192,8 @@ const
     nextstate: S_PLAY_XDIE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE7
 
    (
@@ -1987,7 +2204,8 @@ const
     nextstate: S_PLAY_XDIE9;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE8
 
    (
@@ -1998,7 +2216,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAY_XDIE9
 
    (
@@ -2009,7 +2228,8 @@ const
     nextstate: S_POSS_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_STND
 
    (
@@ -2020,7 +2240,8 @@ const
     nextstate: S_POSS_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_STND2
 
    (
@@ -2031,7 +2252,8 @@ const
     nextstate: S_POSS_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN1
 
    (
@@ -2042,7 +2264,8 @@ const
     nextstate: S_POSS_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN2
 
    (
@@ -2053,7 +2276,8 @@ const
     nextstate: S_POSS_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN3
 
    (
@@ -2064,7 +2288,8 @@ const
     nextstate: S_POSS_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN4
 
    (
@@ -2075,7 +2300,8 @@ const
     nextstate: S_POSS_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN5
 
    (
@@ -2086,7 +2312,8 @@ const
     nextstate: S_POSS_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN6
 
    (
@@ -2097,7 +2324,8 @@ const
     nextstate: S_POSS_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN7
 
    (
@@ -2108,7 +2336,8 @@ const
     nextstate: S_POSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RUN8
 
    (
@@ -2119,7 +2348,8 @@ const
     nextstate: S_POSS_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_ATK1
 
    (
@@ -2130,7 +2360,8 @@ const
     nextstate: S_POSS_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_ATK2
 
    (
@@ -2141,7 +2372,8 @@ const
     nextstate: S_POSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_ATK3
 
    (
@@ -2152,7 +2384,8 @@ const
     nextstate: S_POSS_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_PAIN
 
    (
@@ -2163,7 +2396,8 @@ const
     nextstate: S_POSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_PAIN2
 
    (
@@ -2174,7 +2408,8 @@ const
     nextstate: S_POSS_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_DIE1
 
    (
@@ -2185,7 +2420,8 @@ const
     nextstate: S_POSS_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_DIE2
 
    (
@@ -2196,7 +2432,8 @@ const
     nextstate: S_POSS_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_DIE3
 
    (
@@ -2207,7 +2444,8 @@ const
     nextstate: S_POSS_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_DIE4
 
    (
@@ -2218,7 +2456,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_DIE5
 
    (
@@ -2229,7 +2468,8 @@ const
     nextstate: S_POSS_XDIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE1
 
    (
@@ -2240,7 +2480,8 @@ const
     nextstate: S_POSS_XDIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE2
 
    (
@@ -2251,7 +2492,8 @@ const
     nextstate: S_POSS_XDIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE3
 
    (
@@ -2262,7 +2504,8 @@ const
     nextstate: S_POSS_XDIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE4
 
    (
@@ -2273,7 +2516,8 @@ const
     nextstate: S_POSS_XDIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE5
 
    (
@@ -2284,7 +2528,8 @@ const
     nextstate: S_POSS_XDIE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE6
 
    (
@@ -2295,7 +2540,8 @@ const
     nextstate: S_POSS_XDIE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE7
 
    (
@@ -2306,7 +2552,8 @@ const
     nextstate: S_POSS_XDIE9;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE8
 
    (
@@ -2317,7 +2564,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_XDIE9
 
    (
@@ -2328,7 +2576,8 @@ const
     nextstate: S_POSS_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RAISE1
 
    (
@@ -2339,7 +2588,8 @@ const
     nextstate: S_POSS_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RAISE2
 
    (
@@ -2350,7 +2600,8 @@ const
     nextstate: S_POSS_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RAISE3
 
    (
@@ -2361,7 +2612,8 @@ const
     nextstate: S_POSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_POSS_RAISE4
 
    (
@@ -2372,7 +2624,8 @@ const
     nextstate: S_SPOS_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_STND
 
    (
@@ -2383,7 +2636,8 @@ const
     nextstate: S_SPOS_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_STND2
 
    (
@@ -2394,7 +2648,8 @@ const
     nextstate: S_SPOS_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN1
 
    (
@@ -2405,7 +2660,8 @@ const
     nextstate: S_SPOS_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN2
 
    (
@@ -2416,7 +2672,8 @@ const
     nextstate: S_SPOS_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN3
 
    (
@@ -2427,7 +2684,8 @@ const
     nextstate: S_SPOS_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN4
 
    (
@@ -2438,7 +2696,8 @@ const
     nextstate: S_SPOS_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN5
 
    (
@@ -2449,7 +2708,8 @@ const
     nextstate: S_SPOS_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN6
 
    (
@@ -2460,7 +2720,8 @@ const
     nextstate: S_SPOS_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN7
 
    (
@@ -2471,7 +2732,8 @@ const
     nextstate: S_SPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RUN8
 
    (
@@ -2482,7 +2744,8 @@ const
     nextstate: S_SPOS_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_ATK1
 
    (
@@ -2493,7 +2756,8 @@ const
     nextstate: S_SPOS_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_ATK2
 
    (
@@ -2504,7 +2768,8 @@ const
     nextstate: S_SPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_ATK3
 
    (
@@ -2515,7 +2780,8 @@ const
     nextstate: S_SPOS_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_PAIN
 
    (
@@ -2526,7 +2792,8 @@ const
     nextstate: S_SPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_PAIN2
 
    (
@@ -2537,7 +2804,8 @@ const
     nextstate: S_SPOS_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_DIE1
 
    (
@@ -2548,7 +2816,8 @@ const
     nextstate: S_SPOS_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_DIE2
 
    (
@@ -2559,7 +2828,8 @@ const
     nextstate: S_SPOS_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_DIE3
 
    (
@@ -2570,7 +2840,8 @@ const
     nextstate: S_SPOS_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_DIE4
 
    (
@@ -2581,7 +2852,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_DIE5
 
    (
@@ -2592,7 +2864,8 @@ const
     nextstate: S_SPOS_XDIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE1
 
    (
@@ -2603,7 +2876,8 @@ const
     nextstate: S_SPOS_XDIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE2
 
    (
@@ -2614,7 +2888,8 @@ const
     nextstate: S_SPOS_XDIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE3
 
    (
@@ -2625,7 +2900,8 @@ const
     nextstate: S_SPOS_XDIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE4
 
    (
@@ -2636,7 +2912,8 @@ const
     nextstate: S_SPOS_XDIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE5
 
    (
@@ -2647,7 +2924,8 @@ const
     nextstate: S_SPOS_XDIE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE6
 
    (
@@ -2658,7 +2936,8 @@ const
     nextstate: S_SPOS_XDIE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE7
 
    (
@@ -2669,7 +2948,8 @@ const
     nextstate: S_SPOS_XDIE9;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE8
 
    (
@@ -2680,7 +2960,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_XDIE9
 
    (
@@ -2691,7 +2972,8 @@ const
     nextstate: S_SPOS_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RAISE1
 
    (
@@ -2702,7 +2984,8 @@ const
     nextstate: S_SPOS_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RAISE2
 
    (
@@ -2713,7 +2996,8 @@ const
     nextstate: S_SPOS_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RAISE3
 
    (
@@ -2724,7 +3008,8 @@ const
     nextstate: S_SPOS_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RAISE4
 
    (
@@ -2735,7 +3020,8 @@ const
     nextstate: S_SPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPOS_RAISE5
 
    (
@@ -2746,7 +3032,8 @@ const
     nextstate: S_VILE_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_STND
 
    (
@@ -2757,7 +3044,8 @@ const
     nextstate: S_VILE_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_STND2
 
    (
@@ -2768,7 +3056,8 @@ const
     nextstate: S_VILE_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN1
 
    (
@@ -2779,7 +3068,8 @@ const
     nextstate: S_VILE_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN2
 
    (
@@ -2790,7 +3080,8 @@ const
     nextstate: S_VILE_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN3
 
    (
@@ -2801,7 +3092,8 @@ const
     nextstate: S_VILE_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN4
 
    (
@@ -2812,7 +3104,8 @@ const
     nextstate: S_VILE_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN5
 
    (
@@ -2823,7 +3116,8 @@ const
     nextstate: S_VILE_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN6
 
    (
@@ -2834,7 +3128,8 @@ const
     nextstate: S_VILE_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN7
 
    (
@@ -2845,7 +3140,8 @@ const
     nextstate: S_VILE_RUN9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN8
 
    (
@@ -2856,7 +3152,8 @@ const
     nextstate: S_VILE_RUN10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN9
 
    (
@@ -2867,7 +3164,8 @@ const
     nextstate: S_VILE_RUN11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN10
 
    (
@@ -2878,7 +3176,8 @@ const
     nextstate: S_VILE_RUN12;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN11
 
    (
@@ -2889,7 +3188,8 @@ const
     nextstate: S_VILE_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_RUN12
 
    (
@@ -2900,7 +3200,8 @@ const
     nextstate: S_VILE_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK1
 
    (
@@ -2911,7 +3212,8 @@ const
     nextstate: S_VILE_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK2
 
    (
@@ -2922,7 +3224,8 @@ const
     nextstate: S_VILE_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK3
 
    (
@@ -2933,7 +3236,8 @@ const
     nextstate: S_VILE_ATK5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK4
 
    (
@@ -2944,7 +3248,8 @@ const
     nextstate: S_VILE_ATK6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK5
 
    (
@@ -2955,7 +3260,8 @@ const
     nextstate: S_VILE_ATK7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK6
 
    (
@@ -2966,7 +3272,8 @@ const
     nextstate: S_VILE_ATK8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK7
 
    (
@@ -2977,7 +3284,8 @@ const
     nextstate: S_VILE_ATK9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK8
 
    (
@@ -2988,7 +3296,8 @@ const
     nextstate: S_VILE_ATK10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK9
 
    (
@@ -2999,7 +3308,8 @@ const
     nextstate: S_VILE_ATK11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK10
 
    (
@@ -3010,7 +3320,8 @@ const
     nextstate: S_VILE_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_ATK11
 
    (
@@ -3021,7 +3332,8 @@ const
     nextstate: S_VILE_HEAL2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_HEAL1
 
    (
@@ -3032,7 +3344,8 @@ const
     nextstate: S_VILE_HEAL3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_HEAL2
 
    (
@@ -3043,7 +3356,8 @@ const
     nextstate: S_VILE_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_HEAL3
 
    (
@@ -3054,7 +3368,8 @@ const
     nextstate: S_VILE_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_PAIN
 
    (
@@ -3065,7 +3380,8 @@ const
     nextstate: S_VILE_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_PAIN2
 
    (
@@ -3076,7 +3392,8 @@ const
     nextstate: S_VILE_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE1
 
    (
@@ -3087,7 +3404,8 @@ const
     nextstate: S_VILE_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE2
 
    (
@@ -3098,7 +3416,8 @@ const
     nextstate: S_VILE_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE3
 
    (
@@ -3109,7 +3428,8 @@ const
     nextstate: S_VILE_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE4
 
    (
@@ -3120,7 +3440,8 @@ const
     nextstate: S_VILE_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE5
 
    (
@@ -3131,7 +3452,8 @@ const
     nextstate: S_VILE_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE6
 
    (
@@ -3142,7 +3464,8 @@ const
     nextstate: S_VILE_DIE8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE7
 
    (
@@ -3153,7 +3476,8 @@ const
     nextstate: S_VILE_DIE9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE8
 
    (
@@ -3164,7 +3488,8 @@ const
     nextstate: S_VILE_DIE10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE9
 
    (
@@ -3175,7 +3500,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_VILE_DIE10
 
    (
@@ -3186,7 +3512,8 @@ const
     nextstate: S_FIRE2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE1
 
    (
@@ -3197,7 +3524,8 @@ const
     nextstate: S_FIRE3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE2
 
    (
@@ -3208,7 +3536,8 @@ const
     nextstate: S_FIRE4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE3
 
    (
@@ -3219,7 +3548,8 @@ const
     nextstate: S_FIRE5;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE4
 
    (
@@ -3230,7 +3560,8 @@ const
     nextstate: S_FIRE6;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE5
 
    (
@@ -3241,7 +3572,8 @@ const
     nextstate: S_FIRE7;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE6
 
    (
@@ -3252,7 +3584,8 @@ const
     nextstate: S_FIRE8;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE7
 
    (
@@ -3263,7 +3596,8 @@ const
     nextstate: S_FIRE9;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE8
 
    (
@@ -3274,7 +3608,8 @@ const
     nextstate: S_FIRE10;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE9
 
    (
@@ -3285,7 +3620,8 @@ const
     nextstate: S_FIRE11;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE10
 
    (
@@ -3296,7 +3632,8 @@ const
     nextstate: S_FIRE12;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE11
 
    (
@@ -3307,7 +3644,8 @@ const
     nextstate: S_FIRE13;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE12
 
    (
@@ -3318,7 +3656,8 @@ const
     nextstate: S_FIRE14;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE13
 
    (
@@ -3329,7 +3668,8 @@ const
     nextstate: S_FIRE15;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE14
 
    (
@@ -3340,7 +3680,8 @@ const
     nextstate: S_FIRE16;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE15
 
    (
@@ -3351,7 +3692,8 @@ const
     nextstate: S_FIRE17;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE16
 
    (
@@ -3362,7 +3704,8 @@ const
     nextstate: S_FIRE18;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE17
 
    (
@@ -3373,7 +3716,8 @@ const
     nextstate: S_FIRE19;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE18
 
    (
@@ -3384,7 +3728,8 @@ const
     nextstate: S_FIRE20;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE19
 
    (
@@ -3395,7 +3740,8 @@ const
     nextstate: S_FIRE21;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE20
 
    (
@@ -3406,7 +3752,8 @@ const
     nextstate: S_FIRE22;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE21
 
    (
@@ -3417,7 +3764,8 @@ const
     nextstate: S_FIRE23;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE22
 
    (
@@ -3428,7 +3776,8 @@ const
     nextstate: S_FIRE24;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE23
 
    (
@@ -3439,7 +3788,8 @@ const
     nextstate: S_FIRE25;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE24
 
    (
@@ -3450,7 +3800,8 @@ const
     nextstate: S_FIRE26;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE25
 
    (
@@ -3461,7 +3812,8 @@ const
     nextstate: S_FIRE27;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE26
 
    (
@@ -3472,7 +3824,8 @@ const
     nextstate: S_FIRE28;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE27
 
    (
@@ -3483,7 +3836,8 @@ const
     nextstate: S_FIRE29;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE28
 
    (
@@ -3494,7 +3848,8 @@ const
     nextstate: S_FIRE30;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE29
 
    (
@@ -3505,7 +3860,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FIRE30
 
    (
@@ -3516,7 +3872,8 @@ const
     nextstate: S_SMOKE2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SMOKE1
 
    (
@@ -3527,7 +3884,8 @@ const
     nextstate: S_SMOKE3;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SMOKE2
 
    (
@@ -3538,7 +3896,8 @@ const
     nextstate: S_SMOKE4;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SMOKE3
 
    (
@@ -3549,7 +3908,8 @@ const
     nextstate: S_SMOKE5;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SMOKE4
 
    (
@@ -3560,7 +3920,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SMOKE5
 
    (
@@ -3571,7 +3932,8 @@ const
     nextstate: S_TRACER2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TRACER
 
    (
@@ -3582,7 +3944,8 @@ const
     nextstate: S_TRACER;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TRACER2
 
    (
@@ -3593,7 +3956,8 @@ const
     nextstate: S_TRACEEXP2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TRACEEXP1
 
    (
@@ -3604,7 +3968,8 @@ const
     nextstate: S_TRACEEXP3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TRACEEXP2
 
    (
@@ -3615,7 +3980,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TRACEEXP3
 
    (
@@ -3626,7 +3992,8 @@ const
     nextstate: S_SKEL_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_STND
 
    (
@@ -3637,7 +4004,8 @@ const
     nextstate: S_SKEL_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_STND2
 
    (
@@ -3648,7 +4016,8 @@ const
     nextstate: S_SKEL_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN1
 
    (
@@ -3659,7 +4028,8 @@ const
     nextstate: S_SKEL_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN2
 
    (
@@ -3670,7 +4040,8 @@ const
     nextstate: S_SKEL_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN3
 
    (
@@ -3681,7 +4052,8 @@ const
     nextstate: S_SKEL_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN4
 
    (
@@ -3692,7 +4064,8 @@ const
     nextstate: S_SKEL_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN5
 
    (
@@ -3703,7 +4076,8 @@ const
     nextstate: S_SKEL_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN6
 
    (
@@ -3714,7 +4088,8 @@ const
     nextstate: S_SKEL_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN7
 
    (
@@ -3725,7 +4100,8 @@ const
     nextstate: S_SKEL_RUN9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN8
 
    (
@@ -3736,7 +4112,8 @@ const
     nextstate: S_SKEL_RUN10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN9
 
    (
@@ -3747,7 +4124,8 @@ const
     nextstate: S_SKEL_RUN11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN10
 
    (
@@ -3758,7 +4136,8 @@ const
     nextstate: S_SKEL_RUN12;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN11
 
    (
@@ -3769,7 +4148,8 @@ const
     nextstate: S_SKEL_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RUN12
 
    (
@@ -3780,7 +4160,8 @@ const
     nextstate: S_SKEL_FIST2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_FIST1
 
    (
@@ -3791,7 +4172,8 @@ const
     nextstate: S_SKEL_FIST3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_FIST2
 
    (
@@ -3802,7 +4184,8 @@ const
     nextstate: S_SKEL_FIST4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_FIST3
 
    (
@@ -3813,7 +4196,8 @@ const
     nextstate: S_SKEL_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_FIST4
 
    (
@@ -3824,7 +4208,8 @@ const
     nextstate: S_SKEL_MISS2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_MISS1
 
    (
@@ -3835,7 +4220,8 @@ const
     nextstate: S_SKEL_MISS3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_MISS2
 
    (
@@ -3846,7 +4232,8 @@ const
     nextstate: S_SKEL_MISS4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_MISS3
 
    (
@@ -3857,7 +4244,8 @@ const
     nextstate: S_SKEL_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_MISS4
 
    (
@@ -3868,7 +4256,8 @@ const
     nextstate: S_SKEL_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_PAIN
 
    (
@@ -3879,7 +4268,8 @@ const
     nextstate: S_SKEL_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_PAIN2
 
    (
@@ -3890,7 +4280,8 @@ const
     nextstate: S_SKEL_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_DIE1
 
    (
@@ -3901,7 +4292,8 @@ const
     nextstate: S_SKEL_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_DIE2
 
    (
@@ -3912,7 +4304,8 @@ const
     nextstate: S_SKEL_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_DIE3
 
    (
@@ -3923,7 +4316,8 @@ const
     nextstate: S_SKEL_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_DIE4
 
    (
@@ -3934,7 +4328,8 @@ const
     nextstate: S_SKEL_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_DIE5
 
    (
@@ -3945,7 +4340,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_DIE6
 
    (
@@ -3956,7 +4352,8 @@ const
     nextstate: S_SKEL_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RAISE1
 
    (
@@ -3967,7 +4364,8 @@ const
     nextstate: S_SKEL_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RAISE2
 
    (
@@ -3978,7 +4376,8 @@ const
     nextstate: S_SKEL_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RAISE3
 
    (
@@ -3989,7 +4388,8 @@ const
     nextstate: S_SKEL_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RAISE4
 
    (
@@ -4000,7 +4400,8 @@ const
     nextstate: S_SKEL_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RAISE5
 
    (
@@ -4011,7 +4412,8 @@ const
     nextstate: S_SKEL_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKEL_RAISE6
 
    (
@@ -4022,7 +4424,8 @@ const
     nextstate: S_FATSHOT2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATSHOT1
 
    (
@@ -4033,7 +4436,8 @@ const
     nextstate: S_FATSHOT1;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATSHOT2
 
    (
@@ -4044,7 +4448,8 @@ const
     nextstate: S_FATSHOTX2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATSHOTX1
 
    (
@@ -4055,7 +4460,8 @@ const
     nextstate: S_FATSHOTX3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATSHOTX2
 
    (
@@ -4066,7 +4472,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATSHOTX3
 
    (
@@ -4077,7 +4484,8 @@ const
     nextstate: S_FATT_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_STND
 
    (
@@ -4088,7 +4496,8 @@ const
     nextstate: S_FATT_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_STND2
 
    (
@@ -4099,7 +4508,8 @@ const
     nextstate: S_FATT_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN1
 
    (
@@ -4110,7 +4520,8 @@ const
     nextstate: S_FATT_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN2
 
    (
@@ -4121,7 +4532,8 @@ const
     nextstate: S_FATT_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN3
 
    (
@@ -4132,7 +4544,8 @@ const
     nextstate: S_FATT_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN4
 
    (
@@ -4143,7 +4556,8 @@ const
     nextstate: S_FATT_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN5
 
    (
@@ -4154,7 +4568,8 @@ const
     nextstate: S_FATT_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN6
 
    (
@@ -4165,7 +4580,8 @@ const
     nextstate: S_FATT_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN7
 
    (
@@ -4176,7 +4592,8 @@ const
     nextstate: S_FATT_RUN9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN8
 
    (
@@ -4187,7 +4604,8 @@ const
     nextstate: S_FATT_RUN10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN9
 
    (
@@ -4198,7 +4616,8 @@ const
     nextstate: S_FATT_RUN11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN10
 
    (
@@ -4209,7 +4628,8 @@ const
     nextstate: S_FATT_RUN12;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN11
 
    (
@@ -4220,7 +4640,8 @@ const
     nextstate: S_FATT_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RUN12
 
    (
@@ -4231,7 +4652,8 @@ const
     nextstate: S_FATT_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK1
 
    (
@@ -4242,7 +4664,8 @@ const
     nextstate: S_FATT_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK2
 
    (
@@ -4253,7 +4676,8 @@ const
     nextstate: S_FATT_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK3
 
    (
@@ -4264,7 +4688,8 @@ const
     nextstate: S_FATT_ATK5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK4
 
    (
@@ -4275,7 +4700,8 @@ const
     nextstate: S_FATT_ATK6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK5
 
    (
@@ -4286,7 +4712,8 @@ const
     nextstate: S_FATT_ATK7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK6
 
    (
@@ -4297,7 +4724,8 @@ const
     nextstate: S_FATT_ATK8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK7
 
    (
@@ -4308,7 +4736,8 @@ const
     nextstate: S_FATT_ATK9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK8
 
    (
@@ -4319,7 +4748,8 @@ const
     nextstate: S_FATT_ATK10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK9
 
    (
@@ -4330,7 +4760,8 @@ const
     nextstate: S_FATT_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_ATK10
 
    (
@@ -4341,7 +4772,8 @@ const
     nextstate: S_FATT_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_PAIN
 
    (
@@ -4352,7 +4784,8 @@ const
     nextstate: S_FATT_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_PAIN2
 
    (
@@ -4363,7 +4796,8 @@ const
     nextstate: S_FATT_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE1
 
    (
@@ -4374,7 +4808,8 @@ const
     nextstate: S_FATT_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE2
 
    (
@@ -4385,7 +4820,8 @@ const
     nextstate: S_FATT_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE3
 
    (
@@ -4396,7 +4832,8 @@ const
     nextstate: S_FATT_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE4
 
    (
@@ -4407,7 +4844,8 @@ const
     nextstate: S_FATT_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE5
 
    (
@@ -4418,7 +4856,8 @@ const
     nextstate: S_FATT_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE6
 
    (
@@ -4429,7 +4868,8 @@ const
     nextstate: S_FATT_DIE8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE7
 
    (
@@ -4440,7 +4880,8 @@ const
     nextstate: S_FATT_DIE9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE8
 
    (
@@ -4451,7 +4892,8 @@ const
     nextstate: S_FATT_DIE10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE9
 
    (
@@ -4462,7 +4904,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_DIE10
 
    (
@@ -4473,7 +4916,8 @@ const
     nextstate: S_FATT_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE1
 
    (
@@ -4484,7 +4928,8 @@ const
     nextstate: S_FATT_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE2
 
    (
@@ -4495,7 +4940,8 @@ const
     nextstate: S_FATT_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE3
 
    (
@@ -4506,7 +4952,8 @@ const
     nextstate: S_FATT_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE4
 
    (
@@ -4517,7 +4964,8 @@ const
     nextstate: S_FATT_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE5
 
    (
@@ -4528,7 +4976,8 @@ const
     nextstate: S_FATT_RAISE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE6
 
    (
@@ -4539,7 +4988,8 @@ const
     nextstate: S_FATT_RAISE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE7
 
    (
@@ -4550,7 +5000,8 @@ const
     nextstate: S_FATT_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FATT_RAISE8
 
    (
@@ -4561,7 +5012,8 @@ const
     nextstate: S_CPOS_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_STND
 
    (
@@ -4572,7 +5024,8 @@ const
     nextstate: S_CPOS_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_STND2
 
    (
@@ -4583,7 +5036,8 @@ const
     nextstate: S_CPOS_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN1
 
    (
@@ -4594,7 +5048,8 @@ const
     nextstate: S_CPOS_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN2
 
    (
@@ -4605,7 +5060,8 @@ const
     nextstate: S_CPOS_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN3
 
    (
@@ -4616,7 +5072,8 @@ const
     nextstate: S_CPOS_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN4
 
    (
@@ -4627,7 +5084,8 @@ const
     nextstate: S_CPOS_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN5
 
    (
@@ -4638,7 +5096,8 @@ const
     nextstate: S_CPOS_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN6
 
    (
@@ -4649,7 +5108,8 @@ const
     nextstate: S_CPOS_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN7
 
    (
@@ -4660,7 +5120,8 @@ const
     nextstate: S_CPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RUN8
 
    (
@@ -4671,7 +5132,8 @@ const
     nextstate: S_CPOS_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_ATK1
 
    (
@@ -4682,7 +5144,8 @@ const
     nextstate: S_CPOS_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_ATK2
 
    (
@@ -4693,7 +5156,8 @@ const
     nextstate: S_CPOS_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_ATK3
 
    (
@@ -4704,7 +5168,8 @@ const
     nextstate: S_CPOS_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_ATK4
 
    (
@@ -4715,7 +5180,8 @@ const
     nextstate: S_CPOS_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_PAIN
 
    (
@@ -4726,7 +5192,8 @@ const
     nextstate: S_CPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_PAIN2
 
    (
@@ -4737,7 +5204,8 @@ const
     nextstate: S_CPOS_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE1
 
    (
@@ -4748,7 +5216,8 @@ const
     nextstate: S_CPOS_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE2
 
    (
@@ -4759,7 +5228,8 @@ const
     nextstate: S_CPOS_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE3
 
    (
@@ -4770,7 +5240,8 @@ const
     nextstate: S_CPOS_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE4
 
    (
@@ -4781,7 +5252,8 @@ const
     nextstate: S_CPOS_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE5
 
    (
@@ -4792,7 +5264,8 @@ const
     nextstate: S_CPOS_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE6
 
    (
@@ -4803,7 +5276,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_DIE7
 
    (
@@ -4814,7 +5288,8 @@ const
     nextstate: S_CPOS_XDIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_XDIE1
 
    (
@@ -4825,7 +5300,8 @@ const
     nextstate: S_CPOS_XDIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_XDIE2
 
    (
@@ -4836,7 +5312,8 @@ const
     nextstate: S_CPOS_XDIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_XDIE3
 
    (
@@ -4847,7 +5324,8 @@ const
     nextstate: S_CPOS_XDIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_XDIE4
 
    (
@@ -4858,7 +5336,8 @@ const
     nextstate: S_CPOS_XDIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_XDIE5
 
    (
@@ -4869,7 +5348,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_XDIE6
 
    (
@@ -4880,7 +5360,8 @@ const
     nextstate: S_CPOS_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE1
 
    (
@@ -4891,7 +5372,8 @@ const
     nextstate: S_CPOS_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE2
 
    (
@@ -4902,7 +5384,8 @@ const
     nextstate: S_CPOS_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE3
 
    (
@@ -4913,7 +5396,8 @@ const
     nextstate: S_CPOS_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE4
 
    (
@@ -4924,7 +5408,8 @@ const
     nextstate: S_CPOS_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE5
 
    (
@@ -4935,7 +5420,8 @@ const
     nextstate: S_CPOS_RAISE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE6
 
    (
@@ -4946,7 +5432,8 @@ const
     nextstate: S_CPOS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CPOS_RAISE7
 
    (
@@ -4957,7 +5444,8 @@ const
     nextstate: S_TROO_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_STND
 
    (
@@ -4968,7 +5456,8 @@ const
     nextstate: S_TROO_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_STND2
 
    (
@@ -4979,7 +5468,8 @@ const
     nextstate: S_TROO_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN1
 
    (
@@ -4990,7 +5480,8 @@ const
     nextstate: S_TROO_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN2
 
    (
@@ -5001,7 +5492,8 @@ const
     nextstate: S_TROO_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN3
 
    (
@@ -5012,7 +5504,8 @@ const
     nextstate: S_TROO_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN4
 
    (
@@ -5023,7 +5516,8 @@ const
     nextstate: S_TROO_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN5
 
    (
@@ -5034,7 +5528,8 @@ const
     nextstate: S_TROO_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN6
 
    (
@@ -5045,7 +5540,8 @@ const
     nextstate: S_TROO_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN7
 
    (
@@ -5056,7 +5552,8 @@ const
     nextstate: S_TROO_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RUN8
 
    (
@@ -5067,7 +5564,8 @@ const
     nextstate: S_TROO_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_ATK1
 
    (
@@ -5078,7 +5576,8 @@ const
     nextstate: S_TROO_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_ATK2
 
    (
@@ -5089,7 +5588,8 @@ const
     nextstate: S_TROO_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_ATK3
 
    (
@@ -5100,7 +5600,8 @@ const
     nextstate: S_TROO_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_PAIN
 
    (
@@ -5111,7 +5612,8 @@ const
     nextstate: S_TROO_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_PAIN2
 
    (
@@ -5122,7 +5624,8 @@ const
     nextstate: S_TROO_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_DIE1
 
    (
@@ -5133,7 +5636,8 @@ const
     nextstate: S_TROO_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_DIE2
 
    (
@@ -5144,7 +5648,8 @@ const
     nextstate: S_TROO_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_DIE3
 
    (
@@ -5155,7 +5660,8 @@ const
     nextstate: S_TROO_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_DIE4
 
    (
@@ -5166,7 +5672,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_DIE5
 
    (
@@ -5177,7 +5684,8 @@ const
     nextstate: S_TROO_XDIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE1
 
    (
@@ -5188,7 +5696,8 @@ const
     nextstate: S_TROO_XDIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE2
 
    (
@@ -5199,7 +5708,8 @@ const
     nextstate: S_TROO_XDIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE3
 
    (
@@ -5210,7 +5720,8 @@ const
     nextstate: S_TROO_XDIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE4
 
    (
@@ -5221,7 +5732,8 @@ const
     nextstate: S_TROO_XDIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE5
 
    (
@@ -5232,7 +5744,8 @@ const
     nextstate: S_TROO_XDIE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE6
 
    (
@@ -5243,7 +5756,8 @@ const
     nextstate: S_TROO_XDIE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE7
 
    (
@@ -5254,7 +5768,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_XDIE8
 
    (
@@ -5265,7 +5780,8 @@ const
     nextstate: S_TROO_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RAISE1
 
    (
@@ -5276,7 +5792,8 @@ const
     nextstate: S_TROO_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RAISE2
 
    (
@@ -5287,7 +5804,8 @@ const
     nextstate: S_TROO_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RAISE3
 
    (
@@ -5298,7 +5816,8 @@ const
     nextstate: S_TROO_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RAISE4
 
    (
@@ -5309,7 +5828,8 @@ const
     nextstate: S_TROO_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TROO_RAISE5
 
    (
@@ -5320,7 +5840,8 @@ const
     nextstate: S_SARG_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_STND
 
    (
@@ -5331,7 +5852,8 @@ const
     nextstate: S_SARG_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_STND2
 
    (
@@ -5342,7 +5864,8 @@ const
     nextstate: S_SARG_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN1
 
    (
@@ -5353,7 +5876,8 @@ const
     nextstate: S_SARG_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN2
 
    (
@@ -5364,7 +5888,8 @@ const
     nextstate: S_SARG_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN3
 
    (
@@ -5375,7 +5900,8 @@ const
     nextstate: S_SARG_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN4
 
    (
@@ -5386,7 +5912,8 @@ const
     nextstate: S_SARG_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN5
 
    (
@@ -5397,7 +5924,8 @@ const
     nextstate: S_SARG_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN6
 
    (
@@ -5408,7 +5936,8 @@ const
     nextstate: S_SARG_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN7
 
    (
@@ -5419,7 +5948,8 @@ const
     nextstate: S_SARG_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_RUN8
 
    (
@@ -5430,7 +5960,8 @@ const
     nextstate: S_SARG_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_ATK1
 
    (
@@ -5441,7 +5972,8 @@ const
     nextstate: S_SARG_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_ATK2
 
    (
@@ -5452,7 +5984,8 @@ const
     nextstate: S_SARG_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_ATK3
 
    (
@@ -5463,7 +5996,8 @@ const
     nextstate: S_SARG_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_PAIN
 
    (
@@ -5474,7 +6008,8 @@ const
     nextstate: S_SARG_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: STATEF_SKILL5FAST; // mbf21bits
    ),                         // S_SARG_PAIN2
 
    (
@@ -5485,7 +6020,8 @@ const
     nextstate: S_SARG_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_DIE1
 
    (
@@ -5496,7 +6032,8 @@ const
     nextstate: S_SARG_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_DIE2
 
    (
@@ -5507,7 +6044,8 @@ const
     nextstate: S_SARG_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_DIE3
 
    (
@@ -5518,7 +6056,8 @@ const
     nextstate: S_SARG_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_DIE4
 
    (
@@ -5529,7 +6068,8 @@ const
     nextstate: S_SARG_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_DIE5
 
    (
@@ -5540,7 +6080,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_DIE6
 
    (
@@ -5551,7 +6092,8 @@ const
     nextstate: S_SARG_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_RAISE1
 
    (
@@ -5562,7 +6104,8 @@ const
     nextstate: S_SARG_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_RAISE2
 
    (
@@ -5573,7 +6116,8 @@ const
     nextstate: S_SARG_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_RAISE3
 
    (
@@ -5584,7 +6128,8 @@ const
     nextstate: S_SARG_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_RAISE4
 
    (
@@ -5595,7 +6140,8 @@ const
     nextstate: S_SARG_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_RAISE5
 
    (
@@ -5606,7 +6152,8 @@ const
     nextstate: S_SARG_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SARG_RAISE6
 
    (
@@ -5617,7 +6164,8 @@ const
     nextstate: S_HEAD_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_STND
 
    (
@@ -5628,7 +6176,8 @@ const
     nextstate: S_HEAD_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RUN1
 
    (
@@ -5639,7 +6188,8 @@ const
     nextstate: S_HEAD_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_ATK1
 
    (
@@ -5650,7 +6200,8 @@ const
     nextstate: S_HEAD_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_ATK2
 
    (
@@ -5661,7 +6212,8 @@ const
     nextstate: S_HEAD_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_ATK3
 
    (
@@ -5672,7 +6224,8 @@ const
     nextstate: S_HEAD_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_PAIN
 
    (
@@ -5683,7 +6236,8 @@ const
     nextstate: S_HEAD_PAIN3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_PAIN2
 
    (
@@ -5694,7 +6248,8 @@ const
     nextstate: S_HEAD_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_PAIN3
 
    (
@@ -5705,7 +6260,8 @@ const
     nextstate: S_HEAD_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_DIE1
 
    (
@@ -5716,7 +6272,8 @@ const
     nextstate: S_HEAD_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_DIE2
 
    (
@@ -5727,7 +6284,8 @@ const
     nextstate: S_HEAD_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_DIE3
 
    (
@@ -5738,7 +6296,8 @@ const
     nextstate: S_HEAD_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_DIE4
 
    (
@@ -5749,7 +6308,8 @@ const
     nextstate: S_HEAD_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_DIE5
 
    (
@@ -5760,7 +6320,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_DIE6
 
    (
@@ -5771,7 +6332,8 @@ const
     nextstate: S_HEAD_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RAISE1
 
    (
@@ -5782,7 +6344,8 @@ const
     nextstate: S_HEAD_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RAISE2
 
    (
@@ -5793,7 +6356,8 @@ const
     nextstate: S_HEAD_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RAISE3
 
    (
@@ -5804,7 +6368,8 @@ const
     nextstate: S_HEAD_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RAISE4
 
    (
@@ -5815,7 +6380,8 @@ const
     nextstate: S_HEAD_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RAISE5
 
    (
@@ -5826,7 +6392,8 @@ const
     nextstate: S_HEAD_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEAD_RAISE6
 
    (
@@ -5837,7 +6404,8 @@ const
     nextstate: S_BRBALL2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRBALL1
 
    (
@@ -5848,7 +6416,8 @@ const
     nextstate: S_BRBALL1;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRBALL2
 
    (
@@ -5859,7 +6428,8 @@ const
     nextstate: S_BRBALLX2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRBALLX1
 
    (
@@ -5870,7 +6440,8 @@ const
     nextstate: S_BRBALLX3;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRBALLX2
 
    (
@@ -5881,7 +6452,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRBALLX3
 
    (
@@ -5892,7 +6464,8 @@ const
     nextstate: S_BOSS_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_STND
 
    (
@@ -5903,7 +6476,8 @@ const
     nextstate: S_BOSS_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_STND2
 
    (
@@ -5914,7 +6488,8 @@ const
     nextstate: S_BOSS_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN1
 
    (
@@ -5925,7 +6500,8 @@ const
     nextstate: S_BOSS_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN2
 
    (
@@ -5936,7 +6512,8 @@ const
     nextstate: S_BOSS_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN3
 
    (
@@ -5947,7 +6524,8 @@ const
     nextstate: S_BOSS_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN4
 
    (
@@ -5958,7 +6536,8 @@ const
     nextstate: S_BOSS_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN5
 
    (
@@ -5969,7 +6548,8 @@ const
     nextstate: S_BOSS_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN6
 
    (
@@ -5980,7 +6560,8 @@ const
     nextstate: S_BOSS_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN7
 
    (
@@ -5991,7 +6572,8 @@ const
     nextstate: S_BOSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RUN8
 
    (
@@ -6002,7 +6584,8 @@ const
     nextstate: S_BOSS_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_ATK1
 
    (
@@ -6013,7 +6596,8 @@ const
     nextstate: S_BOSS_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_ATK2
 
    (
@@ -6024,7 +6608,8 @@ const
     nextstate: S_BOSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_ATK3
 
    (
@@ -6035,7 +6620,8 @@ const
     nextstate: S_BOSS_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_PAIN
 
    (
@@ -6046,7 +6632,8 @@ const
     nextstate: S_BOSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_PAIN2
 
    (
@@ -6057,7 +6644,8 @@ const
     nextstate: S_BOSS_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE1
 
    (
@@ -6068,7 +6656,8 @@ const
     nextstate: S_BOSS_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE2
 
    (
@@ -6079,7 +6668,8 @@ const
     nextstate: S_BOSS_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE3
 
    (
@@ -6090,7 +6680,8 @@ const
     nextstate: S_BOSS_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE4
 
    (
@@ -6101,7 +6692,8 @@ const
     nextstate: S_BOSS_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE5
 
    (
@@ -6112,7 +6704,8 @@ const
     nextstate: S_BOSS_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE6
 
    (
@@ -6123,7 +6716,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_DIE7
 
    (
@@ -6134,7 +6728,8 @@ const
     nextstate: S_BOSS_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE1
 
    (
@@ -6145,7 +6740,8 @@ const
     nextstate: S_BOSS_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE2
 
    (
@@ -6156,7 +6752,8 @@ const
     nextstate: S_BOSS_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE3
 
    (
@@ -6167,7 +6764,8 @@ const
     nextstate: S_BOSS_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE4
 
    (
@@ -6178,7 +6776,8 @@ const
     nextstate: S_BOSS_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE5
 
    (
@@ -6189,7 +6788,8 @@ const
     nextstate: S_BOSS_RAISE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE6
 
    (
@@ -6200,7 +6800,8 @@ const
     nextstate: S_BOSS_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOSS_RAISE7
 
    (
@@ -6211,7 +6812,8 @@ const
     nextstate: S_BOS2_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_STND
 
    (
@@ -6222,7 +6824,8 @@ const
     nextstate: S_BOS2_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_STND2
 
    (
@@ -6233,7 +6836,8 @@ const
     nextstate: S_BOS2_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN1
 
    (
@@ -6244,7 +6848,8 @@ const
     nextstate: S_BOS2_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN2
 
    (
@@ -6255,7 +6860,8 @@ const
     nextstate: S_BOS2_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN3
 
    (
@@ -6266,7 +6872,8 @@ const
     nextstate: S_BOS2_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN4
 
    (
@@ -6277,7 +6884,8 @@ const
     nextstate: S_BOS2_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN5
 
    (
@@ -6288,7 +6896,8 @@ const
     nextstate: S_BOS2_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN6
 
    (
@@ -6299,7 +6908,8 @@ const
     nextstate: S_BOS2_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN7
 
    (
@@ -6310,7 +6920,8 @@ const
     nextstate: S_BOS2_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RUN8
 
    (
@@ -6321,7 +6932,8 @@ const
     nextstate: S_BOS2_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_ATK1
 
    (
@@ -6332,7 +6944,8 @@ const
     nextstate: S_BOS2_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_ATK2
 
    (
@@ -6343,7 +6956,8 @@ const
     nextstate: S_BOS2_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_ATK3
 
    (
@@ -6354,7 +6968,8 @@ const
     nextstate: S_BOS2_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_PAIN
 
    (
@@ -6365,7 +6980,8 @@ const
     nextstate: S_BOS2_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_PAIN2
 
    (
@@ -6376,7 +6992,8 @@ const
     nextstate: S_BOS2_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE1
 
    (
@@ -6387,7 +7004,8 @@ const
     nextstate: S_BOS2_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE2
 
    (
@@ -6398,7 +7016,8 @@ const
     nextstate: S_BOS2_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE3
 
    (
@@ -6409,7 +7028,8 @@ const
     nextstate: S_BOS2_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE4
 
    (
@@ -6420,7 +7040,8 @@ const
     nextstate: S_BOS2_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE5
 
    (
@@ -6431,7 +7052,8 @@ const
     nextstate: S_BOS2_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE6
 
    (
@@ -6442,7 +7064,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_DIE7
 
    (
@@ -6453,7 +7076,8 @@ const
     nextstate: S_BOS2_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE1
 
    (
@@ -6464,7 +7088,8 @@ const
     nextstate: S_BOS2_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE2
 
    (
@@ -6475,7 +7100,8 @@ const
     nextstate: S_BOS2_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE3
 
    (
@@ -6486,7 +7112,8 @@ const
     nextstate: S_BOS2_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE4
 
    (
@@ -6497,7 +7124,8 @@ const
     nextstate: S_BOS2_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE5
 
    (
@@ -6508,7 +7136,8 @@ const
     nextstate: S_BOS2_RAISE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE6
 
    (
@@ -6519,7 +7148,8 @@ const
     nextstate: S_BOS2_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BOS2_RAISE7
 
    (
@@ -6530,7 +7160,8 @@ const
     nextstate: S_SKULL_STND2; // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_STND
 
    (
@@ -6541,7 +7172,8 @@ const
     nextstate: S_SKULL_STND;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_STND2
 
    (
@@ -6552,7 +7184,8 @@ const
     nextstate: S_SKULL_RUN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_RUN1
 
    (
@@ -6563,7 +7196,8 @@ const
     nextstate: S_SKULL_RUN1;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_RUN2
 
    (
@@ -6574,7 +7208,8 @@ const
     nextstate: S_SKULL_ATK2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_ATK1
 
    (
@@ -6585,7 +7220,8 @@ const
     nextstate: S_SKULL_ATK3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_ATK2
 
    (
@@ -6596,7 +7232,8 @@ const
     nextstate: S_SKULL_ATK4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_ATK3
 
    (
@@ -6607,7 +7244,8 @@ const
     nextstate: S_SKULL_ATK3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_ATK4
 
    (
@@ -6618,7 +7256,8 @@ const
     nextstate: S_SKULL_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_PAIN
 
    (
@@ -6629,7 +7268,8 @@ const
     nextstate: S_SKULL_RUN1;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_PAIN2
 
    (
@@ -6640,7 +7280,8 @@ const
     nextstate: S_SKULL_DIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_DIE1
 
    (
@@ -6651,7 +7292,8 @@ const
     nextstate: S_SKULL_DIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_DIE2
 
    (
@@ -6662,7 +7304,8 @@ const
     nextstate: S_SKULL_DIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_DIE3
 
    (
@@ -6673,7 +7316,8 @@ const
     nextstate: S_SKULL_DIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_DIE4
 
    (
@@ -6684,7 +7328,8 @@ const
     nextstate: S_SKULL_DIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_DIE5
 
    (
@@ -6695,7 +7340,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULL_DIE6
 
    (
@@ -6706,7 +7352,8 @@ const
     nextstate: S_SPID_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_STND
 
    (
@@ -6717,7 +7364,8 @@ const
     nextstate: S_SPID_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_STND2
 
    (
@@ -6728,7 +7376,8 @@ const
     nextstate: S_SPID_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN1
 
    (
@@ -6739,7 +7388,8 @@ const
     nextstate: S_SPID_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN2
 
    (
@@ -6750,7 +7400,8 @@ const
     nextstate: S_SPID_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN3
 
    (
@@ -6761,7 +7412,8 @@ const
     nextstate: S_SPID_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN4
 
    (
@@ -6772,7 +7424,8 @@ const
     nextstate: S_SPID_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN5
 
    (
@@ -6783,7 +7436,8 @@ const
     nextstate: S_SPID_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN6
 
    (
@@ -6794,7 +7448,8 @@ const
     nextstate: S_SPID_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN7
 
    (
@@ -6805,7 +7460,8 @@ const
     nextstate: S_SPID_RUN9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN8
 
    (
@@ -6816,7 +7472,8 @@ const
     nextstate: S_SPID_RUN10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN9
 
    (
@@ -6827,7 +7484,8 @@ const
     nextstate: S_SPID_RUN11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN10
 
    (
@@ -6838,7 +7496,8 @@ const
     nextstate: S_SPID_RUN12;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN11
 
    (
@@ -6849,7 +7508,8 @@ const
     nextstate: S_SPID_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_RUN12
 
    (
@@ -6860,7 +7520,8 @@ const
     nextstate: S_SPID_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_ATK1
 
    (
@@ -6871,7 +7532,8 @@ const
     nextstate: S_SPID_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_ATK2
 
    (
@@ -6882,7 +7544,8 @@ const
     nextstate: S_SPID_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_ATK3
 
    (
@@ -6893,7 +7556,8 @@ const
     nextstate: S_SPID_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_ATK4
 
    (
@@ -6904,7 +7568,8 @@ const
     nextstate: S_SPID_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_PAIN
 
    (
@@ -6915,7 +7580,8 @@ const
     nextstate: S_SPID_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_PAIN2
 
    (
@@ -6926,7 +7592,8 @@ const
     nextstate: S_SPID_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE1
 
    (
@@ -6937,7 +7604,8 @@ const
     nextstate: S_SPID_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE2
 
    (
@@ -6948,7 +7616,8 @@ const
     nextstate: S_SPID_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE3
 
    (
@@ -6959,7 +7628,8 @@ const
     nextstate: S_SPID_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE4
 
    (
@@ -6970,7 +7640,8 @@ const
     nextstate: S_SPID_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE5
 
    (
@@ -6981,7 +7652,8 @@ const
     nextstate: S_SPID_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE6
 
    (
@@ -6992,7 +7664,8 @@ const
     nextstate: S_SPID_DIE8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE7
 
    (
@@ -7003,7 +7676,8 @@ const
     nextstate: S_SPID_DIE9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE8
 
    (
@@ -7014,7 +7688,8 @@ const
     nextstate: S_SPID_DIE10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE9
 
    (
@@ -7025,7 +7700,8 @@ const
     nextstate: S_SPID_DIE11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE10
 
    (
@@ -7036,7 +7712,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPID_DIE11
 
    (
@@ -7047,7 +7724,8 @@ const
     nextstate: S_BSPI_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_STND
 
    (
@@ -7058,7 +7736,8 @@ const
     nextstate: S_BSPI_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_STND2
 
    (
@@ -7069,7 +7748,8 @@ const
     nextstate: S_BSPI_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_SIGHT
 
    (
@@ -7080,7 +7760,8 @@ const
     nextstate: S_BSPI_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN1
 
    (
@@ -7091,7 +7772,8 @@ const
     nextstate: S_BSPI_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN2
 
    (
@@ -7102,7 +7784,8 @@ const
     nextstate: S_BSPI_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN3
 
    (
@@ -7113,7 +7796,8 @@ const
     nextstate: S_BSPI_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN4
 
    (
@@ -7124,7 +7808,8 @@ const
     nextstate: S_BSPI_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN5
 
    (
@@ -7135,7 +7820,8 @@ const
     nextstate: S_BSPI_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN6
 
    (
@@ -7146,7 +7832,8 @@ const
     nextstate: S_BSPI_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN7
 
    (
@@ -7157,7 +7844,8 @@ const
     nextstate: S_BSPI_RUN9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN8
 
    (
@@ -7168,7 +7856,8 @@ const
     nextstate: S_BSPI_RUN10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN9
 
    (
@@ -7179,7 +7868,8 @@ const
     nextstate: S_BSPI_RUN11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN10
 
    (
@@ -7190,7 +7880,8 @@ const
     nextstate: S_BSPI_RUN12;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN11
 
    (
@@ -7201,7 +7892,8 @@ const
     nextstate: S_BSPI_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RUN12
 
    (
@@ -7212,7 +7904,8 @@ const
     nextstate: S_BSPI_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_ATK1
 
    (
@@ -7223,7 +7916,8 @@ const
     nextstate: S_BSPI_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_ATK2
 
    (
@@ -7234,7 +7928,8 @@ const
     nextstate: S_BSPI_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_ATK3
 
    (
@@ -7245,7 +7940,8 @@ const
     nextstate: S_BSPI_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_ATK4
 
    (
@@ -7256,7 +7952,8 @@ const
     nextstate: S_BSPI_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_PAIN
 
    (
@@ -7267,7 +7964,8 @@ const
     nextstate: S_BSPI_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_PAIN2
 
    (
@@ -7278,7 +7976,8 @@ const
     nextstate: S_BSPI_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE1
 
    (
@@ -7289,7 +7988,8 @@ const
     nextstate: S_BSPI_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE2
 
    (
@@ -7300,7 +8000,8 @@ const
     nextstate: S_BSPI_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE3
 
    (
@@ -7311,7 +8012,8 @@ const
     nextstate: S_BSPI_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE4
 
    (
@@ -7322,7 +8024,8 @@ const
     nextstate: S_BSPI_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE5
 
    (
@@ -7333,7 +8036,8 @@ const
     nextstate: S_BSPI_DIE7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE6
 
    (
@@ -7344,7 +8048,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_DIE7
 
    (
@@ -7355,7 +8060,8 @@ const
     nextstate: S_BSPI_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE1
 
    (
@@ -7366,7 +8072,8 @@ const
     nextstate: S_BSPI_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE2
 
    (
@@ -7377,7 +8084,8 @@ const
     nextstate: S_BSPI_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE3
 
    (
@@ -7388,7 +8096,8 @@ const
     nextstate: S_BSPI_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE4
 
    (
@@ -7399,7 +8108,8 @@ const
     nextstate: S_BSPI_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE5
 
    (
@@ -7410,7 +8120,8 @@ const
     nextstate: S_BSPI_RAISE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE6
 
    (
@@ -7421,7 +8132,8 @@ const
     nextstate: S_BSPI_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSPI_RAISE7
 
    (
@@ -7432,7 +8144,8 @@ const
     nextstate: S_ARACH_PLAZ2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLAZ
 
    (
@@ -7443,7 +8156,8 @@ const
     nextstate: S_ARACH_PLAZ;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLAZ2
 
    (
@@ -7454,7 +8168,8 @@ const
     nextstate: S_ARACH_PLEX2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLEX
 
    (
@@ -7465,7 +8180,8 @@ const
     nextstate: S_ARACH_PLEX3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLEX2
 
    (
@@ -7476,7 +8192,8 @@ const
     nextstate: S_ARACH_PLEX4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLEX3
 
    (
@@ -7487,7 +8204,8 @@ const
     nextstate: S_ARACH_PLEX5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLEX4
 
    (
@@ -7498,7 +8216,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARACH_PLEX5
 
    (
@@ -7509,7 +8228,8 @@ const
     nextstate: S_CYBER_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_STND
 
    (
@@ -7520,7 +8240,8 @@ const
     nextstate: S_CYBER_STND;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_STND2
 
    (
@@ -7531,7 +8252,8 @@ const
     nextstate: S_CYBER_RUN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN1
 
    (
@@ -7542,7 +8264,8 @@ const
     nextstate: S_CYBER_RUN3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN2
 
    (
@@ -7553,7 +8276,8 @@ const
     nextstate: S_CYBER_RUN4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN3
 
    (
@@ -7564,7 +8288,8 @@ const
     nextstate: S_CYBER_RUN5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN4
 
    (
@@ -7575,7 +8300,8 @@ const
     nextstate: S_CYBER_RUN6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN5
 
    (
@@ -7586,7 +8312,8 @@ const
     nextstate: S_CYBER_RUN7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN6
 
    (
@@ -7597,7 +8324,8 @@ const
     nextstate: S_CYBER_RUN8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN7
 
    (
@@ -7608,7 +8336,8 @@ const
     nextstate: S_CYBER_RUN1;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_RUN8
 
    (
@@ -7619,7 +8348,8 @@ const
     nextstate: S_CYBER_ATK2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_ATK1
 
    (
@@ -7630,7 +8360,8 @@ const
     nextstate: S_CYBER_ATK3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_ATK2
 
    (
@@ -7641,7 +8372,8 @@ const
     nextstate: S_CYBER_ATK4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_ATK3
 
    (
@@ -7652,7 +8384,8 @@ const
     nextstate: S_CYBER_ATK5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_ATK4
 
    (
@@ -7663,7 +8396,8 @@ const
     nextstate: S_CYBER_ATK6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_ATK5
 
    (
@@ -7674,7 +8408,8 @@ const
     nextstate: S_CYBER_RUN1;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_ATK6
 
    (
@@ -7685,7 +8420,8 @@ const
     nextstate: S_CYBER_RUN1;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_PAIN
 
    (
@@ -7696,7 +8432,8 @@ const
     nextstate: S_CYBER_DIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE1
 
    (
@@ -7707,7 +8444,8 @@ const
     nextstate: S_CYBER_DIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE2
 
    (
@@ -7718,7 +8456,8 @@ const
     nextstate: S_CYBER_DIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE3
 
    (
@@ -7729,7 +8468,8 @@ const
     nextstate: S_CYBER_DIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE4
 
    (
@@ -7740,7 +8480,8 @@ const
     nextstate: S_CYBER_DIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE5
 
    (
@@ -7751,7 +8492,8 @@ const
     nextstate: S_CYBER_DIE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE6
 
    (
@@ -7762,7 +8504,8 @@ const
     nextstate: S_CYBER_DIE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE7
 
    (
@@ -7773,7 +8516,8 @@ const
     nextstate: S_CYBER_DIE9;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE8
 
    (
@@ -7784,7 +8528,8 @@ const
     nextstate: S_CYBER_DIE10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE9
 
    (
@@ -7795,7 +8540,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CYBER_DIE10
 
    (
@@ -7806,7 +8552,8 @@ const
     nextstate: S_PAIN_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_STND
 
    (
@@ -7817,7 +8564,8 @@ const
     nextstate: S_PAIN_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RUN1
 
    (
@@ -7828,7 +8576,8 @@ const
     nextstate: S_PAIN_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RUN2
 
    (
@@ -7839,7 +8588,8 @@ const
     nextstate: S_PAIN_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RUN3
 
    (
@@ -7850,7 +8600,8 @@ const
     nextstate: S_PAIN_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RUN4
 
    (
@@ -7861,7 +8612,8 @@ const
     nextstate: S_PAIN_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RUN5
 
    (
@@ -7872,7 +8624,8 @@ const
     nextstate: S_PAIN_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RUN6
 
    (
@@ -7883,7 +8636,8 @@ const
     nextstate: S_PAIN_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_ATK1
 
    (
@@ -7894,7 +8648,8 @@ const
     nextstate: S_PAIN_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_ATK2
 
    (
@@ -7905,7 +8660,8 @@ const
     nextstate: S_PAIN_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_ATK3
 
    (
@@ -7916,7 +8672,8 @@ const
     nextstate: S_PAIN_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_ATK4
 
    (
@@ -7927,7 +8684,8 @@ const
     nextstate: S_PAIN_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_PAIN
 
    (
@@ -7938,7 +8696,8 @@ const
     nextstate: S_PAIN_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_PAIN2
 
    (
@@ -7949,7 +8708,8 @@ const
     nextstate: S_PAIN_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_DIE1
 
    (
@@ -7960,7 +8720,8 @@ const
     nextstate: S_PAIN_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_DIE2
 
    (
@@ -7971,7 +8732,8 @@ const
     nextstate: S_PAIN_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_DIE3
 
    (
@@ -7982,7 +8744,8 @@ const
     nextstate: S_PAIN_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_DIE4
 
    (
@@ -7993,7 +8756,8 @@ const
     nextstate: S_PAIN_DIE6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_DIE5
 
    (
@@ -8004,7 +8768,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_DIE6
 
    (
@@ -8015,7 +8780,8 @@ const
     nextstate: S_PAIN_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RAISE1
 
    (
@@ -8026,7 +8792,8 @@ const
     nextstate: S_PAIN_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RAISE2
 
    (
@@ -8037,7 +8804,8 @@ const
     nextstate: S_PAIN_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RAISE3
 
    (
@@ -8048,7 +8816,8 @@ const
     nextstate: S_PAIN_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RAISE4
 
    (
@@ -8059,7 +8828,8 @@ const
     nextstate: S_PAIN_RAISE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RAISE5
 
    (
@@ -8070,7 +8840,8 @@ const
     nextstate: S_PAIN_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PAIN_RAISE6
 
    (
@@ -8081,7 +8852,8 @@ const
     nextstate: S_SSWV_STND2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_STND
 
    (
@@ -8092,7 +8864,8 @@ const
     nextstate: S_SSWV_STND;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_STND2
 
    (
@@ -8103,7 +8876,8 @@ const
     nextstate: S_SSWV_RUN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN1
 
    (
@@ -8114,7 +8888,8 @@ const
     nextstate: S_SSWV_RUN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN2
 
    (
@@ -8125,7 +8900,8 @@ const
     nextstate: S_SSWV_RUN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN3
 
    (
@@ -8136,7 +8912,8 @@ const
     nextstate: S_SSWV_RUN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN4
 
    (
@@ -8147,7 +8924,8 @@ const
     nextstate: S_SSWV_RUN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN5
 
    (
@@ -8158,7 +8936,8 @@ const
     nextstate: S_SSWV_RUN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN6
 
    (
@@ -8169,7 +8948,8 @@ const
     nextstate: S_SSWV_RUN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN7
 
    (
@@ -8180,7 +8960,8 @@ const
     nextstate: S_SSWV_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RUN8
 
    (
@@ -8191,7 +8972,8 @@ const
     nextstate: S_SSWV_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_ATK1
 
    (
@@ -8202,7 +8984,8 @@ const
     nextstate: S_SSWV_ATK3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_ATK2
 
    (
@@ -8213,7 +8996,8 @@ const
     nextstate: S_SSWV_ATK4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_ATK3
 
    (
@@ -8224,7 +9008,8 @@ const
     nextstate: S_SSWV_ATK5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_ATK4
 
    (
@@ -8235,7 +9020,8 @@ const
     nextstate: S_SSWV_ATK6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_ATK5
 
    (
@@ -8246,7 +9032,8 @@ const
     nextstate: S_SSWV_ATK2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_ATK6
 
    (
@@ -8257,7 +9044,8 @@ const
     nextstate: S_SSWV_PAIN2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_PAIN
 
    (
@@ -8268,7 +9056,8 @@ const
     nextstate: S_SSWV_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_PAIN2
 
    (
@@ -8279,7 +9068,8 @@ const
     nextstate: S_SSWV_DIE2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_DIE1
 
    (
@@ -8290,7 +9080,8 @@ const
     nextstate: S_SSWV_DIE3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_DIE2
 
    (
@@ -8301,7 +9092,8 @@ const
     nextstate: S_SSWV_DIE4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_DIE3
 
    (
@@ -8312,7 +9104,8 @@ const
     nextstate: S_SSWV_DIE5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_DIE4
 
    (
@@ -8323,7 +9116,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_DIE5
 
    (
@@ -8334,7 +9128,8 @@ const
     nextstate: S_SSWV_XDIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE1
 
    (
@@ -8345,7 +9140,8 @@ const
     nextstate: S_SSWV_XDIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE2
 
    (
@@ -8356,7 +9152,8 @@ const
     nextstate: S_SSWV_XDIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE3
 
    (
@@ -8367,7 +9164,8 @@ const
     nextstate: S_SSWV_XDIE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE4
 
    (
@@ -8378,7 +9176,8 @@ const
     nextstate: S_SSWV_XDIE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE5
 
    (
@@ -8389,7 +9188,8 @@ const
     nextstate: S_SSWV_XDIE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE6
 
    (
@@ -8400,7 +9200,8 @@ const
     nextstate: S_SSWV_XDIE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE7
 
    (
@@ -8411,7 +9212,8 @@ const
     nextstate: S_SSWV_XDIE9;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE8
 
    (
@@ -8422,7 +9224,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_XDIE9
 
    (
@@ -8433,7 +9236,8 @@ const
     nextstate: S_SSWV_RAISE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RAISE1
 
    (
@@ -8444,7 +9248,8 @@ const
     nextstate: S_SSWV_RAISE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RAISE2
 
    (
@@ -8455,7 +9260,8 @@ const
     nextstate: S_SSWV_RAISE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RAISE3
 
    (
@@ -8466,7 +9272,8 @@ const
     nextstate: S_SSWV_RAISE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RAISE4
 
    (
@@ -8477,7 +9284,8 @@ const
     nextstate: S_SSWV_RUN1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SSWV_RAISE5
 
    (
@@ -8488,7 +9296,8 @@ const
     nextstate: S_KEENSTND;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_KEENSTND
 
    (
@@ -8499,7 +9308,8 @@ const
     nextstate: S_COMMKEEN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN
 
    (
@@ -8510,7 +9320,8 @@ const
     nextstate: S_COMMKEEN3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN2
 
    (
@@ -8521,7 +9332,8 @@ const
     nextstate: S_COMMKEEN4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN3
 
    (
@@ -8532,7 +9344,8 @@ const
     nextstate: S_COMMKEEN5;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN4
 
    (
@@ -8543,7 +9356,8 @@ const
     nextstate: S_COMMKEEN6;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN5
 
    (
@@ -8554,7 +9368,8 @@ const
     nextstate: S_COMMKEEN7;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN6
 
    (
@@ -8565,7 +9380,8 @@ const
     nextstate: S_COMMKEEN8;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN7
 
    (
@@ -8576,7 +9392,8 @@ const
     nextstate: S_COMMKEEN9;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN8
 
    (
@@ -8587,7 +9404,8 @@ const
     nextstate: S_COMMKEEN10;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN9
 
    (
@@ -8598,7 +9416,8 @@ const
     nextstate: S_COMMKEEN11;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN10
 
    (
@@ -8618,7 +9437,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COMMKEEN12
 
    (
@@ -8629,7 +9449,8 @@ const
     nextstate: S_KEENPAIN2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_KEENPAIN
 
    (
@@ -8640,7 +9461,8 @@ const
     nextstate: S_KEENSTND;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_KEENPAIN2
 
    (
@@ -8651,7 +9473,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAIN
 
    (
@@ -8662,7 +9485,8 @@ const
     nextstate: S_BRAIN;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAIN_PAIN
 
    (
@@ -8673,7 +9497,8 @@ const
     nextstate: S_BRAIN_DIE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAIN_DIE1
 
    (
@@ -8684,7 +9509,8 @@ const
     nextstate: S_BRAIN_DIE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAIN_DIE2
 
    (
@@ -8695,7 +9521,8 @@ const
     nextstate: S_BRAIN_DIE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAIN_DIE3
 
    (
@@ -8706,7 +9533,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAIN_DIE4
 
    (
@@ -8717,7 +9545,8 @@ const
     nextstate: S_BRAINEYE;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINEYE
 
    (
@@ -8728,7 +9557,8 @@ const
     nextstate: S_BRAINEYE1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINEYESEE
 
    (
@@ -8739,7 +9569,8 @@ const
     nextstate: S_BRAINEYE1;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINEYE1
 
    (
@@ -8750,7 +9581,8 @@ const
     nextstate: S_SPAWN2;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWN1
 
    (
@@ -8761,7 +9593,8 @@ const
     nextstate: S_SPAWN3;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWN2
 
    (
@@ -8772,7 +9605,8 @@ const
     nextstate: S_SPAWN4;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWN3
 
    (
@@ -8783,7 +9617,8 @@ const
     nextstate: S_SPAWN1;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWN4
 
    (
@@ -8794,7 +9629,8 @@ const
     nextstate: S_SPAWNFIRE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE1
 
    (
@@ -8805,7 +9641,8 @@ const
     nextstate: S_SPAWNFIRE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE2
 
    (
@@ -8816,7 +9653,8 @@ const
     nextstate: S_SPAWNFIRE4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE3
 
    (
@@ -8827,7 +9665,8 @@ const
     nextstate: S_SPAWNFIRE5;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE4
 
    (
@@ -8838,7 +9677,8 @@ const
     nextstate: S_SPAWNFIRE6;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE5
 
    (
@@ -8849,7 +9689,8 @@ const
     nextstate: S_SPAWNFIRE7;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE6
 
    (
@@ -8860,7 +9701,8 @@ const
     nextstate: S_SPAWNFIRE8;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE7
 
    (
@@ -8871,7 +9713,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SPAWNFIRE8
 
    (
@@ -8882,7 +9725,8 @@ const
     nextstate: S_BRAINEXPLODE2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINEXPLODE1
 
    (
@@ -8893,7 +9737,8 @@ const
     nextstate: S_BRAINEXPLODE3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINEXPLODE2
 
    (
@@ -8904,7 +9749,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINEXPLODE3
 
    (
@@ -8915,7 +9761,8 @@ const
     nextstate: S_ARM1A;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARM1
 
    (
@@ -8926,7 +9773,8 @@ const
     nextstate: S_ARM1;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARM1A
 
    (
@@ -8937,7 +9785,8 @@ const
     nextstate: S_ARM2A;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARM2
 
    (
@@ -8948,7 +9797,8 @@ const
     nextstate: S_ARM2;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ARM2A
 
    (
@@ -8959,7 +9809,8 @@ const
     nextstate: S_BAR2;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BAR1
 
    (
@@ -8970,7 +9821,8 @@ const
     nextstate: S_BAR1;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BAR2
 
    (
@@ -9036,7 +9888,8 @@ const
     nextstate: S_BBAR2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BBAR1
 
    (
@@ -9047,7 +9900,8 @@ const
     nextstate: S_BBAR3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BBAR2
 
    (
@@ -9058,7 +9912,8 @@ const
     nextstate: S_BBAR1;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BBAR3
 
    (
@@ -9069,7 +9924,8 @@ const
     nextstate: S_BON1A;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON1
 
    (
@@ -9080,7 +9936,8 @@ const
     nextstate: S_BON1B;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON1A
 
    (
@@ -9091,7 +9948,8 @@ const
     nextstate: S_BON1C;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON1B
 
    (
@@ -9102,7 +9960,8 @@ const
     nextstate: S_BON1D;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON1C
 
    (
@@ -9113,7 +9972,8 @@ const
     nextstate: S_BON1E;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON1D
 
    (
@@ -9124,7 +9984,8 @@ const
     nextstate: S_BON1;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON1E
 
    (
@@ -9135,7 +9996,8 @@ const
     nextstate: S_BON2A;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON2
 
    (
@@ -9146,7 +10008,8 @@ const
     nextstate: S_BON2B;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON2A
 
    (
@@ -9157,7 +10020,8 @@ const
     nextstate: S_BON2C;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON2B
 
    (
@@ -9168,7 +10032,8 @@ const
     nextstate: S_BON2D;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON2C
 
    (
@@ -9179,7 +10044,8 @@ const
     nextstate: S_BON2E;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON2D
 
    (
@@ -9190,7 +10056,8 @@ const
     nextstate: S_BON2;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BON2E
 
    (
@@ -9201,7 +10068,8 @@ const
     nextstate: S_BKEY2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BKEY
 
    (
@@ -9212,7 +10080,8 @@ const
     nextstate: S_BKEY;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BKEY2
 
    (
@@ -9223,7 +10092,8 @@ const
     nextstate: S_RKEY2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RKEY
 
    (
@@ -9234,7 +10104,8 @@ const
     nextstate: S_RKEY;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RKEY2
 
    (
@@ -9245,7 +10116,8 @@ const
     nextstate: S_YKEY2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_YKEY
 
    (
@@ -9256,7 +10128,8 @@ const
     nextstate: S_YKEY;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_YKEY2
 
    (
@@ -9267,7 +10140,8 @@ const
     nextstate: S_BSKULL2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSKULL
 
    (
@@ -9278,7 +10152,8 @@ const
     nextstate: S_BSKULL;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BSKULL2
 
    (
@@ -9289,7 +10164,8 @@ const
     nextstate: S_RSKULL2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RSKULL
 
    (
@@ -9300,7 +10176,8 @@ const
     nextstate: S_RSKULL;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RSKULL2
 
    (
@@ -9311,7 +10188,8 @@ const
     nextstate: S_YSKULL2;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_YSKULL
 
    (
@@ -9322,7 +10200,8 @@ const
     nextstate: S_YSKULL;      // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_YSKULL2
 
    (
@@ -9333,7 +10212,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_STIM
 
    (
@@ -9344,7 +10224,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEDI
 
    (
@@ -9355,7 +10236,8 @@ const
     nextstate: S_SOUL2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SOUL
 
    (
@@ -9366,7 +10248,8 @@ const
     nextstate: S_SOUL3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SOUL2
 
    (
@@ -9377,7 +10260,8 @@ const
     nextstate: S_SOUL4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SOUL3
 
    (
@@ -9388,7 +10272,8 @@ const
     nextstate: S_SOUL5;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SOUL4
 
    (
@@ -9399,7 +10284,8 @@ const
     nextstate: S_SOUL6;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SOUL5
 
    (
@@ -9410,7 +10296,8 @@ const
     nextstate: S_SOUL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SOUL6
 
    (
@@ -9421,7 +10308,8 @@ const
     nextstate: S_PINV2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINV
 
    (
@@ -9432,7 +10320,8 @@ const
     nextstate: S_PINV3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINV2
 
    (
@@ -9443,7 +10332,8 @@ const
     nextstate: S_PINV4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINV3
 
    (
@@ -9454,7 +10344,8 @@ const
     nextstate: S_PINV;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINV4
 
    (
@@ -9465,7 +10356,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PSTR
 
    (
@@ -9476,7 +10368,8 @@ const
     nextstate: S_PINS2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINS
 
    (
@@ -9487,7 +10380,8 @@ const
     nextstate: S_PINS3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINS2
 
    (
@@ -9498,7 +10392,8 @@ const
     nextstate: S_PINS4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINS3
 
    (
@@ -9509,7 +10404,8 @@ const
     nextstate: S_PINS;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PINS4
 
    (
@@ -9520,7 +10416,8 @@ const
     nextstate: S_MEGA2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEGA
 
    (
@@ -9531,7 +10428,8 @@ const
     nextstate: S_MEGA3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEGA2
 
    (
@@ -9542,7 +10440,8 @@ const
     nextstate: S_MEGA4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEGA3
 
    (
@@ -9553,7 +10452,8 @@ const
     nextstate: S_MEGA;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEGA4
 
    (
@@ -9564,7 +10464,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SUIT
 
    (
@@ -9575,7 +10476,8 @@ const
     nextstate: S_PMAP2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PMAP
 
    (
@@ -9586,7 +10488,8 @@ const
     nextstate: S_PMAP3;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PMAP2
 
    (
@@ -9597,7 +10500,8 @@ const
     nextstate: S_PMAP4;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PMAP3
 
    (
@@ -9608,7 +10512,8 @@ const
     nextstate: S_PMAP5;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PMAP4
 
    (
@@ -9619,7 +10524,8 @@ const
     nextstate: S_PMAP6;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PMAP5
 
    (
@@ -9630,7 +10536,8 @@ const
     nextstate: S_PMAP;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PMAP6
 
    (
@@ -9641,7 +10548,8 @@ const
     nextstate: S_PVIS2;       // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PVIS
 
    (
@@ -9652,7 +10560,8 @@ const
     nextstate: S_PVIS;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PVIS2
 
    (
@@ -9663,7 +10572,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CLIP
 
    (
@@ -9674,7 +10584,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_AMMO
 
    (
@@ -9685,7 +10596,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_ROCK
 
    (
@@ -9696,7 +10608,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BROK
 
    (
@@ -9707,7 +10620,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CELL
 
    (
@@ -9718,7 +10632,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CELP
 
    (
@@ -9729,7 +10644,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SHEL
 
    (
@@ -9740,7 +10656,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SBOX
 
    (
@@ -9751,7 +10668,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BPAK
 
    (
@@ -9762,7 +10680,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BFUG
 
    (
@@ -9773,7 +10692,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MGUN
 
    (
@@ -9784,7 +10704,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CSAW
 
    (
@@ -9795,7 +10716,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_LAUN
 
    (
@@ -9806,7 +10728,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_PLAS
 
    (
@@ -9817,7 +10740,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SHOT
 
    (
@@ -9828,7 +10752,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SHOT2
 
    (
@@ -9839,7 +10764,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COLU
 
    (
@@ -9850,7 +10776,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_STALAG
 
    (
@@ -9861,7 +10788,8 @@ const
     nextstate: S_BLOODYTWITCH2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOODYTWITCH
 
    (
@@ -9872,7 +10800,8 @@ const
     nextstate: S_BLOODYTWITCH3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOODYTWITCH2
 
    (
@@ -9883,7 +10812,8 @@ const
     nextstate: S_BLOODYTWITCH4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOODYTWITCH3
 
    (
@@ -9894,7 +10824,8 @@ const
     nextstate: S_BLOODYTWITCH;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLOODYTWITCH4
 
    (
@@ -9905,7 +10836,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DEADTORSO
 
    (
@@ -9916,7 +10848,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DEADBOTTOM
 
    (
@@ -9927,7 +10860,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEADSONSTICK
 
    (
@@ -9938,7 +10872,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GIBS
 
    (
@@ -9949,7 +10884,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEADONASTICK
 
    (
@@ -9960,7 +10896,8 @@ const
     nextstate: S_HEADCANDLES2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEADCANDLES
 
    (
@@ -9971,7 +10908,8 @@ const
     nextstate: S_HEADCANDLES;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEADCANDLES2
 
    (
@@ -9982,7 +10920,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_DEADSTICK
 
    (
@@ -9993,7 +10932,8 @@ const
     nextstate: S_LIVESTICK2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_LIVESTICK
 
    (
@@ -10004,7 +10944,8 @@ const
     nextstate: S_LIVESTICK;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_LIVESTICK2
 
    (
@@ -10015,7 +10956,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEAT2
 
    (
@@ -10026,7 +10968,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEAT3
 
    (
@@ -10037,7 +10980,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEAT4
 
    (
@@ -10048,7 +10992,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_MEAT5
 
    (
@@ -10059,7 +11004,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_STALAGTITE
 
    (
@@ -10070,7 +11016,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TALLGRNCOL
 
    (
@@ -10081,7 +11028,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SHRTGRNCOL
 
    (
@@ -10092,7 +11040,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TALLREDCOL
 
    (
@@ -10103,7 +11052,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SHRTREDCOL
 
    (
@@ -10114,7 +11064,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CANDLESTIK
 
    (
@@ -10125,7 +11076,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_CANDELABRA
 
    (
@@ -10136,7 +11088,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SKULLCOL
 
    (
@@ -10147,7 +11100,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TORCHTREE
 
    (
@@ -10158,7 +11112,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BIGTREE
 
    (
@@ -10169,7 +11124,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECHPILLAR
 
    (
@@ -10180,7 +11136,8 @@ const
     nextstate: S_EVILEYE2;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_EVILEYE
 
    (
@@ -10191,7 +11148,8 @@ const
     nextstate: S_EVILEYE3;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_EVILEYE2
 
    (
@@ -10202,7 +11160,8 @@ const
     nextstate: S_EVILEYE4;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_EVILEYE3
 
    (
@@ -10213,7 +11172,8 @@ const
     nextstate: S_EVILEYE;     // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_EVILEYE4
 
    (
@@ -10224,7 +11184,8 @@ const
     nextstate: S_FLOATSKULL2; // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FLOATSKULL
 
    (
@@ -10235,7 +11196,8 @@ const
     nextstate: S_FLOATSKULL3; // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FLOATSKULL2
 
    (
@@ -10246,7 +11208,8 @@ const
     nextstate: S_FLOATSKULL;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_FLOATSKULL3
 
    (
@@ -10257,7 +11220,8 @@ const
     nextstate: S_HEARTCOL2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEARTCOL
 
    (
@@ -10268,7 +11232,8 @@ const
     nextstate: S_HEARTCOL;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HEARTCOL2
 
    (
@@ -10279,7 +11244,8 @@ const
     nextstate: S_BLUETORCH2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLUETORCH
 
    (
@@ -10290,7 +11256,8 @@ const
     nextstate: S_BLUETORCH3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLUETORCH2
 
    (
@@ -10301,7 +11268,8 @@ const
     nextstate: S_BLUETORCH4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLUETORCH3
 
    (
@@ -10312,7 +11280,8 @@ const
     nextstate: S_BLUETORCH;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BLUETORCH4
 
    (
@@ -10323,7 +11292,8 @@ const
     nextstate: S_GREENTORCH2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GREENTORCH
 
    (
@@ -10334,7 +11304,8 @@ const
     nextstate: S_GREENTORCH3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GREENTORCH2
 
    (
@@ -10345,7 +11316,8 @@ const
     nextstate: S_GREENTORCH4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GREENTORCH3
 
    (
@@ -10356,7 +11328,8 @@ const
     nextstate: S_GREENTORCH;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GREENTORCH4
 
    (
@@ -10367,7 +11340,8 @@ const
     nextstate: S_REDTORCH2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_REDTORCH
 
    (
@@ -10378,7 +11352,8 @@ const
     nextstate: S_REDTORCH3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_REDTORCH2
 
    (
@@ -10389,7 +11364,8 @@ const
     nextstate: S_REDTORCH4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_REDTORCH3
 
    (
@@ -10400,7 +11376,8 @@ const
     nextstate: S_REDTORCH;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_REDTORCH4
 
    (
@@ -10411,7 +11388,8 @@ const
     nextstate: S_BTORCHSHRT2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BTORCHSHRT
 
    (
@@ -10422,7 +11400,8 @@ const
     nextstate: S_BTORCHSHRT3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BTORCHSHRT2
 
    (
@@ -10433,7 +11412,8 @@ const
     nextstate: S_BTORCHSHRT4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BTORCHSHRT3
 
    (
@@ -10444,7 +11424,8 @@ const
     nextstate: S_BTORCHSHRT;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BTORCHSHRT4
 
    (
@@ -10455,7 +11436,8 @@ const
     nextstate: S_GTORCHSHRT2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GTORCHSHRT
 
    (
@@ -10466,7 +11448,8 @@ const
     nextstate: S_GTORCHSHRT3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GTORCHSHRT2
 
    (
@@ -10477,7 +11460,8 @@ const
     nextstate: S_GTORCHSHRT4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GTORCHSHRT3
 
    (
@@ -10488,7 +11472,8 @@ const
     nextstate: S_GTORCHSHRT;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_GTORCHSHRT4
 
    (
@@ -10499,7 +11484,8 @@ const
     nextstate: S_RTORCHSHRT2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RTORCHSHRT
 
    (
@@ -10510,7 +11496,8 @@ const
     nextstate: S_RTORCHSHRT3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RTORCHSHRT2
 
    (
@@ -10521,7 +11508,8 @@ const
     nextstate: S_RTORCHSHRT4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RTORCHSHRT3
 
    (
@@ -10532,7 +11520,8 @@ const
     nextstate: S_RTORCHSHRT;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_RTORCHSHRT4
 
    (
@@ -10543,7 +11532,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HANGNOGUTS
 
    (
@@ -10554,7 +11544,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HANGBNOBRAIN
 
    (
@@ -10565,7 +11556,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HANGTLOOKDN
 
    (
@@ -10576,7 +11568,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HANGTSKULL
 
    (
@@ -10587,7 +11580,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HANGTLOOKUP
 
    (
@@ -10598,7 +11592,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_HANGTNOBRAIN
 
    (
@@ -10609,7 +11604,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_COLONGIBS
 
    (
@@ -10620,7 +11616,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_SMALLPOOL
 
    (
@@ -10631,7 +11628,8 @@ const
     nextstate: S_NULL;        // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_BRAINSTEM
 
    (
@@ -10642,7 +11640,8 @@ const
     nextstate: S_TECHLAMP2;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECHLAMP
 
    (
@@ -10653,7 +11652,8 @@ const
     nextstate: S_TECHLAMP3;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECHLAMP2
 
    (
@@ -10664,7 +11664,8 @@ const
     nextstate: S_TECHLAMP4;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECHLAMP3
 
    (
@@ -10675,7 +11676,8 @@ const
     nextstate: S_TECHLAMP;    // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECHLAMP4
 
    (
@@ -10686,7 +11688,8 @@ const
     nextstate: S_TECH2LAMP2;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECH2LAMP
 
    (
@@ -10697,7 +11700,8 @@ const
     nextstate: S_TECH2LAMP3;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECH2LAMP2
 
    (
@@ -10708,7 +11712,8 @@ const
     nextstate: S_TECH2LAMP4;  // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECH2LAMP3
 
    (
@@ -10719,7 +11724,8 @@ const
     nextstate: S_TECH2LAMP;   // nextstate
     misc1: 0;                 // misc1
     misc2: 0;                 // misc2
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                         // S_TECH2LAMP4
 
    // New states
@@ -10731,7 +11737,8 @@ const
     nextstate: S_TNT1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_TNT1
 
    (
@@ -10742,7 +11749,8 @@ const
     nextstate: S_GRENADE;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_GRENADE
 
    (
@@ -10753,7 +11761,8 @@ const
     nextstate: S_DETONATE2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DETONATE
 
    (
@@ -10764,7 +11773,8 @@ const
     nextstate: S_DETONATE3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DETONATE2
 
    (
@@ -10775,7 +11785,8 @@ const
     nextstate: S_NULL;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DETONATE3
 
    (
@@ -10786,7 +11797,8 @@ const
     nextstate: S_DOGS_STND2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_STND
 
    (
@@ -10797,7 +11809,8 @@ const
     nextstate: S_DOGS_STND;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_STND2
 
    (
@@ -10808,7 +11821,8 @@ const
     nextstate: S_DOGS_RUN2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN1
 
    (
@@ -10819,7 +11833,8 @@ const
     nextstate: S_DOGS_RUN3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN2
 
    (
@@ -10830,7 +11845,8 @@ const
     nextstate: S_DOGS_RUN4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN3
 
    (
@@ -10841,7 +11857,8 @@ const
     nextstate: S_DOGS_RUN5;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN4
 
    (
@@ -10852,7 +11869,8 @@ const
     nextstate: S_DOGS_RUN6;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN5
 
    (
@@ -10863,7 +11881,8 @@ const
     nextstate: S_DOGS_RUN7;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN6
 
    (
@@ -10874,7 +11893,8 @@ const
     nextstate: S_DOGS_RUN8;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN7
 
    (
@@ -10885,7 +11905,8 @@ const
     nextstate: S_DOGS_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RUN8
 
    (
@@ -10896,7 +11917,8 @@ const
     nextstate: S_DOGS_ATK2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_ATK1
 
    (
@@ -10907,7 +11929,8 @@ const
     nextstate: S_DOGS_ATK3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_ATK2
 
    (
@@ -10918,7 +11941,8 @@ const
     nextstate: S_DOGS_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_ATK3
 
    (
@@ -10929,7 +11953,8 @@ const
     nextstate: S_DOGS_PAIN2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_PAIN
 
    (
@@ -10940,7 +11965,8 @@ const
     nextstate: S_DOGS_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_PAIN2
 
    (
@@ -10951,7 +11977,8 @@ const
     nextstate: S_DOGS_DIE2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_DIE1
 
    (
@@ -10962,7 +11989,8 @@ const
     nextstate: S_DOGS_DIE3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_DIE2
 
    (
@@ -10973,7 +12001,8 @@ const
     nextstate: S_DOGS_DIE4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_DIE3
 
    (
@@ -10984,7 +12013,8 @@ const
     nextstate: S_DOGS_DIE5;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_DIE4
 
    (
@@ -10995,7 +12025,8 @@ const
     nextstate: S_DOGS_DIE6;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_DIE5
 
    (
@@ -11006,7 +12037,8 @@ const
     nextstate: S_NULL;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_DIE6
 
    (
@@ -11017,7 +12049,8 @@ const
     nextstate: S_DOGS_RAISE2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RAISE1
 
    (
@@ -11028,7 +12061,8 @@ const
     nextstate: S_DOGS_RAISE3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RAISE2
 
    (
@@ -11039,7 +12073,8 @@ const
     nextstate: S_DOGS_RAISE4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RAISE3
 
    (
@@ -11050,7 +12085,8 @@ const
     nextstate: S_DOGS_RAISE5;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RAISE4
 
    (
@@ -11061,7 +12097,8 @@ const
     nextstate: S_DOGS_RAISE6;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RAISE5
 
    (
@@ -11072,7 +12109,8 @@ const
     nextstate: S_DOGS_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_DOGS_RAISE6
 
    (
@@ -11083,7 +12121,8 @@ const
     nextstate: S_OLDBFG2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG1
 
    (
@@ -11094,7 +12133,8 @@ const
     nextstate: S_OLDBFG3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG2
 
    (
@@ -11105,7 +12145,8 @@ const
     nextstate: S_OLDBFG4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG3
 
    (
@@ -11116,7 +12157,8 @@ const
     nextstate: S_OLDBFG5;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG4
 
    (
@@ -11127,7 +12169,8 @@ const
     nextstate: S_OLDBFG6;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG5
 
    (
@@ -11138,7 +12181,8 @@ const
     nextstate: S_OLDBFG7;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG6
 
    (
@@ -11149,7 +12193,8 @@ const
     nextstate: S_OLDBFG8;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG7
 
    (
@@ -11160,7 +12205,8 @@ const
     nextstate: S_OLDBFG9;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG8
 
    (
@@ -11171,7 +12217,8 @@ const
     nextstate: S_OLDBFG10;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG9
 
    (
@@ -11182,7 +12229,8 @@ const
     nextstate: S_OLDBFG11;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG10
 
    (
@@ -11193,7 +12241,8 @@ const
     nextstate: S_OLDBFG12;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG11
 
    (
@@ -11204,7 +12253,8 @@ const
     nextstate: S_OLDBFG13;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG12
 
    (
@@ -11215,7 +12265,8 @@ const
     nextstate: S_OLDBFG14;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG13
 
    (
@@ -11226,7 +12277,8 @@ const
     nextstate: S_OLDBFG15;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG14
 
    (
@@ -11237,7 +12289,8 @@ const
     nextstate: S_OLDBFG16;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG15
 
    (
@@ -11248,7 +12301,8 @@ const
     nextstate: S_OLDBFG17;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG16
 
    (
@@ -11259,7 +12313,8 @@ const
     nextstate: S_OLDBFG18;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG17
 
    (
@@ -11270,7 +12325,8 @@ const
     nextstate: S_OLDBFG19;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG18
 
    (
@@ -11281,7 +12337,8 @@ const
     nextstate: S_OLDBFG20;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG19
 
    (
@@ -11292,7 +12349,8 @@ const
     nextstate: S_OLDBFG21;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG20
 
    (
@@ -11303,7 +12361,8 @@ const
     nextstate: S_OLDBFG22;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG21
 
    (
@@ -11314,7 +12373,8 @@ const
     nextstate: S_OLDBFG23;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG22
 
    (
@@ -11325,7 +12385,8 @@ const
     nextstate: S_OLDBFG24;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG23
 
    (
@@ -11336,7 +12397,8 @@ const
     nextstate: S_OLDBFG25;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG24
 
    (
@@ -11347,7 +12409,8 @@ const
     nextstate: S_OLDBFG26;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG25
 
    (
@@ -11358,7 +12421,8 @@ const
     nextstate: S_OLDBFG27;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG26
 
    (
@@ -11369,7 +12433,8 @@ const
     nextstate: S_OLDBFG28;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG27
 
    (
@@ -11380,7 +12445,8 @@ const
     nextstate: S_OLDBFG29;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG28
 
    (
@@ -11391,7 +12457,8 @@ const
     nextstate: S_OLDBFG30;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG29
 
    (
@@ -11402,7 +12469,8 @@ const
     nextstate: S_OLDBFG31;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG30
 
    (
@@ -11413,7 +12481,8 @@ const
     nextstate: S_OLDBFG32;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG31
 
    (
@@ -11424,7 +12493,8 @@ const
     nextstate: S_OLDBFG33;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG32
 
    (
@@ -11435,7 +12505,8 @@ const
     nextstate: S_OLDBFG34;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG33
 
    (
@@ -11446,7 +12517,8 @@ const
     nextstate: S_OLDBFG35;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG34
 
    (
@@ -11457,7 +12529,8 @@ const
     nextstate: S_OLDBFG36;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG35
 
    (
@@ -11468,7 +12541,8 @@ const
     nextstate: S_OLDBFG37;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG36
 
    (
@@ -11479,7 +12553,8 @@ const
     nextstate: S_OLDBFG38;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG37
 
    (
@@ -11490,7 +12565,8 @@ const
     nextstate: S_OLDBFG39;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG38
 
    (
@@ -11501,7 +12577,8 @@ const
     nextstate: S_OLDBFG40;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG39
 
    (
@@ -11512,7 +12589,8 @@ const
     nextstate: S_OLDBFG41;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG40
 
    (
@@ -11523,7 +12601,8 @@ const
     nextstate: S_OLDBFG42;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG41
 
    (
@@ -11534,7 +12613,8 @@ const
     nextstate: S_OLDBFG43;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG42
 
    (
@@ -11545,7 +12625,8 @@ const
     nextstate: S_BFG;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_OLDBFG43
 
    (
@@ -11556,7 +12637,8 @@ const
     nextstate: S_PLS1BALL2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1BALL
 
    (
@@ -11567,7 +12649,8 @@ const
     nextstate: S_PLS1BALL;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1BALL2
 
    (
@@ -11578,7 +12661,8 @@ const
     nextstate: S_PLS1EXP2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1EXP
 
    (
@@ -11589,7 +12673,8 @@ const
     nextstate: S_PLS1EXP3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1EXP2
 
    (
@@ -11600,7 +12685,8 @@ const
     nextstate: S_PLS1EXP4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1EXP3
 
    (
@@ -11611,7 +12697,8 @@ const
     nextstate: S_PLS1EXP5;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1EXP4
 
    (
@@ -11622,7 +12709,8 @@ const
     nextstate: S_NULL;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS1EXP5
 
    (
@@ -11633,7 +12721,8 @@ const
     nextstate: S_PLS2BALL2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS2BALL
 
    (
@@ -11644,7 +12733,8 @@ const
     nextstate: S_PLS2BALL;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS2BALL2
 
    (
@@ -11655,7 +12745,8 @@ const
     nextstate: S_PLS2BALLX2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS2BALLX1
 
    (
@@ -11666,7 +12757,8 @@ const
     nextstate: S_PLS2BALLX3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS2BALLX2
 
    (
@@ -11677,7 +12769,8 @@ const
     nextstate: S_NULL;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_PLS2BALLX3
 
    (
@@ -11688,7 +12781,8 @@ const
     nextstate: S_BON3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BON3
 
    (
@@ -11699,7 +12793,8 @@ const
     nextstate: S_BON4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BON4
 
    (
@@ -11710,7 +12805,8 @@ const
     nextstate: S_BSKUL_STND;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_STND
 
    (
@@ -11721,7 +12817,8 @@ const
     nextstate: S_BSKUL_RUN2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_RUN1
 
    (
@@ -11732,7 +12829,8 @@ const
     nextstate: S_BSKUL_RUN3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_RUN2
 
    (
@@ -11743,7 +12841,8 @@ const
     nextstate: S_BSKUL_RUN4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_RUN3
 
    (
@@ -11754,7 +12853,8 @@ const
     nextstate: S_BSKUL_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_RUN4
 
    (
@@ -11765,7 +12865,8 @@ const
     nextstate: S_BSKUL_ATK2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_ATK1
 
    (
@@ -11776,7 +12877,8 @@ const
     nextstate: S_BSKUL_ATK3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_ATK2
 
    (
@@ -11787,7 +12889,8 @@ const
     nextstate: S_BSKUL_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_ATK3
 
    (
@@ -11798,7 +12901,8 @@ const
     nextstate: S_BSKUL_PAIN2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_PAIN1
 
    (
@@ -11809,7 +12913,8 @@ const
     nextstate: S_BSKUL_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_PAIN2
 
    (
@@ -11820,7 +12925,8 @@ const
     nextstate: S_BSKUL_RUN1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_PAIN3
 
    (
@@ -11831,7 +12937,8 @@ const
     nextstate: S_BSKUL_DIE2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE1
 
    (
@@ -11842,7 +12949,8 @@ const
     nextstate: S_BSKUL_DIE3;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE2
 
    (
@@ -11853,7 +12961,8 @@ const
     nextstate: S_BSKUL_DIE4;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE3
 
    (
@@ -11864,7 +12973,8 @@ const
     nextstate: S_BSKUL_DIE5;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE4
 
    (
@@ -11875,7 +12985,8 @@ const
     nextstate: S_BSKUL_DIE6;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE5
 
    (
@@ -11886,7 +12997,8 @@ const
     nextstate: S_BSKUL_DIE7;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE6
 
    (
@@ -11897,7 +13009,8 @@ const
     nextstate: S_BSKUL_DIE8;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE7
 
    (
@@ -11908,7 +13021,8 @@ const
     nextstate: S_BSKUL_DIE8;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
    ),                          // S_BSKUL_DIE8
 
    (
@@ -11919,8 +13033,9 @@ const
     nextstate: S_EXPLODE2;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
-   ),                          // S_MUSHROOM
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
+   ),                         // S_MUSHROOM
 
    (
     sprite: Ord(SPR_TNT1);
@@ -11930,46 +13045,10 @@ const
     nextstate: S_TNT1;
     misc1: 0;
     misc2: 0;
-    flags_ex: 0;
-   )                           // S_NONE
+    flags_ex: 0;              // flags_ex
+    mbf21bits: 0;             // mbf21bits
+   )                          // S_NONE
 
-  );
-
-const // Doom Original Sprite Names
-  DO_sprnames: array[0..Ord(DO_NUMSPRITES)] of string[4] = (
-    'TROO', 'SHTG', 'PUNG', 'PISG', 'PISF', 'SHTF', 'SHT2', 'CHGG', 'CHGF', 'MISG',
-    'MISF', 'SAWG', 'PLSG', 'PLSF', 'BFGG', 'BFGF', 'BLUD', 'PUFF', 'BAL1', 'BAL2',
-    'PLSS', 'PLSE', 'MISL', 'BFS1', 'BFE1', 'BFE2', 'TFOG', 'IFOG', 'PLAY', 'POSS',
-    'SPOS', 'VILE', 'FIRE', 'FATB', 'FBXP', 'SKEL', 'MANF', 'FATT', 'CPOS', 'SARG',
-    'HEAD', 'BAL7', 'BOSS', 'BOS2', 'SKUL', 'SPID', 'BSPI', 'APLS', 'APBX', 'CYBR',
-    'PAIN', 'SSWV', 'KEEN', 'BBRN', 'BOSF', 'ARM1', 'ARM2', 'BAR1', 'BEXP', 'FCAN',
-    'BON1', 'BON2', 'BKEY', 'RKEY', 'YKEY', 'BSKU', 'RSKU', 'YSKU', 'STIM', 'MEDI',
-    'SOUL', 'PINV', 'PSTR', 'PINS', 'MEGA', 'SUIT', 'PMAP', 'PVIS', 'CLIP', 'AMMO',
-    'ROCK', 'BROK', 'CELL', 'CELP', 'SHEL', 'SBOX', 'BPAK', 'BFUG', 'MGUN', 'CSAW',
-    'LAUN', 'PLAS', 'SHOT', 'SGN2', 'COLU', 'SMT2', 'GOR1', 'POL2', 'POL5', 'POL4',
-    'POL3', 'POL1', 'POL6', 'GOR2', 'GOR3', 'GOR4', 'GOR5', 'SMIT', 'COL1', 'COL2',
-    'COL3', 'COL4', 'CAND', 'CBRA', 'COL6', 'TRE1', 'TRE2', 'ELEC', 'CEYE', 'FSKU',
-    'COL5', 'TBLU', 'TGRN', 'TRED', 'SMBT', 'SMGT', 'SMRT', 'HDB1', 'HDB2', 'HDB3',
-    'HDB4', 'HDB5', 'HDB6', 'POB1', 'POB2', 'BRS1', 'TLMP', 'TLP2', 'TNT1', 'DOGS',
-
-    'PLS1',
-    'PLS2',
-    'BON3',
-    'BON4',
-    // Green blood
-    'DD01',
-    // [BH] 100 extra sprite names to use in dehacked patches
-    'SP00', 'SP01', 'SP02', 'SP03', 'SP04', 'SP05', 'SP06', 'SP07', 'SP08', 'SP09',
-    'SP10', 'SP11', 'SP12', 'SP13', 'SP14', 'SP15', 'SP16', 'SP17', 'SP18', 'SP19',
-    'SP20', 'SP21', 'SP22', 'SP23', 'SP24', 'SP25', 'SP26', 'SP27', 'SP28', 'SP29',
-    'SP30', 'SP31', 'SP32', 'SP33', 'SP34', 'SP35', 'SP36', 'SP37', 'SP38', 'SP39',
-    'SP40', 'SP41', 'SP42', 'SP43', 'SP44', 'SP45', 'SP46', 'SP47', 'SP48', 'SP49',
-    'SP50', 'SP51', 'SP52', 'SP53', 'SP54', 'SP55', 'SP56', 'SP57', 'SP58', 'SP59',
-    'SP60', 'SP61', 'SP62', 'SP63', 'SP64', 'SP65', 'SP66', 'SP67', 'SP68', 'SP69',
-    'SP70', 'SP71', 'SP72', 'SP73', 'SP74', 'SP75', 'SP76', 'SP77', 'SP78', 'SP79',
-    'SP80', 'SP81', 'SP82', 'SP83', 'SP84', 'SP85', 'SP86', 'SP87', 'SP88', 'SP89',
-    'SP90', 'SP91', 'SP92', 'SP93', 'SP94', 'SP95', 'SP96', 'SP97', 'SP98', 'SP99',
-    'NULL', ''
   );
 
 const // Doom Original mobjinfo
@@ -12016,6 +13095,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12041,6 +13121,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL;                                                 // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12085,6 +13175,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12110,6 +13201,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12154,6 +13255,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12179,6 +13281,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12223,6 +13335,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_VILE_HEAL1);                                               // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12231,7 +13344,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_SHORTMRANGE or MF4_EX_DMGIGNORED or MF4_EX_NOTHRESHOLD;   // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -12248,6 +13361,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12292,6 +13415,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12317,6 +13441,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12361,6 +13495,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12369,7 +13504,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_RANGEHALF or MF4_EX_LONGMELEERANGE;                       // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -12386,6 +13521,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12430,6 +13575,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12455,6 +13601,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12499,6 +13655,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12524,6 +13681,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12568,6 +13735,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12576,7 +13744,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_MAP07BOSS1;                                               // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -12593,6 +13761,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12637,6 +13815,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12662,6 +13841,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12706,6 +13895,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12731,6 +13921,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12775,6 +13975,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12800,6 +14001,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12844,6 +14055,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12869,6 +14081,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12913,6 +14135,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -12938,6 +14161,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -12982,6 +14215,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13007,6 +14241,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13051,6 +14295,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13059,7 +14304,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: MF3_EX_CONFGREENBLOOD;                                           // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_E1M8BOSS;                                                 // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -13076,6 +14321,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_BARON;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13120,6 +14375,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13145,6 +14401,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13189,6 +14455,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13214,6 +14481,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_BARON;                                                 // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13258,6 +14535,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13266,7 +14544,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_RANGEHALF;                                                // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -13283,6 +14561,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13312,7 +14600,7 @@ const // Doom Original mobjinfo
     activesound: 77;                                                            // activesound
     flags: MF_SOLID or MF_SHOOTABLE or MF_COUNTKILL;                            // flags
     flags_ex: 0;                                                                // flags_ex
-    flags2_ex: 0;                                                               // flags2_ex
+    flags2_ex: MF2_EX_FULLVOLDEATH or MF2_EX_FULLVOLSEE;                        // flags2_ex
     raisestate: Ord(S_NULL);                                                    // raisestate
     customsound1: Ord(sfx_None);                                                // customsound1
     customsound2: Ord(sfx_None);                                                // customsound2
@@ -13327,6 +14615,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13335,7 +14624,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_RANGEHALF or MF4_EX_E3M8BOSS or MF4_EX_E4M8BOSS;          // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -13352,6 +14641,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13396,6 +14695,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13404,7 +14704,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_MAP07BOSS2;                                               // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -13421,6 +14721,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13450,7 +14760,7 @@ const // Doom Original mobjinfo
     activesound: 77;                                                            // activesound
     flags: MF_SOLID or MF_SHOOTABLE or MF_COUNTKILL;                            // flags
     flags_ex: 0;                                                                // flags_ex
-    flags2_ex: 0;                                                               // flags2_ex
+    flags2_ex: MF2_EX_FULLVOLDEATH or MF2_EX_FULLVOLSEE;                        // flags2_ex
     raisestate: Ord(S_NULL);                                                    // raisestate
     customsound1: Ord(sfx_None);                                                // customsound1
     customsound2: Ord(sfx_None);                                                // customsound2
@@ -13465,6 +14775,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13473,7 +14784,7 @@ const // Doom Original mobjinfo
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
     flags3_ex: 0;                                                               // flags3_ex
-    flags4_ex: 0;                                                               // flags4_ex
+    flags4_ex: MF4_EX_HIGHERMPROB or MF4_EX_RANGEHALF or MF4_EX_E2M8BOSS or MF4_EX_E4M6BOSS; // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
     normalspeed: 0;                                                             // normalspeed
@@ -13490,6 +14801,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13534,6 +14855,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13559,6 +14881,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13603,6 +14935,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13628,6 +14961,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13672,6 +15015,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13697,6 +15041,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13741,6 +15095,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13766,6 +15121,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13810,6 +15175,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13835,6 +15201,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13879,6 +15255,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13904,6 +15281,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -13948,6 +15335,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -13973,6 +15361,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14017,6 +15415,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14042,6 +15441,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14086,6 +15495,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14111,6 +15521,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14155,6 +15575,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14180,6 +15601,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14224,6 +15655,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14249,6 +15681,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14293,6 +15735,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14318,6 +15761,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14362,6 +15815,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14387,6 +15841,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14431,6 +15895,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14456,6 +15921,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14500,6 +15975,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14525,6 +16001,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14569,6 +16055,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14594,6 +16081,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14638,6 +16135,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14663,6 +16161,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14707,6 +16215,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14732,6 +16241,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14776,6 +16295,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14801,6 +16321,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14845,6 +16375,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14870,6 +16401,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14914,6 +16455,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -14939,6 +16481,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -14983,6 +16535,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15008,6 +16561,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15052,6 +16615,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15077,6 +16641,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15121,6 +16695,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15146,6 +16721,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15190,6 +16775,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15215,6 +16801,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15259,6 +16855,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15284,6 +16881,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15328,6 +16935,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15353,6 +16961,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15397,6 +17015,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15422,6 +17041,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15466,6 +17095,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15491,6 +17121,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15535,6 +17175,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15560,6 +17201,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15604,6 +17255,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15629,6 +17281,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15673,6 +17335,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15698,6 +17361,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15742,6 +17415,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15767,6 +17441,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15811,6 +17495,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15836,6 +17521,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15880,6 +17575,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15905,6 +17601,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -15949,6 +17655,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -15974,6 +17681,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16018,6 +17735,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16043,6 +17761,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16087,6 +17815,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16112,6 +17841,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16156,6 +17895,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16181,6 +17921,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16225,6 +17975,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16250,6 +18001,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16294,6 +18055,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16319,6 +18081,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16363,6 +18135,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16388,6 +18161,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16432,6 +18215,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16457,6 +18241,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16501,6 +18295,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16526,6 +18321,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16570,6 +18375,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16595,6 +18401,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16639,6 +18455,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16664,6 +18481,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16708,6 +18535,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16733,6 +18561,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16777,6 +18615,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16802,6 +18641,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16846,6 +18695,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16871,6 +18721,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16915,6 +18775,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -16940,6 +18801,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -16984,6 +18855,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17009,6 +18881,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17053,6 +18935,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17078,6 +18961,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17122,6 +19015,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17147,6 +19041,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17191,6 +19095,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17216,6 +19121,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17260,6 +19175,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17285,6 +19201,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17329,6 +19255,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17354,6 +19281,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17398,6 +19335,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17423,6 +19361,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17467,6 +19415,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17492,6 +19441,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17536,6 +19495,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17561,6 +19521,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17605,6 +19575,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17630,6 +19601,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17674,6 +19655,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17699,6 +19681,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17743,6 +19735,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17768,6 +19761,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17812,6 +19815,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17837,6 +19841,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17881,6 +19895,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17906,6 +19921,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17950,6 +19975,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -17975,6 +20001,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18019,6 +20055,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18044,6 +20081,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18088,6 +20135,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18113,6 +20161,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18157,6 +20215,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18182,6 +20241,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18226,6 +20295,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18251,6 +20321,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18295,6 +20375,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18320,6 +20401,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18364,6 +20455,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18389,6 +20481,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18433,6 +20535,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18458,6 +20561,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18502,6 +20615,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18527,6 +20641,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18571,6 +20695,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18596,6 +20721,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18640,6 +20775,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18665,6 +20801,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18709,6 +20855,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18734,6 +20881,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18778,6 +20935,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18803,6 +20961,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18847,6 +21015,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18872,6 +21041,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18916,6 +21095,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -18941,6 +21121,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -18985,6 +21175,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19010,6 +21201,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19054,6 +21255,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19079,6 +21281,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19123,6 +21335,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19148,6 +21361,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19192,6 +21415,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19217,6 +21441,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19261,6 +21495,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19286,6 +21521,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19330,6 +21575,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19355,6 +21601,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19399,6 +21655,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19424,6 +21681,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19468,6 +21735,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19493,6 +21761,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19537,6 +21815,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19562,6 +21841,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19606,6 +21895,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19631,6 +21921,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19675,6 +21975,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19700,6 +22001,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19744,6 +22055,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19769,6 +22081,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19813,6 +22135,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19838,6 +22161,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19882,6 +22215,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19907,6 +22241,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19951,6 +22295,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -19976,6 +22321,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20020,6 +22375,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20045,6 +22401,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20089,6 +22455,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20114,6 +22481,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20158,6 +22535,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20183,6 +22561,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20227,6 +22615,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20252,6 +22641,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20296,6 +22695,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20321,6 +22721,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20365,6 +22775,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20390,6 +22801,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20434,6 +22855,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20459,6 +22881,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20503,6 +22935,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20528,6 +22961,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20572,6 +23015,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20597,6 +23041,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20641,6 +23095,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20666,6 +23121,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20710,6 +23175,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20735,6 +23201,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20779,6 +23255,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20804,6 +23281,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20848,6 +23335,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20873,6 +23361,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20917,6 +23415,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -20942,6 +23441,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -20986,6 +23495,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21011,6 +23521,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21055,6 +23575,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21080,6 +23601,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21124,6 +23655,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21149,6 +23681,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21193,6 +23735,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21218,6 +23761,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21262,6 +23815,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21287,6 +23841,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21331,6 +23895,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21356,6 +23921,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21400,6 +23975,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21425,6 +24001,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21469,6 +24055,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21494,6 +24081,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21538,6 +24135,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21563,6 +24161,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21607,6 +24215,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21614,7 +24223,7 @@ const // Doom Original mobjinfo
     friction: ORIG_FRICTION;                                                    // friction
     scale: FRACUNIT;                                                            // scale
     gravity: FRACUNIT;                                                          // gravity
-    flags3_ex: 0;                                                               // flags3_ex
+    flags3_ex: MF3_EX_SLIDEONWALLS;                                             // flags3_ex
     flags4_ex: 0;                                                               // flags4_ex
     minmissilechance: 0;                                                        // minmissilechance
     floatspeed: 0;                                                              // floatspeed
@@ -21632,6 +24241,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_PUSHWALL or MF5_EX_MCROSS;                                // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21676,6 +24295,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21701,6 +24321,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21745,6 +24375,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21770,6 +24401,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: MF5_EX_IMPACT or MF5_EX_PCROSS;                                  // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21814,6 +24455,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21839,6 +24481,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21883,6 +24535,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21908,6 +24561,16 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    ),
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -21952,6 +24615,7 @@ const // Doom Original mobjinfo
     alpha: 0;                                                                   // alpha
     healstate: Ord(S_NULL);                                                     // healstate
     crashstate: Ord(S_NULL);                                                    // crashstate
+    crushstate: Ord(S_NULL);                                                    // crushstate
     interactstate: Ord(S_NULL);                                                 // interactstate
     missileheight: 0;                                                           // missileheight
     vspeed: 0;                                                                  // vspeed
@@ -21977,10 +24641,25 @@ const // Doom Original mobjinfo
     WeaveIndexZ: 0;                                                             // WeaveIndexZ
     spriteDX: 0;                                                                // spriteDX
     spriteDY: 0;                                                                // spriteDY
+    flags5_ex: 0;                                                               // flags5_ex
+    flags6_ex: 0;                                                               // flags6_ex
+    infighting_group: IG_DEFAULT;                                               // infighting_group
+    projectile_group: PG_DEFAULT;                                               // projectile_group
+    splash_group: SG_DEFAULT;                                                   // splash_group
+    mbf21bits: 0;                                                               // mbf21bits
+    ripsound: 0;                                                                // ripsound
+    bloodcolor: 0;                                                              // bloodcolor
+    translationname: '';                                                        // translationname
+    meleethreshold: 0;                                                          // meleethreshold
    )
 
   );
 
+//==============================================================================
+//
+// Info_Init
+//
+//==============================================================================
 procedure Info_Init(const usethinkers: boolean);
 var
   i: integer;
@@ -21998,10 +24677,13 @@ begin
       ZeroMemory(@states[Ord(DO_NUMSTATES)], SizeOf(state_t) * (EXTRANUMSTATES - Ord(DO_NUMSTATES)));
       for i := Ord(DO_NUMSTATES) to EXTRANUMSTATES - 1 do
       begin
+        states[i].sprite := Ord(SPR_NULL);
         states[i].tics := -1;
         states[i].tics2 := -1;
+        states[i].nextstate := statenum_t(i);
       end;
       numstates := EXTRANUMSTATES;
+      numrealstates := EXTRANUMSTATES;
     end;
   end;
 
@@ -22021,7 +24703,7 @@ begin
     mobjinfo := malloc(Ord(DO_NUMMOBJTYPES) * SizeOf(mobjinfo_t));
     memcpy(mobjinfo, @DO_mobjinfo, Ord(DO_NUMMOBJTYPES) * SizeOf(mobjinfo_t));
     for i := 0 to Ord(DO_NUMMOBJTYPES) - 1 do
-      if mobjinfo[i].normalspeed <> 0 then
+      if mobjinfo[i].normalspeed = 0 then
         mobjinfo[i].normalspeed := mobjinfo[i].speed;
 
     if M_CheckParm('-NODEHEXTRA') = 0 then
@@ -22579,7 +25261,12 @@ begin
   Info_InitExportCommands;
 end;
 
+//==============================================================================
+// Info_ResolveActordefActors
+//
 // Must be called after parsing ACTORDEF lumps
+//
+//==============================================================================
 procedure Info_ResolveActordefActors;
 begin
   if not Info_ResolveMobjType('Green Blood', @MT_GREENBLOOD) then
@@ -22606,6 +25293,10 @@ begin
     MT_GREENGIBS := Ord(MT_NONE);
   if not Info_ResolveMobjType('MT_BLUEGIBS', @MT_BLUEGIBS) then
     MT_BLUEGIBS := Ord(MT_NONE);
+  if not Info_ResolveMobjType('MT_MAPSPOT', @MT_MAPSPOT) then
+    MT_MAPSPOT := Ord(MT_NONE);
+  if not Info_ResolveMobjType('MT_MAPSPOTGRAVITY', @MT_MAPSPOTGRAVITY) then
+    MT_MAPSPOTGRAVITY := Ord(MT_NONE);
 end;
 
 end.

@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------
 //  E-Mail: jimmyvalavanis@yahoo.gr
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -43,7 +43,6 @@ interface
 { To define the enum list of message codes, include this file without
   defining macro JMESSAGE.  To create a message string table, include it
   again with a suitable JMESSAGE definition (see jerror.c for an example). }
-
 
 { Original: jversion.h ; Copyright (C) 1991-1996, Thomas G. Lane. }
 { This file contains software version identification. }
@@ -189,7 +188,6 @@ type
     JWRN_NOT_SEQUENTIAL,
     JWRN_TOO_MUCH_DATA,
 
-
      JMSG_FIRSTADDONCODE,  { Must be first entry! }
 
    {$ifdef BMP_SUPPORTED}
@@ -276,7 +274,6 @@ type
 
      JMSG_LASTADDONCODE
    );
-
 
 const
   JMSG_LASTMSGCODE: J_MESSAGE_CODE = JMSG_LASTADDONCODE;
@@ -516,7 +513,6 @@ const
   { JERR_UNKNOWN_FORMAT } 'Unrecognized input file format',
 {$endif}
   { JERR_UNSUPPORTED_FORMAT } 'Unsupported output file format',
-
 
   { JMSG_LASTADDONCODE } '');
 

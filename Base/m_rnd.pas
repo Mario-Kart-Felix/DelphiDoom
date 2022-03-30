@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,10 +21,10 @@
 //  02111-1307, USA.
 //
 // DESCRIPTION:
-// Random number LUT.
+//  Random number LUT.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,52 +37,116 @@ unit m_rnd;
 
 interface
 
+uses
+  m_fixed;
+
+//==============================================================================
+// M_Random
+//
 // Returns a number from 0 to 255,
 // from a lookup table.
+//
+//==============================================================================
 function M_Random: integer;
 
+//==============================================================================
+// P_Random
+//
 // As M_Random, but used only by the play simulation.
+//
+//==============================================================================
 function P_Random: integer;
 
+//==============================================================================
+// N_Random
+//
 // JVAL: As P_Random, but used only if no compatibility mode.
+//
+//==============================================================================
 function N_Random: integer;
 
+//==============================================================================
+//
+// I_Random
+//
+//==============================================================================
 function I_Random: integer;
 
-{$IFNDEF HEXEN}
+//==============================================================================
+//
+// Sys_Random
+//
+//==============================================================================
 function Sys_Random: integer;
-{$ENDIF}
 
+//==============================================================================
+// C_Random
+//
 // JVAL: Using custom seed
+//
+//==============================================================================
 function C_Random(var idx: integer): integer;
 
+//==============================================================================
+// M_ClearRandom
+//
 // Fix randoms for demos.
+//
+//==============================================================================
 procedure M_ClearRandom;
 
+//==============================================================================
+//
+// P_SaveRandom
+//
+//==============================================================================
 procedure P_SaveRandom;
 
+//==============================================================================
+//
+// P_RestoreRandom
+//
+//==============================================================================
 procedure P_RestoreRandom;
 
+//==============================================================================
+// P_RandomFromSeed
+//
 // JVAL: Random number for seed
+//
+//==============================================================================
 function P_RandomFromSeed(const seed: integer): integer;
+
+//==============================================================================
+//
+// P_RandomHitscanAngle
+//
+//==============================================================================
+function P_RandomHitscanAngle(spread: fixed_t): integer;
+
+//==============================================================================
+//
+// P_RandomHitscanSlope
+//
+//==============================================================================
+function P_RandomHitscanSlope(spread: fixed_t): integer;
 
 var
   rndindex: integer = 0;
   prndindex: integer = 0;
   nrndindex: integer = 0; // JVAL new random index
-{$IFNDEF HEXEN}
   sysrndindex: integer = 0;
   sysrndseed: integer = 0;
-{$ENDIF}
 
 implementation
 
 uses
-  {$IFDEF DEBUG}
   d_delphi,
+  {$IFDEF DEBUG}
   g_game,
   {$ENDIF}
   i_system,
+  tables,
   m_stack;
 
 const
@@ -108,7 +172,6 @@ const
     120, 163, 236, 249
   );
 
-{$IFNDEF HEXEN}
 const
   SYSRNDSIZE = 10007;
 
@@ -782,9 +845,13 @@ const
     $3C, $3D, $3A, $FC, $A6, $E0, $4D, $0C, $94, $59, $86, $CE, $C4, $17, $54,
     $B0, $71
   );
-{$ENDIF}
 
+//==============================================================================
+// M_Random
+//
 // Which one is deterministic?
+//
+//==============================================================================
 function M_Random: integer;
 begin
   rndindex := (rndindex + 1) and $ff;
@@ -794,6 +861,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// P_Random
+//
+//==============================================================================
 function P_Random: integer;
 begin
   prndindex := (prndindex + 1) and $ff;
@@ -803,6 +875,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// N_Random
+//
+//==============================================================================
 function N_Random: integer;
 begin
   nrndindex := (nrndindex + 1) and $ff;
@@ -812,6 +889,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// I_Random
+//
+//==============================================================================
 function I_Random: integer;
 begin
   result := Random(256);
@@ -820,7 +902,11 @@ begin
   {$ENDIF}
 end;
 
-{$IFNDEF HEXEN}
+//==============================================================================
+//
+// Sys_Random
+//
+//==============================================================================
 function Sys_Random: integer;
 begin
   sysrndindex := sysrndindex + sysrndseed + 1;
@@ -828,8 +914,12 @@ begin
     sysrndindex := sysrndindex - SYSRNDSIZE;
   result := sysrndtable[sysrndindex];
 end;
-{$ENDIF}
 
+//==============================================================================
+//
+// C_Random
+//
+//==============================================================================
 function C_Random(var idx: integer): integer;
 begin
   idx := (idx + 1) and $ff;
@@ -839,6 +929,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// P_RandomFromSeed
+//
+//==============================================================================
 function P_RandomFromSeed(const seed: integer): integer;
 begin
   result := rndtable[seed and $ff];
@@ -850,26 +945,83 @@ end;
 var
   stack: TIntegerStack;
 
+//==============================================================================
+//
+// M_ClearRandom
+//
+//==============================================================================
 procedure M_ClearRandom;
 begin
   rndindex := 0;
   prndindex := 0;
   nrndindex := 0;
-{$IFNDEF HEXEN}
   sysrndindex := 0;
-{$ENDIF}
   stack.Clear;
 end;
 
+//==============================================================================
+//
+// P_SaveRandom
+//
+//==============================================================================
 procedure P_SaveRandom;
 begin
   stack.Push(prndindex);
 end;
 
+//==============================================================================
+//
+// P_RestoreRandom
+//
+//==============================================================================
 procedure P_RestoreRandom;
 begin
   if not stack.Pop(prndindex) then
     I_DevError('P_RestoreRandom(): Stack is empty!'#13#10);
+end;
+
+// mbf21: [XA] Common random formulas used by codepointers
+//
+// P_RandomHitscanAngle
+// Outputs a random angle between (-spread, spread), as an int ('cause it can be negative).
+//   spread: Maximum angle (degrees, in fixed point -- not BAM!)
+//
+//==============================================================================
+function P_RandomHitscanAngle(spread: fixed_t): integer;
+var
+  t: integer;
+  spread_bam: double;
+begin
+  // FixedToAngle doesn't work for negative numbers,
+  // so for convenience take just the absolute value.
+  if spread < 0 then
+    spread_bam := FixedToAngle(-spread)
+  else
+    spread_bam := FixedToAngle(spread);
+  t := N_Random;
+  result := round((spread_bam * (t - N_Random)) / 255);
+end;
+
+//==============================================================================
+//
+// P_RandomHitscanSlope
+// Outputs a random angle between (-spread, spread), converted to values used for slope
+//   spread: Maximum vertical angle (degrees, in fixed point -- not BAM!)
+//
+//==============================================================================
+function P_RandomHitscanSlope(spread: fixed_t): integer;
+var
+  angle: integer;
+begin
+  angle := P_RandomHitscanAngle(spread);
+
+  // clamp it, yo
+  if angle > ANG90 then
+    result := finetangent[0]
+  else if -angle > ANG90 then
+    result := finetangent[FINEANGLES div 2 - 1]
+  else
+    result := finetangent[(ANG90 - angle) div ANGLETOFINEUNIT];
 end;
 
 initialization

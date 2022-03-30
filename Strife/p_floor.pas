@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //  Floor animation: raising stairs.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -41,33 +41,69 @@ unit p_floor;
 interface
 
 uses
-  doomdef,
   z_zone,
   p_spec,
   m_fixed,
   r_defs,
   s_sound,
-  sounds;
+  sounddata;
 
+//==============================================================================
+// T_MovePlane
 //
 // FLOORS
 //
-
+//==============================================================================
 function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t;
   crush: boolean; floorOrCeiling: integer; direction: integer): result_e;
 
+//==============================================================================
+//
+// T_MoveFloor
+//
+//==============================================================================
 procedure T_MoveFloor(floor: Pfloormove_t);
 
+//==============================================================================
+//
+// T_MoveElevator
+//
+//==============================================================================
 procedure T_MoveElevator(elevator: Pelevator_t);
 
+//==============================================================================
+//
+// EV_DoFloor
+//
+//==============================================================================
 function EV_DoFloor(line: Pline_t; floortype: floor_e): integer;
 
+//==============================================================================
+//
+// EV_BuildStairs
+//
+//==============================================================================
 function EV_BuildStairs(line: Pline_t; _type: stair_e): integer;
 
+//==============================================================================
+//
+// EV_DoDonut
+//
+//==============================================================================
 function EV_DoDonut(line: Pline_t): integer;
 
+//==============================================================================
+//
+// EV_DoChange
+//
+//==============================================================================
 function EV_DoChange(line: Pline_t; changetype: change_e): integer;
 
+//==============================================================================
+//
+// EV_DoElevator
+//
+//==============================================================================
 function EV_DoElevator(line: Pline_t; elevtype: elevator_e): integer;
 
 implementation
@@ -75,17 +111,18 @@ implementation
 uses
   d_delphi,
   doomdata,
-  g_game,
   p_map,
   p_tick,
-  p_mobj_h,
   p_setup,
   p_slopes,
   r_data;
 
+//==============================================================================
+// T_MovePlane
 //
 // Move a plane (floor or ceiling) and check for crushing
 //
+//==============================================================================
 function T_MovePlane(sector: Psector_t; speed: fixed_t; dest: fixed_t;
   crush: boolean; floorOrCeiling: integer; direction: integer): result_e;
 var
@@ -231,9 +268,12 @@ begin
   result := ok;
 end;
 
+//==============================================================================
+// T_MoveFloor
 //
 // MOVE A FLOOR TO IT'S DESTINATION (UP OR DOWN)
 //
+//==============================================================================
 procedure T_MoveFloor(floor: Pfloormove_t);
 var
   res: result_e;
@@ -243,7 +283,7 @@ begin
             floor.crush, 0, floor.direction);
 
   if leveltime and 7 = 0 then
-    S_StartSound(Pmobj_t(@floor.sector.soundorg), Ord(sfx_stnmov));
+    S_StartSound(@floor.sector.soundorg, Ord(sfx_stnmov));
 
   if res = pastdest then
   begin
@@ -326,10 +366,11 @@ begin
       end;
     end;
 
-    S_StartSound(Pmobj_t(@floor.sector.soundorg), Ord(sfx_pstop));
+    S_StartSound(@floor.sector.soundorg, Ord(sfx_pstop));
   end;
 end;
 
+//==============================================================================
 //
 // T_MoveElevator
 //
@@ -342,6 +383,7 @@ end;
 //
 // jff 02/22/98 added to support parallel floor/ceiling motion
 //
+//==============================================================================
 procedure T_MoveElevator(elevator: Pelevator_t);
 var
   res: result_e;
@@ -357,7 +399,7 @@ begin
       1,                          // move floor
       elevator.direction
     );
-    if (res = ok) or (res = pastdest)  then// jff 4/7/98 don't move ceil if blocked
+    if (res = ok) or (res = pastdest) then// jff 4/7/98 don't move ceil if blocked
       T_MovePlane
       (
         elevator.sector,
@@ -393,7 +435,7 @@ begin
 
   // make floor move sound
   if leveltime and 7 = 0 then
-    S_StartSound(Pmobj_t(@elevator.sector.soundorg), Ord(sfx_stnmov));
+    S_StartSound(@elevator.sector.soundorg, Ord(sfx_stnmov));
 
   if res = pastdest then            // if destination height acheived
   begin
@@ -402,10 +444,12 @@ begin
     P_RemoveThinker(@elevator.thinker);    // remove elevator from actives
 
     // make floor stop sound
-    S_StartSound(Pmobj_t(@elevator.sector.soundorg), Ord(sfx_pstop));
+    S_StartSound(@elevator.sector.soundorg, Ord(sfx_pstop));
   end;
 end;
 
+//==============================================================================
+// EV_DoFloor
 //
 // HANDLE FLOOR TYPES
 //
@@ -414,6 +458,7 @@ end;
 // * turboLower does not appear to adjust the floor height (STRIFE-TODO: verify)
 // * raiseFloor512AndChange type was added.
 //
+//==============================================================================
 function EV_DoFloor(line: Pline_t; floortype: floor_e): integer;
 var
   secnum: integer;
@@ -624,6 +669,7 @@ begin
   until secnum < 0;
 end;
 
+//==============================================================================
 //
 // EV_DoChange
 //
@@ -635,6 +681,7 @@ end;
 //
 // jff 3/15/98 added to better support generalized sector types
 //
+//==============================================================================
 function EV_DoChange(line: Pline_t; changetype: change_e): integer;
 var
   secnum: integer;
@@ -672,9 +719,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// EV_BuildStairs
 //
 // BUILD A STAIRCASE!
 //
+//==============================================================================
 function EV_BuildStairs(line: Pline_t; _type: stair_e): integer;
 var
   secnum: integer;
@@ -734,6 +784,7 @@ begin
     // new floor thinker
     result := 1;
     floor := Z_Malloc(SizeOf(floormove_t), PU_LEVSPEC, nil);
+    ZeroMemory(floor, SizeOf(floormove_t));
     P_AddThinker(@floor.thinker);
     sec.tag := 0; // haleyjd 20140919: [STRIFE] clears tag of first stair sector
     sec.floordata := floor;
@@ -765,6 +816,8 @@ begin
           continue;
 
         tsec := sec.lines[i].backsector;
+        if tsec = nil then
+          continue;
         newsecnum := pDiff(tsec, @sectors[0], SizeOf(sector_t));
 
         if tsec.floorpic <> texture then
@@ -778,7 +831,7 @@ begin
         sec := tsec;
         secnum := newsecnum;
         floor := Z_Malloc(SizeOf(floormove_t), PU_LEVSPEC, nil);
-
+        ZeroMemory(floor, SizeOf(floormove_t));
         P_AddThinker(@floor.thinker);
 
         sec.floordata := floor;
@@ -796,6 +849,7 @@ begin
   until secnum < 0;
 end;
 
+//==============================================================================
 //
 // EV_DoDonut()
 //
@@ -805,6 +859,7 @@ end;
 // Passed the linedef that triggered the donut
 // Returns whether a thinker was created
 //
+//==============================================================================
 function EV_DoDonut(line: Pline_t): integer;
 var
   s1: Psector_t;
@@ -874,6 +929,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // EV_DoElevator
 //
@@ -883,6 +939,7 @@ end;
 //
 // jff 2/22/98 new type to move floor and ceiling in parallel
 //
+//==============================================================================
 function EV_DoElevator(line: Pline_t; elevtype: elevator_e): integer;
 var
   secnum: integer;
@@ -948,5 +1005,4 @@ begin
 end;
 
 end.
-
 

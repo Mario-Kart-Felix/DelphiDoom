@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,6 +30,11 @@ unit w_utils;
 
 interface
 
+//==============================================================================
+//
+// W_RegisterUtilityCommands
+//
+//==============================================================================
 procedure W_RegisterUtilityCommands;
 
 implementation
@@ -43,6 +48,11 @@ uses
   w_wad,
   z_zone;
 
+//==============================================================================
+//
+// W_CmdLumpLen
+//
+//==============================================================================
 procedure W_CmdLumpLen(const name: string);
 var
   lump: integer;
@@ -66,6 +76,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// W_CmdCheckNumForName
+//
+//==============================================================================
 procedure W_CmdCheckNumForName(const name: string);
 var
   lump: integer;
@@ -83,11 +98,21 @@ begin
     printf('Lump %s num = %d'#13#10, [lump]);
 end;
 
+//==============================================================================
+//
+// W_CmdNumLumps
+//
+//==============================================================================
 procedure W_CmdNumLumps;
 begin
   printf('%d total lumps'#13#10, [W_NumLumps]);
 end;
 
+//==============================================================================
+//
+// W_CmdSaveLumpToDisk
+//
+//==============================================================================
 procedure W_CmdSaveLumpToDisk(const lumpname: string; const filename: string);
 var
   fname: string;
@@ -102,7 +127,7 @@ begin
     exit;
   end;
 
-  if Pos('.', filename) = 0 then
+  if CharPos('.', filename) = 0 then
     fname := filename + '.lmp'
   else
     fname := filename;
@@ -128,6 +153,11 @@ begin
   Z_Free(p);
 end;
 
+//==============================================================================
+//
+// W_RegisterUtilityCommands
+//
+//==============================================================================
 procedure W_RegisterUtilityCommands;
 begin
   C_AddCmd('lumpsize, lumplength, lumplen', @W_CmdLumpLen);

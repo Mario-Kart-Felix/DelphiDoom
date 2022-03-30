@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Script main execute function for DDMODELs
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,6 +38,11 @@ uses
   Classes,
   i_system;
 
+//==============================================================================
+//
+// MDL_ExecuteScript
+//
+//==============================================================================
 function MDL_ExecuteScript(const Script: string): boolean;
 
 implementation
@@ -50,6 +55,11 @@ uses
   ps_compiler,
   ps_runtime;
 
+//==============================================================================
+//
+// ScriptOnUses
+//
+//==============================================================================
 function ScriptOnUses(Sender: TPSPascalCompiler; const Name: string): Boolean;
 var
   uT_integer: TPSType;
@@ -113,6 +123,11 @@ begin
     Result := False;
 end;
 
+//==============================================================================
+//
+// MDL_ExecuteScript
+//
+//==============================================================================
 function MDL_ExecuteScript(const Script: string): boolean;
 var
   i: integer;

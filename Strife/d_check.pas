@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //   Various STRIFE wad versions check
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -40,15 +40,35 @@ unit d_check;
 
 interface
 
+//==============================================================================
+//
+// D_Panel0Lump
+//
+//==============================================================================
 function D_Panel0Lump: integer;
 
+//==============================================================================
+//
+// D_Help0Lump
+//
+//==============================================================================
 function D_Help0Lump: integer;
 
+//==============================================================================
+//
+// D_UseOldTexture1
+//
+//==============================================================================
 function D_UseOldTexture1: boolean;
 
 var
   teaser: integer = 0;
 
+//==============================================================================
+//
+// D_IdentifyTeaser
+//
+//==============================================================================
 procedure D_IdentifyTeaser;
 
 implementation
@@ -61,6 +81,11 @@ uses
 var
   panel0lump: integer = -2;
 
+//==============================================================================
+//
+// D_Panel0Lump
+//
+//==============================================================================
 function D_Panel0Lump: integer;
 begin
   if panel0lump <> -2 then
@@ -80,6 +105,11 @@ end;
 var
   help0lump: integer = -2;
 
+//==============================================================================
+//
+// D_Help0Lump
+//
+//==============================================================================
 function D_Help0Lump: integer;
 begin
   if help0lump <> -2 then
@@ -96,7 +126,11 @@ begin
   result := help0lump;
 end;
 
-
+//==============================================================================
+//
+// D_UseOldTexture1
+//
+//==============================================================================
 function D_UseOldTexture1: boolean;
 var
   lumpnum: integer;
@@ -111,6 +145,11 @@ begin
   result := (W_LumpLength(lumpnum) = 11564) and (GetLumpCRC32(lumpnum) = 'a5c7ddf4');
 end;
 
+//==============================================================================
+//
+// D_IdentifyTeaser
+//
+//==============================================================================
 procedure D_IdentifyTeaser;
 begin
   if W_CheckNumForName('MAP35') >= 0 then

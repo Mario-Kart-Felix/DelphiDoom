@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   Notifications
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,8 +33,18 @@ unit d_notifications;
 
 interface
 
+//==============================================================================
+//
+// D_NotifyVideoModeChange
+//
+//==============================================================================
 procedure D_NotifyVideoModeChange(const newwidth, newheight: integer);
 
+//==============================================================================
+//
+// D_RunNotifications
+//
+//==============================================================================
 procedure D_RunNotifications;
 
 implementation
@@ -52,6 +62,11 @@ var
   n_screenwidth: integer;
   n_screenheight: integer;
 
+//==============================================================================
+//
+// D_NotifyVideoModeChange
+//
+//==============================================================================
 procedure D_NotifyVideoModeChange(const newwidth, newheight: integer);
 begin
   n_changevideomode := true;
@@ -59,6 +74,11 @@ begin
   n_screenheight := newheight;
 end;
 
+//==============================================================================
+//
+// D_RunNotifications
+//
+//==============================================================================
 procedure D_RunNotifications;
 begin
   if n_changevideomode then

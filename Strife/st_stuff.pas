@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 //  Does palette indicators as well (red pain/berserk, bright pickup)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -61,26 +61,47 @@ var
 // lump number for PLAYPAL
   lu_palette: integer;
 
+//==============================================================================
+// ST_Responder
 //
 // STATUS BAR
 //
-
 // Called by main loop.
+//
+//==============================================================================
 function ST_Responder(ev: Pevent_t): boolean;
 
+//==============================================================================
+// ST_Ticker
+//
 // Called by main loop.
+//
+//==============================================================================
 procedure ST_Ticker;
 
+//==============================================================================
+// ST_Drawer
+//
 // Called by main loop.
+//
+//==============================================================================
 procedure ST_Drawer(dopt: stdrawoptions_t; refresh: boolean);
 
+//==============================================================================
+// ST_Start
+//
 // Called when the console player is spawned on each level.
+//
+//==============================================================================
 procedure ST_Start;
 
+//==============================================================================
+// ST_Init
+//
 // Called by startup code.
+//
+//==============================================================================
 procedure ST_Init;
-
-
 
 // States for status bar code.
 type
@@ -96,6 +117,11 @@ type
     GetChatState
   );
 
+//==============================================================================
+//
+// ST_DrawExternal
+//
+//==============================================================================
 function ST_DrawExternal: boolean;
 
 implementation
@@ -103,7 +129,6 @@ implementation
 uses
   d_delphi,
   deh_main,
-  tables,
   d_net,
   c_cmds,
   d_items,
@@ -136,19 +161,13 @@ uses
   r_draw,
   am_map,
   m_cheat,
-  m_rnd,
   m_fixed,
   m_menu,
   s_sound,
 // Needs access to LFB.
   v_data,
   v_video,
-// State.
-  doomstat,
-// Data.
-  dstrings,
   d_englsh,
-  sounds,
 // for mapnames
   hu_stuff;
 
@@ -303,7 +322,6 @@ const
     Chr(58), Chr($ff) // boomstix
   );
 
-
   cheat_noclip_seq: array[0..5] of char = (
     Chr(166), Chr(54), Chr(110), Chr(178), Chr(234), Chr($ff) // elvis
   );
@@ -324,7 +342,6 @@ const
     Chr(234), Chr(46), Chr(246), Chr(118), Chr(166), Chr(226), Chr(246),
     Chr(54), Chr(38), Chr($ff) // stonecold
   );
-
 
   cheat_keys_seq: array[0..5] of char = (
     Chr(114), Chr(178), Chr(182), Chr(182), Chr(186), Chr($ff)  // jimmy
@@ -347,7 +364,6 @@ const
   cheat_dots_seq: array[0..4] of char = (
     Chr(38), Chr(246), Chr(46), Chr(234), Chr($ff)  // dots
   );
-
 
 var
 // Now what?
@@ -390,9 +406,12 @@ const
 var
   cheat_powerup: array[0..NUM_ST_PUMPUP - 1] of cheatseq_t;
 
+//==============================================================================
+// ST_CmdCheckPlayerStatus
 //
 // Commands
 //
+//==============================================================================
 function ST_CmdCheckPlayerStatus: boolean;
 begin
   if (plyr = nil) or (plyr.mo = nil) or (gamestate <> GS_LEVEL) or demoplayback or netgame then
@@ -404,6 +423,11 @@ begin
     result := true;
 end;
 
+//==============================================================================
+//
+// ST_CmdGod
+//
+//==============================================================================
 procedure ST_CmdGod;
 begin
   if not ST_CmdCheckPlayerStatus then
@@ -431,6 +455,11 @@ begin
   plyr.st_update := true;
 end;
 
+//==============================================================================
+//
+// ST_CmdMassacre
+//
+//==============================================================================
 procedure ST_CmdMassacre;
 begin
   if not ST_CmdCheckPlayerStatus then
@@ -443,6 +472,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// ST_CmdLowGravity
+//
+//==============================================================================
 procedure ST_CmdLowGravity;
 begin
   if not ST_CmdCheckPlayerStatus then
@@ -455,6 +489,11 @@ begin
     plyr._message := STSTR_LGOFF;
 end;
 
+//==============================================================================
+//
+// ST_CmdIDFA
+//
+//==============================================================================
 procedure ST_CmdIDFA;
 var
   i: integer;
@@ -478,6 +517,11 @@ begin
   plyr._message := STSTR_FAADDED;
 end;
 
+//==============================================================================
+//
+// ST_CmdIDKFA
+//
+//==============================================================================
 procedure ST_CmdIDKFA;
 var
   i: integer;
@@ -493,6 +537,11 @@ begin
   plyr._message := STSTR_KFAADDED;
 end;
 
+//==============================================================================
+//
+// ST_CmdIDKEYS
+//
+//==============================================================================
 procedure ST_CmdIDKEYS;
 var
   i: integer;
@@ -506,6 +555,11 @@ begin
   plyr._message := STSTR_KEYSADDED;
 end;
 
+//==============================================================================
+//
+// ST_CmdIDDT
+//
+//==============================================================================
 procedure ST_CmdIDDT;
 begin
   if not ST_CmdCheckPlayerStatus then
@@ -514,6 +568,11 @@ begin
   am_cheating := (am_cheating + 1) mod 3;
 end;
 
+//==============================================================================
+//
+// ST_CmdIDNoClip
+//
+//==============================================================================
 procedure ST_CmdIDNoClip;
 begin
   if not ST_CmdCheckPlayerStatus then
@@ -533,6 +592,11 @@ begin
   end
 end;
 
+//==============================================================================
+//
+// ST_CmdIDMyPos
+//
+//==============================================================================
 procedure ST_CmdIDMyPos;
 var
   buf: string;
@@ -548,6 +612,11 @@ begin
   plyr._message := buf;
 end;
 
+//==============================================================================
+//
+// ST_CmdIDMySubSector
+//
+//==============================================================================
 procedure ST_CmdIDMySubSector;
 var
   buf: string;
@@ -563,16 +632,24 @@ begin
   printf(buf);
 end;
 
+//==============================================================================
+// ST_FinishRefresh
 //
 // STATUS BAR CODE
 //
+//==============================================================================
 procedure ST_FinishRefresh;
 begin
   V_CopyRect(ST_X, ST_Y, SCN_ST, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y, SCN_FG, true);
 end;
 
+//==============================================================================
+// ST_Responder
+//
 // Respond to keyboard input events,
 //  intercept cheats.
+//
+//==============================================================================
 function ST_Responder(ev: Pevent_t): boolean;
 var
   i: integer;
@@ -697,7 +774,6 @@ begin
       if inv.amount > 0 then
         plyr._message := itoa(inv.amount) + ' ' + mobjinfo[inv._type].name2
     end;
-
 
     // villsa [STRIFE]
     if (ev.data1 = key_invpop) or (ev.data1 = key_invkey) or (ev.data1 = key_mission) then
@@ -1001,6 +1077,11 @@ begin
     result := result or ateit;
 end;
 
+//==============================================================================
+//
+// ST_Ticker
+//
+//==============================================================================
 procedure ST_Ticker;
 begin
   // must redirect the pointer if the ready weapon has changed.
@@ -1034,6 +1115,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// ST_doPaletteStuff
+//
+//==============================================================================
 procedure ST_doPaletteStuff;
 var
   palette: integer;
@@ -1100,13 +1186,14 @@ begin
   end;
 end;
 
-
+//==============================================================================
 //
 // ST_drawNumFontY
 //
 // haleyjd 20100919: [STRIFE] New function
 // Draws a small yellow number for inventory etc.
 //
+//==============================================================================
 procedure ST_drawNumFontY(x, y: integer; scn: integer; num: integer);
 begin
   if num = 0 then
@@ -1123,12 +1210,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // ST_drawNumFontY2
 //
 // haleyjd 20100919: [STRIFE] New function
 // As above, but turns negative numbers into zero.
 //
+//==============================================================================
 procedure ST_drawNumFontY2(x, y: integer; scn: integer; num: integer);
 begin
   if num < 0 then
@@ -1148,12 +1237,14 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // ST_drawLine
 //
 // haleyjd 20100920: [STRIFE] New function
 // Basic horizontal line drawing routine used for the health bars.
 //
+//==============================================================================
 procedure ST_drawLine(x, y: integer; len: integer; color: byte);
 var
   i: integer;
@@ -1162,9 +1253,11 @@ begin
     screens[SCN_ST][i] := color;
 end;
 
+//==============================================================================
 //
 // ST_doRefreshSmall
 //
+//==============================================================================
 procedure ST_doRefreshSmall;
 var
   ammo: ammotype_t;
@@ -1181,12 +1274,14 @@ begin
   V_CopyRectTransparent(0, 194, SCN_ST, 320, 6, 0, 194, SCN_FG, true);
 end;
 
+//==============================================================================
 //
 // ST_doRefresh
 //
 // haleyjd 20100920: Evidence more than suggests that Rogue moved all status bar
 // drawing down to this function.
 //
+//==============================================================================
 procedure ST_doRefresh;
 var
   firstinventory, icon_x, num_x, i, numdrawn: integer;
@@ -1313,7 +1408,11 @@ begin
   ST_FinishRefresh;
 end;
 
-
+//==============================================================================
+//
+// ST_Drawer
+//
+//==============================================================================
 procedure ST_Drawer(dopt: stdrawoptions_t; refresh: boolean);
 begin
   if amstate = am_only then
@@ -1332,12 +1431,14 @@ begin
     ST_doRefresh;
 end;
 
+//==============================================================================
 //
 // ST_calcFrags
 //
 // haleyjd [STRIFE] New function.
 // Calculate frags for display on the frags popup.
 //
+//==============================================================================
 function ST_calcFrags(pnum: integer): integer;
 var
   i: integer;
@@ -1351,12 +1452,14 @@ begin
       result := result + players[pnum].frags[i];
 end;
 
+//==============================================================================
 //
 // ST_drawTime
 //
 // villsa [STRIFE] New function.
 // Draws game time on pop up screen
 //
+//==============================================================================
 procedure ST_drawTime(x, y: integer; time: integer);
 var
   hours: integer;
@@ -1381,12 +1484,14 @@ const
   ST_KEYS_NUMROWS = 4;
   ST_KEYS_COL2X   = 160;
 
+//==============================================================================
 //
 // ST_drawKeysPopup
 //
 // haleyjd 20110213: [STRIFE] New function
 // This has taken the longest out of almost everything to get working properly.
 //
+//==============================================================================
 function ST_drawKeysPopup: boolean;
 var
   x, y, yt, key, keycount: integer;
@@ -1408,7 +1513,7 @@ begin
     // In deathmatch, the keys popup is replaced by a chart of frag counts
 
     // first column
-    y  := 64;
+    y := 64;
     yt := 66;
 
     for pnum := 0 to MAXPLAYERS div 2 - 1 do
@@ -1423,7 +1528,7 @@ begin
     end;
 
     // second column
-    y  := 64;
+    y := 64;
     yt := 66;
     for pnum := MAXPLAYERS div 2 to MAXPLAYERS - 1 do
     begin
@@ -1519,12 +1624,14 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // ST_DrawExternal
 //
 // haleyjd 20100901: [STRIFE] New function.
 // * Draws external portions of the status bar such the top bar and popups.
 //
+//==============================================================================
 function ST_DrawExternal: boolean;
 var
   i: integer;
@@ -1634,7 +1741,11 @@ begin
   result := true;
 end;
 
-
+//==============================================================================
+//
+// ST_LoadGraphics
+//
+//==============================================================================
 procedure ST_LoadGraphics;
 var
   i: integer;
@@ -1680,12 +1791,22 @@ begin
   invcursor := W_CacheLumpName('INVCURS', PU_STATIC)
 end;
 
+//==============================================================================
+//
+// ST_loadData
+//
+//==============================================================================
 procedure ST_loadData;
 begin
   lu_palette := W_GetNumForName(PLAYPAL);
   ST_LoadGraphics;
 end;
 
+//==============================================================================
+//
+// ST_UnloadGraphics
+//
+//==============================================================================
 procedure ST_UnloadGraphics;
 var
   i: integer;
@@ -1723,6 +1844,11 @@ begin
   Z_ChangeTag(invcursor, PU_CACHE);
 end;
 
+//==============================================================================
+//
+// ST_InitData
+//
+//==============================================================================
 procedure ST_InitData;
 begin
   plyr := @players[consoleplayer];
@@ -1734,6 +1860,11 @@ begin
   STlib_init;
 end;
 
+//==============================================================================
+//
+// ST_CreateWidgets
+//
+//==============================================================================
 procedure ST_CreateWidgets;
 var
   i: integer;
@@ -1771,6 +1902,11 @@ end;
 var
   st_stopped: boolean;
 
+//==============================================================================
+//
+// ST_Stop
+//
+//==============================================================================
 procedure ST_Stop;
 var
   pal: PByteArray;
@@ -1790,6 +1926,11 @@ begin
   st_stopped := true;
 end;
 
+//==============================================================================
+//
+// ST_Start
+//
+//==============================================================================
 procedure ST_Start;
 begin
   if not st_stopped then
@@ -1800,6 +1941,11 @@ begin
   st_stopped := false;
 end;
 
+//==============================================================================
+//
+// ST_Init
+//
+//==============================================================================
 procedure ST_Init;
 begin
 ////////////////////////////////////////////////////////////////////////////////

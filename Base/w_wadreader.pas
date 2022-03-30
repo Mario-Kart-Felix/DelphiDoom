@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -64,6 +64,11 @@ implementation
 uses
   i_system;
 
+//==============================================================================
+//
+// TWadReader.Create
+//
+//==============================================================================
 constructor TWadReader.Create;
 begin
   h.identification := 0;
@@ -75,12 +80,22 @@ begin
   Inherited;
 end;
 
+//==============================================================================
+//
+// TWadReader.Destroy
+//
+//==============================================================================
 destructor TWadReader.Destroy;
 begin
   Clear;
   Inherited;
 end;
 
+//==============================================================================
+//
+// TWadReader.Clear
+//
+//==============================================================================
 procedure TWadReader.Clear;
 begin
   if h.numlumps > 0 then
@@ -104,6 +119,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TWadReader.OpenWadFile
+//
+//==============================================================================
 procedure TWadReader.OpenWadFile(const aname: string);
 begin
   if aname = '' then
@@ -112,20 +132,30 @@ begin
   print('Opening WAD file ' + aname + #13#10);
   {$ENDIF}
   Clear;
-  fs := TFile.Create(aname, fOpenReadOnly);
-
-  fs.Read(h, SizeOf(wadinfo_t));
-  if (h.numlumps > 0) and (h.infotableofs < fs.Size) and ((h.identification = IWAD) or (h.identification = PWAD)) then
+  if fexists(aname) then
   begin
-    fs.Seek(h.infotableofs, sFromBeginning);
-    la := malloc(h.numlumps * SizeOf(filelump_t));
-    fs.Read(la^, h.numlumps * SizeOf(filelump_t));
-    ffilename := aname;
+    fs := TFile.Create(aname, fOpenReadOnly);
+
+    fs.Read(h, SizeOf(wadinfo_t));
+    if (h.numlumps > 0) and (h.infotableofs < fs.Size) and ((h.identification = IWAD) or (h.identification = PWAD)) then
+    begin
+      fs.Seek(h.infotableofs, sFromBeginning);
+      la := malloc(h.numlumps * SizeOf(filelump_t));
+      fs.Read(la^, h.numlumps * SizeOf(filelump_t));
+      ffilename := aname;
+    end
+    else
+      I_Warning('TWadReader.OpenWadFile(): Invalid WAD file ' + aname + #13#10);
   end
   else
-    I_Warning('Invalid WAD file ' + aname);
+    I_Warning('TWadReader.OpenWadFile(): Can not find WAD file ' + aname + #13#10);
 end;
 
+//==============================================================================
+//
+// TWadReader.EntryAsString
+//
+//==============================================================================
 function TWadReader.EntryAsString(const id: integer): string;
 begin
   if (fs <> nil) and (id >= 0) and (id < h.numlumps) then
@@ -138,6 +168,11 @@ begin
     Result := '';
 end;
 
+//==============================================================================
+//
+// TWadReader.EntryAsString
+//
+//==============================================================================
 function TWadReader.EntryAsString(const aname: string): string;
 var
   id: integer;
@@ -149,6 +184,11 @@ begin
     Result := '';
 end;
 
+//==============================================================================
+//
+// TWadReader.ReadEntry
+//
+//==============================================================================
 function TWadReader.ReadEntry(const id: integer; var buf: pointer; var bufsize: integer): boolean;
 begin
   if (fs <> nil) and (id >= 0) and (id < h.numlumps) then
@@ -163,6 +203,11 @@ begin
     Result := false;
 end;
 
+//==============================================================================
+//
+// TWadReader.ReadEntry
+//
+//==============================================================================
 function TWadReader.ReadEntry(const aname: string; var buf: pointer; var bufsize: integer): boolean;
 var
   id: integer;
@@ -174,6 +219,11 @@ begin
     Result := false;
 end;
 
+//==============================================================================
+//
+// TWadReader.EntryName
+//
+//==============================================================================
 function TWadReader.EntryName(const id: integer): string;
 begin
   if (id >= 0) and (id < h.numlumps) then
@@ -182,6 +232,11 @@ begin
     Result := '';
 end;
 
+//==============================================================================
+//
+// TWadReader.EntryId
+//
+//==============================================================================
 function TWadReader.EntryId(const aname: string): integer;
 var
   i: integer;
@@ -197,6 +252,11 @@ begin
   Result := -1;
 end;
 
+//==============================================================================
+//
+// TWadReader.EntryInfo
+//
+//==============================================================================
 function TWadReader.EntryInfo(const id: integer): Pfilelump_t;
 begin
   if (id >= 0) and (id < h.numlumps) then
@@ -205,16 +265,31 @@ begin
     Result := nil;
 end;
 
+//==============================================================================
+//
+// TWadReader.EntryInfo
+//
+//==============================================================================
 function TWadReader.EntryInfo(const aname: string): Pfilelump_t;
 begin
   result := EntryInfo(EntryId(aname));
 end;
 
+//==============================================================================
+//
+// TWadReader.NumEntries
+//
+//==============================================================================
 function TWadReader.NumEntries: integer;
 begin
   Result := h.numlumps;
 end;
 
+//==============================================================================
+//
+// TWadReader.FileSize
+//
+//==============================================================================
 function TWadReader.FileSize: integer;
 begin
   if fs <> nil then

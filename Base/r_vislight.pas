@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  vislight_t struct
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -34,13 +34,15 @@ unit r_vislight;
 interface
 
 uses
-  m_fixed;
+  m_fixed,
+  p_mobj_h;
 
 type
   Pvislight_t = ^vislight_t;
   vislight_t = record
     x1: integer;
     x2: integer;
+    mo: Pmobj_t;
 
     // for line side calculation
     gx: fixed_t;
@@ -72,10 +74,20 @@ var
   vislight_p: integer = 0;
   vislights: array[0..MAXVISLIGHTS - 1] of vislight_t;
 
+//==============================================================================
+//
+// R_NewVisLight
+//
+//==============================================================================
 function R_NewVisLight: Pvislight_t;
 
 implementation
 
+//==============================================================================
+//
+// R_NewVisLight
+//
+//==============================================================================
 function R_NewVisLight: Pvislight_t;
 begin
   if vislight_p = MAXVISLIGHTS then

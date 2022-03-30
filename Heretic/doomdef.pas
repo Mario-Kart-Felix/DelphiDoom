@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  key definitions, lots of other stuff.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -106,7 +106,6 @@ var
 
   SCREENWIDTH32PITCH: integer;
 
-
   fullscreen: {$IFDEF OPENGL}boolean{$ELSE}integer = 0{$ENDIF};
   zaxisshift: boolean = true;
 
@@ -149,6 +148,29 @@ const
   MTF_AMBUSH = 8;
   MTF_ONMIDSECTOR = 32;
   MTF_DONOTTRIGGERSCRIPTS = 64;
+  MTF_FRIEND = 128; // JVAL: version 207
+
+//
+// mbf21: Internal weapon flags
+//
+const
+  WIF_ENABLEAPS = 1;  // [XA] enable "ammo per shot" field for native Doom weapon codepointers
+
+const
+  // no flag
+  WPF_NOFLAG = 0;
+  // doesn't thrust Mobj's
+  WPF_NOTHRUST = 1;
+  // weapon is silent
+  WPF_SILENT = 2;
+  // weapon won't autofire in A_WeaponReady
+  WPF_NOAUTOFIRE = 4;
+  // monsters consider it a melee weapon
+  WPF_FLEEMELEE = 8;
+  // can be switched away from when ammo is picked up
+  WPF_AUTOSWITCHFROM = $10;
+  // cannot be switched to when ammo is picked up
+  WPF_NOAUTOSWITCHTO = $20;
 
 type
   skill_t = (
@@ -169,7 +191,6 @@ type
     NUMKEYCARDS
   );
 
-
 // The defined weapons,
 //  including a marker indicating
 //  user has not changed weapon.
@@ -187,7 +208,6 @@ type
     // No pending weapon change.
     wp_nochange
   );
-
 
 // Ammunition types defined.
   ammotype_t = (
@@ -210,6 +230,8 @@ type
     atkstate: integer;
     holdatkstate: integer;
     flashstate: integer;
+    intflags: integer; // MBF21
+    mbf21bits: integer; // MBF21
   end;
   Pweaponinfo_t = ^weaponinfo_t;
   weaponinfo_tArray = array[0..$FFF] of weaponinfo_t;
@@ -243,7 +265,6 @@ type
     pw_health2,
     NUMPOWERS
   );
-
 
 const
   AMMO_GWND_WIMPY = 10;
@@ -329,11 +350,9 @@ const
   KEY_PAGEUP = $80 + $46;
   KEY_INS = $80 + $47;
 
-
   KEY_HOME = $80 + $48;
   KEY_END = $80 + $49;
   KEY_DELETE = $80 + $4a;
-
 
   KEY_LALT = KEY_RALT;
 
@@ -343,6 +362,13 @@ const
 
 const
   TELEFOGHEIGHT = 32 * FRACUNIT;
+
+const
+  TextKeyMessages: array[0..Ord(NUMKEYCARDS) - 1] of string = (
+    'YELLOW KEY',
+    'GREEN KEY',
+    'BLUE KEY'
+  );
 
 implementation
 

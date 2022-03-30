@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,6 +33,11 @@ interface
 uses
   d_delphi;
 
+//==============================================================================
+//
+// gld_SetUplight
+//
+//==============================================================================
 procedure gld_SetUplight(const r, g, b: float);
 
 const
@@ -51,6 +56,11 @@ uses
 var
   lighttexture: PGLTexture;
 
+//==============================================================================
+//
+// gld_BindLightTexture
+//
+//==============================================================================
 procedure gld_BindLightTexture;
 var
   buffer: PLongWordArray;
@@ -73,6 +83,14 @@ begin
     lighttexture.height := LIGHTBOOSTSIZE;
     lighttexture.buffer_width := LIGHTBOOSTSIZE;
     lighttexture.buffer_height := LIGHTBOOSTSIZE;
+    if lighttexture.buffer_width <> 0 then
+      lighttexture.inv_buffer_width := 1.0 / lighttexture.buffer_width
+    else
+      lighttexture.inv_buffer_width := 0.0;
+    if lighttexture.buffer_height <> 0 then
+      lighttexture.inv_buffer_height := 1.0 / lighttexture.buffer_height
+    else
+      lighttexture.inv_buffer_height := 0.0;
     lighttexture.buffer_size := LIGHTBOOSTSIZE * LIGHTBOOSTSIZE * SizeOf(LongWord);
     lighttexture.textype := GLDT_LIGHT;
     glGenTextures(1, @lighttexture.glTexID[Ord(CR_DEFAULT)]);
@@ -113,6 +131,11 @@ begin
   glBindTexture(GL_TEXTURE_2D, lighttexture.glTexID[Ord(CR_DEFAULT)]);
 end;
 
+//==============================================================================
+//
+// gld_SetUplight
+//
+//==============================================================================
 procedure gld_SetUplight(const r, g, b: float);
 begin
   gld_BindLightTexture;

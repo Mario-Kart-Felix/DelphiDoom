@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,32 +33,76 @@ interface
 uses
   d_delphi;
 
-
+//==============================================================================
+// I_InitMusic
 //
 //  MUSIC I/O
 //
+//==============================================================================
 procedure I_InitMusic;
+
+//==============================================================================
+//
+// I_ShutDownMusic
+//
+//==============================================================================
 procedure I_ShutDownMusic;
 
+//==============================================================================
+// I_SetMusicVolume
+//
 // Volume.
+//
+//==============================================================================
 procedure I_SetMusicVolume(volume: integer);
 
+//==============================================================================
+// I_PauseSong
+//
 // PAUSE game handling.
+//
+//==============================================================================
 procedure I_PauseSong(handle: integer);
+
+//==============================================================================
+//
+// I_ResumeSong
+//
+//==============================================================================
 procedure I_ResumeSong(handle: integer);
 
+//==============================================================================
+// I_RegisterSong
+//
 // Registers a song handle to song data.
+//
+//==============================================================================
 function I_RegisterSong(data: pointer; size: integer): integer;
 
+//==============================================================================
+// I_PlaySong
+//
 // Called by anything that wishes to start music.
 //  plays a song, and when the song is done,
 //  starts playing it again in an endless loop.
 // Horrible thing to do, considering.
+//
+//==============================================================================
 procedure I_PlaySong(handle: integer; looping: boolean);
 
+//==============================================================================
+// I_UnRegisterSong
+//
 // See above (register), then think backwards
+//
+//==============================================================================
 procedure I_UnRegisterSong(handle: integer);
 
+//==============================================================================
+//
+// I_ProcessMusic
+//
+//==============================================================================
 procedure I_ProcessMusic;
 
 const
@@ -79,6 +123,11 @@ var
 type
   music_t = (m_none, m_mus, m_midi, m_mp3, m_mod, m_s3m, m_it, m_xm);
 
+//==============================================================================
+//
+// I_SelectDefaultMidiDevice
+//
+//==============================================================================
 function I_SelectDefaultMidiDevice: LongWord;
 
 implementation
@@ -96,10 +145,17 @@ uses
   i_s3mmusic,
   i_modmusic,
   i_xmmusic,
+  {$IFNDEF DLL}
+  i_xmimusic,
+  {$ENDIF}
   i_itmusic,
   i_mikplay,
   i_tmp,
+  libm2m,
   s_sound,
+  {$IFNDEF DLL}
+  xmi_lib,
+  {$ENDIF}
   z_zone;
 
 const
@@ -171,6 +227,11 @@ var
   musicstarted: boolean = false;
   CurrentSong: Psonginfo_t = nil;
 
+//==============================================================================
+//
+// XLateMUSControl
+//
+//==============================================================================
 function XLateMUSControl(control: byte): byte;
 begin
   case control of
@@ -190,13 +251,25 @@ end;
 const
   NUMTEMPOEVENTS = 2;
 
-function GetSongLength(data: PByteArray): integer;
+//==============================================================================
+//
+// GetSongLength
+//
+//==============================================================================
+function GetSongLength(data: PByteArray; datasize: integer): integer;
 var
   done: boolean;
   events: integer;
   header: Pmusheader_t;
   time: boolean;
   i: integer;
+
+  function _inc_i: boolean;
+  begin
+    inc(i);
+    result := i <= datasize;
+  end;
+
 begin
   header := Pmusheader_t(data);
   i := header.scoreStart;
@@ -207,18 +280,22 @@ begin
   begin
     if data[i] and $80 <> 0 then
       time := true;
-    inc(i);
+    if not _inc_i then Break;
     case _SHR(data[i - 1], 4) and 7 of
       1:
         begin
           if data[i] and $80 <> 0 then
-            inc(i);
-          inc(i);
+            if not _inc_i then Break;
+          if not _inc_i then Break;
         end;
       0,
       2,
-      3: inc(i);
-      4: inc(i, 2);
+      3: if not _inc_i then Break;
+      4:
+        begin
+          if not _inc_i then Break;
+          if not _inc_i then Break;
+        end;
     else
       done := true;
     end;
@@ -226,15 +303,20 @@ begin
     if time then
     begin
       while data[i] and $80 <> 0 do
-        inc(i);
-      inc(i);
+        if not _inc_i then Break;
+      if not _inc_i then Break;
       time := false;
     end;
   end;
   result := events + NUMTEMPOEVENTS;
 end;
 
-function I_MusToMidi(MusData: PByteArray; MidiEvents: PMidiEvent_tArray): boolean;
+//==============================================================================
+//
+// I_MusToMidi
+//
+//==============================================================================
+function I_MusToMidi(MusData: PByteArray; MusDataSize: integer; MidiEvents: PMidiEvent_tArray): boolean;
 var
   header: Pmusheader_t;
   score: PByteArray;
@@ -248,6 +330,13 @@ var
   count: integer;
   i: integer;
 begin
+  // Check if it is a midi file
+  if PLongWord(MusData)^ = MThd then
+  begin
+    result := false;
+    exit;
+  end;
+
   header := Pmusheader_t(MusData);
   result := header.ID = MUSMAGIC;
   if not result then
@@ -256,7 +345,7 @@ begin
     exit;
   end;
 
-  count := GetSongLength(MusData);
+  count := GetSongLength(MusData, MusDataSize);
   score := PByteArray(@MusData[header.scoreStart]);
   event := @MidiEvents[0];
 
@@ -360,7 +449,7 @@ begin
     if delta = -1 then
     begin
       delta := 0;
-      while (score[spos] and 128) <> 0 do
+      while score[spos] and 128 <> 0 do
       begin
         delta := _SHL(delta, 7);
         delta := delta + score[spos] and 127;
@@ -372,6 +461,77 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_MidToMus
+//
+// Avoid problems with some midi files by convering them to mus
+//
+//==============================================================================
+function I_MidToMus(MidData: PByteArray; MidDataSize: integer; song: Psonginfo_t): boolean;
+const
+  MAXOUTBUFFERSIZE = $40000;
+var
+  outbuffer: pointer;
+  outbuffersize: integer;
+  oldnumevents: integer;
+begin
+  if snd_uselegacymidiplayer <> 2 then
+  begin
+    result := false;
+    exit;
+  end;
+
+  if PLongWord(MidData)^ <> MThd then
+  begin
+    result := false;
+    exit;
+  end;
+
+  outbuffer := mallocz(MAXOUTBUFFERSIZE);
+
+  outbuffersize := 0;
+  if _convertm2m(MidData, MidDataSize, outbuffer, @outbuffersize) <> 0 then
+  begin
+    memfree(outbuffer, MAXOUTBUFFERSIZE);
+    result := false;
+    exit;
+  end;
+
+  if (PLongWord(outbuffer)^ <> MUSMAGIC) or (outbuffersize < 4) then
+  begin
+    memfree(outbuffer, MAXOUTBUFFERSIZE);
+    result := false;
+    exit;
+  end;
+
+  oldnumevents := song.numevents;
+  song.numevents := GetSongLength(PByteArray(outbuffer), outbuffersize);
+  song.nextevent := 0;
+  Z_Free(song.midievents);
+  Z_Free(song.originalmidievents);
+  song.midievents := Z_Malloc(song.numevents * SizeOf(MidiEvent_t), PU_STATIC, nil);
+  song.originalmidievents := Z_Malloc(song.numevents * SizeOf(MidiEvent_t), PU_STATIC, nil);
+
+  result := I_MusToMidi(outbuffer, outbuffersize, song.MidiEvents);
+  if not result then
+  begin
+    song.numevents := oldnumevents;
+    song.nextevent := 0;
+    Z_Free(song.midievents);
+    Z_Free(song.originalmidievents);
+    song.midievents := Z_Malloc(song.numevents * SizeOf(MidiEvent_t), PU_STATIC, nil);
+    song.originalmidievents := Z_Malloc(song.numevents * SizeOf(MidiEvent_t), PU_STATIC, nil);
+  end;
+
+  memfree(outbuffer, MAXOUTBUFFERSIZE);
+end;
+
+//==============================================================================
+//
+// I_SelectDefaultMidiDevice
+//
+//==============================================================================
 function I_SelectDefaultMidiDevice: LongWord;
 var
   p: integer;
@@ -382,9 +542,12 @@ begin
     result := atoui(myargv[p + 1], MIDI_MAPPER);
 end;
 
+//==============================================================================
+// I_InitMus
 //
 // MUSIC API.
 //
+//==============================================================================
 procedure I_InitMus;
 var
   rc: MMRESULT;
@@ -407,7 +570,7 @@ begin
 
   // midiStreamOut not supported (should not happen with MIDI MAPPER...)
   // Try to enumurate all midi devices
-  if (midicaps.dwSupport and MIDICAPS_STREAM) = 0 then
+  if midicaps.dwSupport and MIDICAPS_STREAM = 0 then
   begin
     numdev := midiOutGetNumDevs;
     if numdev = 0 then // fatal
@@ -442,6 +605,11 @@ begin
   musicstarted := false;
 end;
 
+//==============================================================================
+//
+// I_InitMusic
+//
+//==============================================================================
 procedure I_InitMusic;
 begin
   I_InitMus;
@@ -450,11 +618,17 @@ begin
   I_InitMod;
   I_InitMik;
   I_InitS3M;
+  {$IFNDEF DLL}
+  XMI_Init;
+  {$ENDIF}
 end;
 
+//==============================================================================
+// I_StopMusicMus
 //
 // I_StopMusic
 //
+//==============================================================================
 procedure I_StopMusicMus(song: Psonginfo_t);
 var
   i: integer;
@@ -490,6 +664,11 @@ begin
   hMidiStream := 0;}
 end;
 
+//==============================================================================
+//
+// I_StopMusic
+//
+//==============================================================================
 procedure I_StopMusic(song: Psonginfo_t);
 begin
   case m_type of
@@ -503,6 +682,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_StopMus
+//
+//==============================================================================
 procedure I_StopMus;
 var
   rc: MMRESULT;
@@ -523,9 +707,11 @@ begin
 
 end;
 
+//==============================================================================
 //
 // I_ShutDownMusic
 //
+//==============================================================================
 procedure I_ShutDownMusic;
 begin
   I_StopMus;
@@ -538,11 +724,16 @@ begin
   I_ShutDownS3M;
   I_StopMik(m_none);
   I_ShutDownMik;
+  {$IFNDEF DLL}
+  XMI_ShutDown;
+  {$ENDIF}
 end;
 
+//==============================================================================
 //
 // I_PlaySong
 //
+//==============================================================================
 procedure I_PlaySong(handle: integer; looping: boolean);
 begin
   if (handle <> 0) and (hMidiStream <> 0) then
@@ -551,9 +742,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// I_PauseSongMus
 //
 // I_PauseSong
 //
+//==============================================================================
 procedure I_PauseSongMus(handle: integer);
 var
   rc: MMRESULT;
@@ -566,6 +760,11 @@ begin
     I_Error('I_PauseSong(): midiStreamRestart failed, return value = %d', [rc]);
 end;
 
+//==============================================================================
+//
+// I_PauseSong
+//
+//==============================================================================
 procedure I_PauseSong(handle: integer);
 begin
   case m_type of
@@ -579,9 +778,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// I_ResumeSongMus
 //
 // I_ResumeSong
 //
+//==============================================================================
 procedure I_ResumeSongMus(handle: integer);
 var
   rc: MMRESULT;
@@ -594,6 +796,11 @@ begin
     I_Error('I_ResumeSong(): midiStreamRestart failed, return value = %d', [rc]);
 end;
 
+//==============================================================================
+//
+// I_ResumeSong
+//
+//==============================================================================
 procedure I_ResumeSong(handle: integer);
 begin
   case m_type of
@@ -607,7 +814,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// I_StopSong
+//
 // Stops a song over 3 seconds.
+//
+//==============================================================================
 procedure I_StopSong(handle: integer);
 var
   song: Psonginfo_t;
@@ -624,6 +836,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_UnRegisterSong
+//
+//==============================================================================
 procedure I_UnRegisterSong(handle: integer);
 var
   song: Psonginfo_t;
@@ -644,6 +861,11 @@ end;
 var
   setmusvolume: integer = -1;
 
+//==============================================================================
+//
+// I_RegisterSong
+//
+//==============================================================================
 function I_RegisterSong(data: pointer; size: integer): integer;
 var
   song: Psonginfo_t;
@@ -652,7 +874,7 @@ var
   b: boolean;
 begin
   song := Z_Malloc(SizeOf(songinfo_t), PU_STATIC, nil);
-  song.numevents := GetSongLength(PByteArray(data));
+  song.numevents := GetSongLength(PByteArray(data), size);
   song.nextevent := 0;
   song.midievents := Z_Malloc(song.numevents * SizeOf(MidiEvent_t), PU_STATIC, nil);
   song.originalmidievents := Z_Malloc(song.numevents * SizeOf(MidiEvent_t), PU_STATIC, nil);
@@ -692,7 +914,32 @@ begin
     I_PlayMP3(Pmp3header_t(data).Stream);
   end
   else if PLongWordArray(data)[0] = ID3MAGIC then
-  else if I_MusToMidi(PByteArray(data), song.midievents) then
+  {$IFNDEF DLL}
+  else if IsXMIMusicFile(data, size) then
+  begin
+    if m_type <> m_midi then
+    begin
+      I_StopMus;
+      m_type := m_midi;
+    end;
+
+    MidiFileName := I_NewTempFile(_GAME + '.mid');
+
+    b := XMI_ConvertMemoryToFile(data, size, 0, MidiFileName);
+
+    if not b then
+    begin
+      I_Warning('I_RegisterSong(): Could not initialize MCI'#13#10);
+      m_type := m_none;
+      result := 0;
+      exit;
+    end;
+
+    I_PlayMidi(MidiFileName);
+    I_SetMusicVolumeMidi(snd_MusicVolume);
+  end
+  {$ENDIF}
+  else if I_MidToMus(data, size, song) or I_MusToMidi(data, size, song.midievents) then
   begin
     setmusvolume := -1; // Force music update
     memcpy(song.originalmidievents, song.midievents, song.numevents * SizeOf(MidiEvent_t));
@@ -748,15 +995,23 @@ begin
   result := integer(song);
 end;
 
+//==============================================================================
+// I_QrySongPlaying
+//
 // Is the song playing?
+//
+//==============================================================================
 function I_QrySongPlaying(handle: integer): boolean;
 begin
   result := CurrentSong <> nil;
 end;
 
+//==============================================================================
+// I_SetMusicVolumeMus
 //
 // I_SetMusicVolume
 //
+//==============================================================================
 procedure I_SetMusicVolumeMus(volume: integer);
 var
   rc: MMRESULT;
@@ -799,6 +1054,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_SetMusicVolume
+//
+//==============================================================================
 procedure I_SetMusicVolume(volume: integer);
 begin
   case m_type of
@@ -812,6 +1072,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_ProcessMusicMus
+//
+//==============================================================================
 procedure I_ProcessMusicMus;
 var
   header: Pmidiheader_t;
@@ -870,6 +1135,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// I_ProcessMusic
+//
+//==============================================================================
 procedure I_ProcessMusic;
 begin
   case m_type of

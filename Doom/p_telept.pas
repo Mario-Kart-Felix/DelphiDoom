@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Teleportation.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,17 +38,27 @@ uses
   p_mobj_h,
   r_defs;
 
+//==============================================================================
+// EV_Teleport
 //
 // TELEPORTATION
 //
+//==============================================================================
 function EV_Teleport(line: Pline_t; side: integer; thing: Pmobj_t): integer;
 
+//==============================================================================
+//
+// EV_SilentTeleport
+//
+//==============================================================================
 function EV_SilentTeleport(line: Pline_t; side: integer; thing: Pmobj_t): integer;
 
+//==============================================================================
+//
+// EV_SilentLineTeleport
+//
+//==============================================================================
 function EV_SilentLineTeleport(line: Pline_t; side: integer; thing: Pmobj_t; reverse: boolean): integer;
-
-const
-  TELEPORTZOOM = 15 * FRACUNIT;
 
 implementation
 
@@ -70,9 +80,15 @@ uses
   p_user,
   r_main,
   s_sound,
-  sounds,
+  sounddata,
+  udmf_telept,
   tables;
 
+//==============================================================================
+//
+// EV_Teleport
+//
+//==============================================================================
 function EV_Teleport(line: Pline_t; side: integer; thing: Pmobj_t): integer;
 var
   i: integer;
@@ -101,7 +117,6 @@ begin
     result := 0;
     exit;
   end;
-
 
   // Don't teleport if hit back of line,
   //  so you can get out of teleporter.
@@ -213,11 +228,13 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+// EV_SilentTeleport
 //
 // Silent TELEPORTATION, by Lee Killough
 // Primarily for rooms-over-rooms etc.
 //
-
+//==============================================================================
 function EV_SilentTeleport(line: Pline_t; side: integer; thing: Pmobj_t): integer;
 var
   i: integer;
@@ -328,6 +345,11 @@ end;
 const
   FUDGEFACTOR = 10;
 
+//==============================================================================
+//
+// EV_SilentLineTeleport
+//
+//==============================================================================
 function EV_SilentLineTeleport(line: Pline_t; side: integer; thing: Pmobj_t; reverse: boolean): integer;
 var
   i: integer;
@@ -349,7 +371,6 @@ begin
     result := 0;
     exit;
   end;
-
 
   i := -1;
   while P_FindLineFromLineTag2(line, i) >= 0 do

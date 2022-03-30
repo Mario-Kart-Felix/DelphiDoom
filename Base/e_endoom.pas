@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -52,14 +52,39 @@ var
 {$ENDIF}
   displayendscreen: boolean;
 
+//==============================================================================
+//
+// E_Responder
+//
+//==============================================================================
 function E_Responder(ev: Pevent_t): boolean;
 
+//==============================================================================
+//
+// E_Init
+//
+//==============================================================================
 procedure E_Init;
 
+//==============================================================================
+//
+// E_Drawer
+//
+//==============================================================================
 procedure E_Drawer;
 
+//==============================================================================
+//
+// E_ShutDown
+//
+//==============================================================================
 procedure E_ShutDown;
 
+//==============================================================================
+//
+// E_Ticker
+//
+//==============================================================================
 procedure E_Ticker;
 
 {$IFDEF OPENGL}
@@ -92,6 +117,11 @@ var
   e_blink: boolean = true;
   e_needsupdate: boolean = true;
 
+//==============================================================================
+//
+// E_Responder
+//
+//==============================================================================
 function E_Responder(ev: Pevent_t): boolean;
 begin
   if ev._type <> ev_keyup then
@@ -137,6 +167,11 @@ const
 var
   fontpalcolors: array[0..15] of byte;
 
+//==============================================================================
+//
+// E_Init
+//
+//==============================================================================
 procedure E_Init;
 var
   dosfontlump: integer;
@@ -175,6 +210,11 @@ type
   endoomchar_tArray = array[0..1999] of endoomchar_t;
   Pendoomchar_tArray = ^endoomchar_tArray;
 
+//==============================================================================
+//
+// E_Drawer
+//
+//==============================================================================
 procedure E_Drawer;
 var
   endoom: Pendoomchar_tArray;
@@ -248,6 +288,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// E_ShutDown
+//
+//==============================================================================
 procedure E_ShutDown;
 begin
   if e_ticks > 0 then
@@ -261,6 +306,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// E_Ticker
+//
+//==============================================================================
 procedure E_Ticker;
 var
   blink: boolean;

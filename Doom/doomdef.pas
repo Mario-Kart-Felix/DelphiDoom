@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  key definitions, lots of other stuff.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -92,6 +92,7 @@ type
   );
 
   GameVersion_t = (
+    exe_doom_1_8,   // Doom 2 French
     exe_doom_1_9,   // Doom 1.9: used for shareware, registered and commercial
     exe_hacx,       // Hacx executable (Doom 1.9 with patch applied)
     exe_ultimate,   // Ultimate Doom (retail)
@@ -308,11 +309,9 @@ const
   KEY_PAGEUP = $80 + $46;
   KEY_INS = $80 + $47;
 
-
   KEY_HOME = $80 + $48;
   KEY_END = $80 + $49;
   KEY_DELETE = $80 + $4a;
-
 
   KEY_LALT = KEY_RALT;
 
@@ -321,6 +320,16 @@ const
   DEN_PLAYER6 = 4002;
   DEN_PLAYER7 = 4003;
   DEN_PLAYER8 = 4004;
+
+const
+  TextKeyMessages: array[0..Ord(NUMCARDS) - 1] of string = (
+    'BLUE KEY',
+    'YELLOW KEY',
+    'RED KEY',
+    'BLUE SKULL KEY',
+    'YELLOW SKULL KEY',
+    'RED SKULL KEY'
+  );
 
 implementation
 

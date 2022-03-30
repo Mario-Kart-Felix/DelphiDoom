@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,6 +30,11 @@ unit p_terrain;
 
 interface
 
+//==============================================================================
+//
+// P_TerrainTypeForName
+//
+//==============================================================================
 function P_TerrainTypeForName(flatname: string): integer;
 
 var
@@ -81,13 +86,17 @@ var
     (name: 'END'; _type: -1)
   );
 
-
+//==============================================================================
+//
+// P_TerrainTypeForName
+//
+//==============================================================================
 function P_TerrainTypeForName(flatname: string): integer;
 var
   i: integer;
 begin
   i := 0;
-  flatname := strupper(flatname);
+  strupperproc(flatname);
   while terraintypedefs[i]._type <> -1 do
   begin
     if terraintypedefs[i].name = flatname then

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //    This one is the original DOOM version, preserved.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -422,6 +422,21 @@ type
     DO_NUMSTATES
   );
 
+const
+  STATEF_SKILL5FAST = 1;
+
+const
+  MAX_STATE_ARGS = 8;
+
+const
+  ARG1_DEFINED = 1;
+  ARG2_DEFINED = 2;
+  ARG3_DEFINED = 4;
+  ARG4_DEFINED = 8;
+  ARG5_DEFINED = $10;
+  ARG6_DEFINED = $20;
+  ARG7_DEFINED = $40;
+  ARG8_DEFINED = $80;
 
 type
   state_t = record
@@ -451,6 +466,9 @@ type
     voxelradius: integer;
 {$ENDIF}
     flags_ex: integer;
+    mbf21bits: integer;
+    args: array[0..MAX_STATE_ARGS - 1] of integer;
+    argsdefined: integer;
   end;
   Pstate_t = ^state_t;
 
@@ -550,11 +568,12 @@ type
     alpha: integer;
     healstate: integer;
     crashstate: integer;
+    crushstate: integer;
     interactstate: integer;
     missileheight: integer;
     vspeed: integer;  // Initial vertical speed
     pushfactor: integer; // How much can be pushed? 1..FRACUNIT
-    friction: Integer; // Default is ORIG_FRICTION
+    friction: integer; // Default is ORIG_FRICTION
     scale: integer;
     gravity: integer;
     flags3_ex: integer;
@@ -575,6 +594,17 @@ type
     WeaveIndexZ: integer;
     spriteDX: integer;
     spriteDY: integer;
+    flags5_ex: integer;
+    flags6_ex: integer;
+    // MBF21
+    infighting_group: integer;
+    projectile_group: integer;
+    splash_group: integer;
+    mbf21bits: integer; // not actually flags, the bits will be converted to DelphiDoom flags
+    ripsound: integer;
+    bloodcolor: integer;
+    translationname: string[8];
+    meleethreshold: integer;
   end;
 
   Pmobjinfo_t = ^mobjinfo_t;
@@ -598,6 +628,8 @@ var
   MT_BLUEBLOOD: integer = -2;
   MT_GREENGIBS: integer = -2;
   MT_BLUEGIBS: integer = -2;
+  MT_MAPSPOT: integer = -2;
+  MT_MAPSPOTGRAVITY: integer = -2;
 
 implementation
 

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //   Main program, simply calls D_DoomMain high level loop.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -42,6 +42,11 @@ uses
 const
   WINDOW_STYLE = (WS_OVERLAPPED);
 
+//==============================================================================
+//
+// DoomMain
+//
+//==============================================================================
 procedure DoomMain;
 
 var
@@ -63,6 +68,11 @@ uses
   m_base,
   d_main;
 
+//==============================================================================
+//
+// WindowProc
+//
+//==============================================================================
 function WindowProc(hWnd: HWND; Msg: UINT; wParam: WPARAM;
   lParam: LPARAM): LRESULT; stdcall; export;
 begin
@@ -114,6 +124,11 @@ begin
   result := DefWindowProc(hWnd, Msg, WParam, LParam);
 end;
 
+//==============================================================================
+//
+// DoomMain
+//
+//==============================================================================
 procedure DoomMain;
 var
   WindowClass: TWndClass;

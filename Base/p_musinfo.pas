@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Support MUSINFO lump (dynamic music changing)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,6 +36,11 @@ interface
 uses
   p_mobj_h;
 
+//==============================================================================
+//
+// A_MusicChanger
+//
+//==============================================================================
 procedure A_MusicChanger(actor: Pmobj_t);
 
 const
@@ -47,8 +52,18 @@ const
   MUSICCHANGER_HI = 14164;
   MUSICCHANGER = 14165;
 
+//==============================================================================
+//
+// P_InitMusInfo
+//
+//==============================================================================
 procedure P_InitMusInfo;
 
+//==============================================================================
+//
+// P_FindMusinfoMusic
+//
+//==============================================================================
 function P_FindMusinfoMusic(const id: integer; const mapname: string): integer;
 
 implementation
@@ -62,6 +77,7 @@ uses
   p_params,
   p_setup,
   p_levelinfo,
+  sounddata,
   sounds,
   s_sound,
   sc_engine,
@@ -74,6 +90,11 @@ const
 const
   MUSINFOTICS = 30;
 
+//==============================================================================
+//
+// A_MusicChanger
+//
+//==============================================================================
 procedure A_MusicChanger(actor: Pmobj_t);
 var
   countdown: integer;
@@ -163,6 +184,11 @@ var
   nummusinfo: integer = 0;
   musinfo: musinfo_tArray;
 
+//==============================================================================
+//
+// P_AddMusInfo
+//
+//==============================================================================
 procedure P_AddMusInfo(const mapname: string; const musid: integer; const musname: string);
 var
   i, idx: integer;
@@ -201,6 +227,11 @@ begin
   pm.musname := stringtochar8(strupper(musname));
 end;
 
+//==============================================================================
+//
+// P_InitMusInfo
+//
+//==============================================================================
 procedure P_InitMusInfo;
 var
   sc: TScriptEngine;
@@ -258,6 +289,11 @@ begin
   sc.Free;
 end;
 
+//==============================================================================
+//
+// P_FindMusinfoMusic
+//
+//==============================================================================
 function P_FindMusinfoMusic(const id: integer; const mapname: string): integer;
 var
   check: char8_t;

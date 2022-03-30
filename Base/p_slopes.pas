@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Slopes.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,23 +38,68 @@ uses
   m_fixed,
   r_defs;
 
+//==============================================================================
+//
+// P_FloorHeight
+//
+//==============================================================================
 function P_FloorHeight(const sec: Psector_t; const x, y: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_FloorHeight
+//
+//==============================================================================
 function P_FloorHeight(const x, y: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_CeilingHeight
+//
+//==============================================================================
 function P_CeilingHeight(const sec: Psector_t; const x, y: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_CeilingHeight
+//
+//==============================================================================
 function P_CeilingHeight(const x, y: fixed_t): fixed_t; overload;
 
+//==============================================================================
+//
+// P_SlopesSetup
+//
+//==============================================================================
 procedure P_SlopesSetup;
 
+//==============================================================================
+//
+// P_DynamicSlope
+//
+//==============================================================================
 procedure P_DynamicSlope(const sec: Psector_t);
 
+//==============================================================================
+//
+// P_SlopesAlignPlane
+//
+//==============================================================================
 procedure P_SlopesAlignPlane(const sec: Psector_t; const line: Pline_t; const flag: LongWord;
   const calcpivotline: boolean = true);
 
+//==============================================================================
+//
+// P_ClosestFloorHeight
+//
+//==============================================================================
 function P_ClosestFloorHeight(const sec: Psector_t; const line: Pline_t; const x, y: fixed_t): fixed_t;
 
+//==============================================================================
+//
+// P_ClosestCeilingHeight
+//
+//==============================================================================
 function P_ClosestCeilingHeight(const sec: Psector_t; const line: Pline_t; const x, y: fixed_t): fixed_t;
 
 procedure calc_slope_plane(
@@ -63,9 +108,19 @@ procedure calc_slope_plane(
   const x3, y3, z3: float;
   out fa, fb, fc, fd: float);
 
+//==============================================================================
+//
+// PS_SetFloorSlope
+//
+//==============================================================================
 procedure PS_SetFloorSlope(const secid: integer; const x1, y1, z1: fixed_t;
   const x2, y2, z2: fixed_t; const x3, y3, z3: fixed_t);
 
+//==============================================================================
+//
+// PS_SetCeilingSlope
+//
+//==============================================================================
 procedure PS_SetCeilingSlope(const secid: integer; const x1, y1, z1: fixed_t;
   const x2, y2, z2: fixed_t; const x3, y3, z3: fixed_t);
 
@@ -75,7 +130,6 @@ const
 implementation
 
 uses
-  Math,
   doomdata,
   m_vectors,
   p_gravity,
@@ -83,19 +137,33 @@ uses
   p_setup,
   p_mobj_h,
   p_spec,
-  r_main,
-  tables;
+  r_main;
 
+//==============================================================================
+//
+// ZatPointFloor
+//
+//==============================================================================
 function ZatPointFloor(const s: Psector_t; const x, y: fixed_t): fixed_t;
 begin
   result := Round(((-s.fa * (x / FRACUNIT) - s.fb * (y / FRACUNIT) - s.fd) * s.fic) * FRACUNIT);
 end;
 
+//==============================================================================
+//
+// ZatPointCeiling
+//
+//==============================================================================
 function ZatPointCeiling(const s: Psector_t; const x, y: fixed_t): fixed_t;
 begin
   result := Round(((-s.ca * (x / FRACUNIT) - s.cb * (y / FRACUNIT) - s.cd) * s.cic) * FRACUNIT);
 end;
 
+//==============================================================================
+//
+// P_FloorHeight
+//
+//==============================================================================
 function P_FloorHeight(const sec: Psector_t; const x, y: fixed_t): fixed_t; overload;
 begin
   if sec.renderflags and SRF_SLOPEFLOOR <> 0 then
@@ -104,11 +172,21 @@ begin
     result := sec.floorheight;
 end;
 
+//==============================================================================
+//
+// P_FloorHeight
+//
+//==============================================================================
 function P_FloorHeight(const x, y: fixed_t): fixed_t; overload;
 begin
   result := P_FloorHeight(R_PointInSubSector(x, y).sector, x, y);
 end;
 
+//==============================================================================
+//
+// P_CeilingHeight
+//
+//==============================================================================
 function P_CeilingHeight(const sec: Psector_t; const x, y: fixed_t): fixed_t; overload;
 begin
   if sec.renderflags and SRF_SLOPECEILING <> 0 then
@@ -117,6 +195,11 @@ begin
     result := sec.ceilingheight;
 end;
 
+//==============================================================================
+//
+// P_CeilingHeight
+//
+//==============================================================================
 function P_CeilingHeight(const x, y: fixed_t): fixed_t; overload;
 begin
   result := P_CeilingHeight(R_PointInSubSector(x, y).sector, x, y);
@@ -130,6 +213,11 @@ type
   zvertex_tArray = array[0..$FFF] of zvertex_t;
   Pzvertex_tArray = ^zvertex_tArray;
 
+//==============================================================================
+//
+// zvertex
+//
+//==============================================================================
 function zvertex(const v: Pvertex_t; const A: Pzvertex_tArray): Pzvertex_t;
 var
   id: integer;
@@ -143,6 +231,11 @@ begin
     result := @A[id];
 end;
 
+//==============================================================================
+//
+// linelen
+//
+//==============================================================================
 function linelen(const l: Pline_t): float;
 var
   dx, dy: float;
@@ -152,6 +245,11 @@ begin
   result := sqrt(dx * dx + dy * dy);
 end;
 
+//==============================================================================
+//
+// P_SlopesAlignPlane
+//
+//==============================================================================
 procedure P_SlopesAlignPlane(const sec: Psector_t; const line: Pline_t; const flag: LongWord;
   const calcpivotline: boolean = true);
 var
@@ -327,6 +425,11 @@ begin
   memfree(Pointer(zvertexes), SizeOf(zvertex_t));
 end;
 
+//==============================================================================
+//
+// P_FixSlopedMobjs
+//
+//==============================================================================
 procedure P_FixSlopedMobjs(const s: Psector_t);
 var
   mo: Pmobj_t;
@@ -345,13 +448,18 @@ begin
 
     if mo.z - grav < mo.floorz then
       mo.z := mo.floorz
-    else if (grav = 0) or (mo.z > mo.ceilingz) then
-      mo.z := mo.ceilingz;
+    else if mo.z + mo.height > mo.ceilingz then
+      mo.z := mo.ceilingz - mo.height;
 
     mo := mo.snext;
   end;
 end;
 
+//==============================================================================
+//
+// P_DynamicSlope
+//
+//==============================================================================
 procedure P_DynamicSlope(const sec: Psector_t);
 var
  s: Psector_t;
@@ -398,6 +506,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_SlopesSetup
+//
+//==============================================================================
 procedure P_SlopesSetup;
 var
   i: integer;
@@ -451,9 +564,14 @@ begin
         end;
     end
     {$ENDIF}
-  end;;
+  end;
 end;
 
+//==============================================================================
+//
+// P_FindNearestPointOnLine
+//
+//==============================================================================
 procedure P_FindNearestPointOnLine(const x, y: fixed_t; const line: Pline_t; var xx, yy: fixed_t);
 const
   NP_SCALE = 16;
@@ -502,6 +620,11 @@ begin
   yy := yy * NP_SCALE;
 end;
 
+//==============================================================================
+//
+// P_ClosestFloorHeight
+//
+//==============================================================================
 function P_ClosestFloorHeight(const sec: Psector_t; const line: Pline_t; const x, y: fixed_t): fixed_t;
 var
   xx, yy: fixed_t;
@@ -522,6 +645,11 @@ begin
     result := sec.floorheight;
 end;
 
+//==============================================================================
+//
+// P_ClosestCeilingHeight
+//
+//==============================================================================
 function P_ClosestCeilingHeight(const sec: Psector_t; const line: Pline_t; const x, y: fixed_t): fixed_t;
 var
   xx, yy: fixed_t;
@@ -563,6 +691,11 @@ begin
   fd := (- fa * x1 - fb * y1 - fc * z1);
 end;
 
+//==============================================================================
+//
+// PS_SetFloorSlope
+//
+//==============================================================================
 procedure PS_SetFloorSlope(const secid: integer; const x1, y1, z1: fixed_t;
   const x2, y2, z2: fixed_t; const x3, y3, z3: fixed_t);
 var
@@ -612,6 +745,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// PS_SetCeilingSlope
+//
+//==============================================================================
 procedure PS_SetCeilingSlope(const secid: integer; const x1, y1, z1: fixed_t;
   const x2, y2, z2: fixed_t; const x3, y3, z3: fixed_t);
 var

@@ -91,22 +91,44 @@ const
   SF_BOTH = $11;      // FIN_PROTECT + FIN_DISCARD
 {$EXTERNALSYM SF_BOTH}
 
-
   { ++++++++++++++++++++++++++++++++++++++++++++++++++
     ***  Memory DLL loading functions Declaration  ***
     -------------------------------------------------- }
 
   // return value is nil if function fails
+
+//==============================================================================
+//
+// BTMemoryLoadLibary
+//
+//==============================================================================
 function BTMemoryLoadLibary(fp_data: Pointer; const f_size: int64;
   f_SectionFinalization: TSFFlag = SF_BOTH;
   f_DllProcessAttach: Boolean = True): PBTMemoryModule;
 
+//==============================================================================
+// BTMemoryGetProcAddress
+//
 // return value is nil if function fails
+//
+//==============================================================================
 function BTMemoryGetProcAddress(fp_module: PBTMemoryModule;
   const fp_name: PChar): Pointer;
+
+//==============================================================================
+// BTMemoryFreeLibrary
+//
 // free module
+//
+//==============================================================================
 procedure BTMemoryFreeLibrary(fp_module: PBTMemoryModule);
+
+//==============================================================================
+// BTMemoryGetLastError
+//
 // returns last error
+//
+//==============================================================================
 function BTMemoryGetLastError: string;
 
 implementation
@@ -244,7 +266,6 @@ type
   IMAGE_IMPORT_BY_NAME = _IMAGE_IMPORT_BY_NAME;
 {$EXTERNALSYM IMAGE_IMPORT_BY_NAME}
 
-
 const
   IMAGE_SIZEOF_BASE_RELOCATION = 8;
 {$EXTERNALSYM IMAGE_SIZEOF_BASE_RELOCATION}
@@ -279,8 +300,6 @@ const
   IMAGE_DIRECTORY_ENTRY_EXPORT = 0;
 {$EXTERNALSYM IMAGE_DIRECTORY_ENTRY_EXPORT}
 
-
-
 var
   lastErrStr: string;
 
@@ -288,21 +307,41 @@ var
     ***  Memory DLL loading functions Implementation  ***
     ----------------------------------------------------- }
 
+//==============================================================================
+//
+// BTMemoryGetLastError
+//
+//==============================================================================
 function BTMemoryGetLastError: string;
 begin
   Result := lastErrStr;
 end;
 
+//==============================================================================
+//
+// IncP
+//
+//==============================================================================
 procedure IncP(var f_X; f_N: UInt64);
 begin
   Pointer(f_X) := Pointer(UInt64(f_X) + f_N);
 end;
 
+//==============================================================================
+//
+// DecP
+//
+//==============================================================================
 procedure DecP(var f_X; f_N: UInt64);
 begin
   Pointer(f_X) := Pointer(UInt64(f_X) - f_N);
 end;
 
+//==============================================================================
+//
+// IncF
+//
+//==============================================================================
 function IncF(f_X: Pointer; f_N: UInt64): Pointer; overload;
 begin
   try
@@ -312,6 +351,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// IncF
+//
+//==============================================================================
 function IncF(f_X: Pointer; f_N: Pointer): Pointer; overload;
 begin
   try
@@ -321,6 +365,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// DecF
+//
+//==============================================================================
 function DecF(f_X: Pointer; f_N: UInt64): Pointer;
 begin
   try
@@ -330,6 +379,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// PAnsiCharToPChar
+//
+//==============================================================================
 function PAnsiCharToPChar(f_X: Pointer): PChar;
 begin
 {$IFDEF UNICODE}
@@ -339,11 +393,21 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// GetFieldOffset
+//
+//==============================================================================
 function GetFieldOffset(const Struc; const Field): Cardinal;
 begin
   Result := UInt64(@Field) - UInt64(@Struc);
 end;
 
+//==============================================================================
+//
+// GetImageFirstSection
+//
+//==============================================================================
 function GetImageFirstSection(NtHeader: PImageNtHeaders): PImageSectionHeader;
   stdcall;
 begin
@@ -351,6 +415,11 @@ begin
       NtHeader^.OptionalHeader) + NtHeader^.FileHeader.SizeOfOptionalHeader);
 end;
 
+//==============================================================================
+//
+// GetHeaderDictionary
+//
+//==============================================================================
 function GetHeaderDictionary(f_module: PBTMemoryModule;
   f_idx: Integer): PImageDataDirectory;
 begin
@@ -358,16 +427,31 @@ begin
     (@(f_module^.headers^.OptionalHeader.DataDirectory[f_idx]));
 end;
 
+//==============================================================================
+//
+// GetImageOrdinal
+//
+//==============================================================================
 function GetImageOrdinal(Ordinal: DWORD): Word;
 begin
   Result := Ordinal and $FFFF;
 end;
 
+//==============================================================================
+//
+// GetImageSnapByOrdinal
+//
+//==============================================================================
 function GetImageSnapByOrdinal(Ordinal: DWORD): boolean;
 begin
   Result := ((Ordinal and IMAGE_ORDINAL_FLAG32) <> 0);
 end;
 
+//==============================================================================
+//
+// CopySections
+//
+//==============================================================================
 procedure CopySections(fp_data: Pointer; f_old_headers: TImageNtHeaders;
   fp_module: PBTMemoryModule);
 var
@@ -406,7 +490,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// PerformBaseRelocation
+//
 // xy this procedure still contains 32 bit code..
+//
+//==============================================================================
 procedure PerformBaseRelocation(f_module: PBTMemoryModule; f_delta: Cardinal);
   stdcall;
 var
@@ -445,6 +534,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// BuildImportTable
+//
+//==============================================================================
 function BuildImportTable(fp_module: PBTMemoryModule): boolean; stdcall;
 var
   lp_directory: PImageDataDirectory;
@@ -521,6 +615,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// GetSectionProtection
+//
+//==============================================================================
 function GetSectionProtection(f_SC: Cardinal): Cardinal; stdcall;
 // SC – ImageSectionHeader.Characteristics
 begin
@@ -528,34 +627,32 @@ begin
   if (f_SC and IMAGE_SCN_MEM_NOT_CACHED) <> 0 then
     Result := Result or PAGE_NOCACHE;
   // E - Execute, R – Read , W – Write
-  if (f_SC and IMAGE_SCN_MEM_EXECUTE) <> 0 // E ?
-    then
-    if (f_SC and IMAGE_SCN_MEM_READ) <> 0 // ER ?
-      then
-      if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 // ERW ?
-        then
+  if (f_SC and IMAGE_SCN_MEM_EXECUTE) <> 0 then // E ?
+    if (f_SC and IMAGE_SCN_MEM_READ) <> 0 then  // ER ?
+      if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 then // ERW ?
         Result := Result or PAGE_EXECUTE_READWRITE
       else
         Result := Result or PAGE_EXECUTE_READ
-      else if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 // EW?
-        then
+      else if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 then  // EW?
         Result := Result or PAGE_EXECUTE_WRITECOPY
       else
         Result := Result or PAGE_EXECUTE
-      else if (f_SC and IMAGE_SCN_MEM_READ) <> 0 // R?
-        then
-        if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 // RW?
-          then
+      else if (f_SC and IMAGE_SCN_MEM_READ) <> 0 then // R?
+        if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 then // RW?
           Result := Result or PAGE_READWRITE
         else
           Result := Result or PAGE_READONLY
-        else if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 // W?
-          then
+        else if (f_SC and IMAGE_SCN_MEM_WRITE) <> 0 then  // W?
           Result := Result or PAGE_WRITECOPY
         else
           Result := Result or PAGE_NOACCESS;
 end;
 
+//==============================================================================
+//
+// FinalizeSections
+//
+//==============================================================================
 procedure FinalizeSections(fp_module: PBTMemoryModule;
   f_SectionFinalization: TSFFlag); stdcall;
 var
@@ -592,7 +689,9 @@ begin
           <> 0 then
         begin
           l_size := fp_module^.headers^.OptionalHeader.SizeOfInitializedData;
-        end else begin
+        end
+        else
+        begin
           if (lp_section^.Characteristics and IMAGE_SCN_CNT_UNINITIALIZED_DATA)
             <> 0 then
             l_size := fp_module^.headers^.OptionalHeader.SizeOfUninitializedData;
@@ -613,6 +712,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// BTMemoryLoadLibary
+//
+//==============================================================================
 function BTMemoryLoadLibary(fp_data: Pointer; const f_size: int64;
   f_SectionFinalization: TSFFlag = SF_BOTH;
   f_DllProcessAttach: Boolean = True): PBTMemoryModule;
@@ -704,7 +808,8 @@ begin
         lastErrStr := 'BTMemoryLoadLibary: Get DLLEntyPoint failed';
         Abort;
       end;
-      if f_DllProcessAttach then begin
+      if f_DllProcessAttach then
+      begin
         l_successfull := TDllEntryProc(lp_DllEntry)(UInt64(l_code),
           DLL_PROCESS_ATTACH, nil);
         if not l_successfull then
@@ -722,6 +827,11 @@ begin
   Result := lp_result;
 end;
 
+//==============================================================================
+//
+// BTMemoryGetProcAddress
+//
+//==============================================================================
 function BTMemoryGetProcAddress(fp_module: PBTMemoryModule;
   const fp_name: PChar): Pointer;
 var
@@ -760,7 +870,7 @@ begin
     Inc(l_nameRef);
     Inc(l_ordinal);
   end;
-  if (l_idx = -1) then
+  if l_idx = -1 then
   begin
     lastErrStr := 'BTMemoryGetProcAddress: exported symbol not found';
     exit;
@@ -777,6 +887,11 @@ begin
           l_idx * 4)))^);
 end;
 
+//==============================================================================
+//
+// BTMemoryFreeLibrary
+//
+//==============================================================================
 procedure BTMemoryFreeLibrary(fp_module: PBTMemoryModule);
 var
   lp_module: PBTMemoryModule;

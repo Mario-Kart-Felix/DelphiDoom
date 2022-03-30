@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //  Items: key cards, artifacts, weapon, ammunition.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -44,6 +44,27 @@ uses
   doomdef,
   info_h;
 
+//
+// mbf21: Internal weapon flags
+//
+const
+  WIF_ENABLEAPS = 1;  // [XA] enable "ammo per shot" field for native Doom weapon codepointers
+
+const
+  // no flag
+  WPF_NOFLAG = 0;
+  // doesn't thrust Mobj's
+  WPF_NOTHRUST = 1;
+  // weapon is silent
+  WPF_SILENT = 2;
+  // weapon won't autofire in A_WeaponReady
+  WPF_NOAUTOFIRE = 4;
+  // monsters consider it a melee weapon
+  WPF_FLEEMELEE = 8;
+  // can be switched away from when ammo is picked up
+  WPF_AUTOSWITCHFROM = $10;
+  // cannot be switched to when ammo is picked up
+  WPF_NOAUTOSWITCHTO = $20;
 
 type
   { Weapon info: sprite frames, ammunition use. }
@@ -56,6 +77,9 @@ type
     holdatkstate: integer;
     flashstate: integer;
     availabledemo: boolean;    // villsa [STRIFE]
+    ammopershot: integer; // MBF21
+    intflags: integer; // MBF21
+    mbf21bits: integer; // MBF21
   end;
   Pweaponinfo_t = ^weaponinfo_t;
 
@@ -83,7 +107,10 @@ var
     atkstate: Ord(S_PNCH_04);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: true
+    availabledemo: true;
+    ammopershot: 0;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // electric bow
@@ -94,7 +121,10 @@ var
     atkstate: Ord(S_XBOW_03);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: true
+    availabledemo: true;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // rifle
@@ -105,7 +135,10 @@ var
     atkstate: Ord(S_RIFF_00);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: true
+    availabledemo: true;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // missile launcher
@@ -116,7 +149,10 @@ var
     atkstate: Ord(S_MMIS_03);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: false
+    availabledemo: false;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // grenade launcher
@@ -127,7 +163,10 @@ var
     atkstate: Ord(S_GREN_03);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_GREF_00);
-    availabledemo: false
+    availabledemo: false;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // flame thrower
@@ -138,7 +177,10 @@ var
     atkstate: Ord(S_FLMF_00);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: true
+    availabledemo: true;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // mauler
@@ -149,7 +191,10 @@ var
     atkstate: Ord(S_BLSF_00);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: false
+    availabledemo: false;
+    ammopershot: 20;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // sigil
@@ -160,7 +205,10 @@ var
     atkstate: Ord(S_SIGH_07);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_SIGF_00);
-    availabledemo: false
+    availabledemo: false;
+    ammopershot: 0;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // poison bow
@@ -171,7 +219,10 @@ var
     atkstate: Ord(S_XBOW_16);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: true
+    availabledemo: true;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // wp grenade launcher
@@ -182,7 +233,10 @@ var
     atkstate: Ord(S_GREN_11);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_GREF_03);
-    availabledemo: false
+    availabledemo: false;
+    ammopershot: 1;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   ),
   (
     // torpedo
@@ -193,7 +247,10 @@ var
     atkstate: Ord(S_BLST_19);
     holdatkstate: Ord(S_NULL);
     flashstate: Ord(S_NULL);
-    availabledemo: false
+    availabledemo: false;
+    ammopershot: 30;
+    intflags: 0;
+    mbf21bits: WPF_NOFLAG;
   )
   );
 

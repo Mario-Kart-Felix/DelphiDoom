@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   JVAL: Zone Memory Replacement
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -72,10 +72,10 @@ type
     procedure M_ChangeTag(ptr: Pointer; tag: integer);
     function M_Malloc(size: integer; tag: integer; user: Pointer): pointer;
     function M_Realloc(ptr: Pointer; size: integer; tag: integer; user: Pointer): pointer;
+    function M_Size(ptr: Pointer): integer;
     property items: Pmemmanageritems_t read fitems write fitems;
     property numitems: integer read fnumitems write fnumitems;
   end;
-
 
 implementation
 
@@ -84,6 +84,11 @@ uses
   i_system;
 {$ENDIF}
 
+//==============================================================================
+//
+// TMemManager.Create
+//
+//==============================================================================
 constructor TMemManager.Create;
 begin
   fitems := nil;
@@ -91,6 +96,11 @@ begin
   realsize := 0;
 end;
 
+//==============================================================================
+//
+// TMemManager.Destroy
+//
+//==============================================================================
 destructor TMemManager.Destroy;
 var
   i: integer;
@@ -101,6 +111,11 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// TMemManager.item2ptr
+//
+//==============================================================================
 function TMemManager.item2ptr(const id: integer): Pointer;
 begin
 {$IFDEF DEBUG}
@@ -110,6 +125,11 @@ begin
   result := pointer(integer(fitems[id]) + SizeOf(memmanageritem_t));
 end;
 
+//==============================================================================
+//
+// TMemManager.ptr2item
+//
+//==============================================================================
 function TMemManager.ptr2item(const ptr: Pointer): integer;
 begin
   result := Pmemmanageritem_t(Integer(ptr) - SizeOf(memmanageritem_t)).index;
@@ -119,6 +139,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// TMemManager.M_Free
+//
+//==============================================================================
 procedure TMemManager.M_Free(ptr: Pointer);
 var
   i: integer;
@@ -138,6 +163,11 @@ begin
   dec(fnumitems);
 end;
 
+//==============================================================================
+//
+// TMemManager.M_FreeTags
+//
+//==============================================================================
 procedure TMemManager.M_FreeTags(lowtag, hightag: integer);
 var
   i: integer;
@@ -147,11 +177,21 @@ begin
       M_Free(item2ptr(i));
 end;
 
+//==============================================================================
+//
+// TMemManager.M_ChangeTag
+//
+//==============================================================================
 procedure TMemManager.M_ChangeTag(ptr: Pointer; tag: integer);
 begin
   fitems[ptr2item(ptr)].tag := tag;
 end;
 
+//==============================================================================
+//
+// TMemManager.M_Malloc
+//
+//==============================================================================
 function TMemManager.M_Malloc(size: integer; tag: integer; user: Pointer): pointer;
 var
   i: integer;
@@ -178,6 +218,11 @@ begin
     PPointer(user)^ := result;
 end;
 
+//==============================================================================
+//
+// TMemManager.M_Realloc
+//
+//==============================================================================
 function TMemManager.M_Realloc(ptr: Pointer; size: integer; tag: integer; user: Pointer): pointer;
 var
   tmp: pointer;
@@ -216,6 +261,19 @@ begin
   result := M_Malloc(size, tag, user);
   memcpy(result, tmp, copysize);
   memfree(tmp, copysize);
+end;
+
+//==============================================================================
+//
+// TMemManager.M_Size
+//
+//==============================================================================
+function TMemManager.M_Size(ptr: Pointer): integer;
+var
+  i: integer;
+begin
+  i := ptr2item(ptr);
+  result := fitems[i].size;
 end;
 
 end.

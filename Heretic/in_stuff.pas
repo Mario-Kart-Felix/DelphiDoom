@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,22 +21,41 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 //  02111-1307, USA.
 //
+// DESCRIPTION:
+//    Intermission stuff
+//
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
 
 unit in_stuff;
 
-// Intermission stuff
-
 interface
 
-procedure IN_Start;
+uses
+  d_player;
 
+//==============================================================================
+//
+// IN_Start
+//
+//==============================================================================
+procedure IN_Start(const wbstartstruct: Pwbstartstruct_t);
+
+//==============================================================================
+//
+// IN_Ticker
+//
+//==============================================================================
 procedure IN_Ticker;
 
+//==============================================================================
+//
+// IN_Drawer
+//
+//==============================================================================
 procedure IN_Drawer;
 
 implementation
@@ -46,7 +65,6 @@ uses
   doomdef,
   doomstat,
   am_map,
-  d_player,
   d_event,
   g_game,
   mt_utils,
@@ -64,7 +82,7 @@ uses
   r_defs,
   sb_bar,
   s_sound,
-  sounds,
+  sounddata,
   v_data,
   v_video,
   w_wad,
@@ -167,13 +185,17 @@ const
     (x: 107; y:  80)
   ));
 
+var
+  wbs: Pwbstartstruct_t = nil;
+  exitpic, enterpic: string; // UMAPINFO
 
 //========================================================================
 //
 // IN_LoadPics
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_LoadPics;
 var
   i: integer;
@@ -201,13 +223,44 @@ begin
   patchFaceDeadBase := W_GetNumForName('FACEB0');
 end;
 
+//==============================================================================
+//
+// IN_CheckCustomPics
+//
+//==============================================================================
+procedure IN_CheckCustomPics;
+begin
+  if (wbs.lastmapinfo <> nil) and (wbs.lastmapinfo.exitpic <> '') then
+  begin
+    exitpic := wbs.lastmapinfo.exitpic;
+    if exitpic = '-' then
+      exitpic := ''
+    else if W_CheckNumForName(exitpic) < 0 then
+      exitpic := '';
+  end
+  else
+    exitpic := '';
+
+  if (wbs.nextmapinfo <> nil) and (wbs.nextmapinfo.enterpic <> '') then
+  begin
+    enterpic := wbs.nextmapinfo.enterpic;
+    if enterpic = '-' then
+      enterpic := ''
+    else if W_CheckNumForName(enterpic) < 0 then
+      enterpic := '';
+  end
+  else
+    enterpic := '';
+end;
+
 //========================================================================
 //
 // IN_InitStats
 //
 //      Initializes the stats for single player mode
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_InitStats;
 var
   i: integer;
@@ -286,14 +339,14 @@ begin
   end;
 end;
 
-
 //========================================================================
 //
 // IN_Start
 //
 //========================================================================
-
-procedure IN_Start;
+//
+//==============================================================================
+procedure IN_Start(const wbstartstruct: Pwbstartstruct_t);
 var
   palette: PByteArray;
 begin
@@ -302,6 +355,9 @@ begin
   V_SetPalette(palette);
   Z_ChangeTag(palette, PU_CACHE);
 
+  wbs := wbstartstruct;
+
+  IN_CheckCustomPics;
   IN_LoadPics;
   IN_InitStats;
   intermission := true;
@@ -318,7 +374,8 @@ end;
 // IN_UnloadPics
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_UnloadPics;
 var
   i: integer;
@@ -339,7 +396,8 @@ end;
 // IN_Stop
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_Stop;
 begin
   intermission := false;
@@ -352,7 +410,8 @@ end;
 // IN_WaitStop
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_WaitStop;
 begin
   dec(cnt);
@@ -369,7 +428,8 @@ end;
 //
 //      Check to see if any player hit a key
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_CheckForSkip;
 var
   i: integer;
@@ -405,7 +465,8 @@ end;
 // IN_Ticker
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_Ticker;
 begin
   if not intermission then
@@ -476,7 +537,8 @@ end;
 // IN_DrawStatBack
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_DrawStatBack;
 var
   x: integer;
@@ -484,26 +546,30 @@ var
   src: PByteArray;
   dest: integer;
 begin
-  src := W_CacheLumpName ('FLOOR16', PU_STATIC);
-  dest := 0;
-
-  for y := 0 to 200 - 1 do
+  if exitpic <> '' then
+    V_TileScreen8(exitpic, SCN_TMP)
+  else
   begin
-    for x := 0 to (320 div 64) - 1 do
-    begin
-      memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 64);
-      dest := dest + 64;
-    end;
+    src := W_CacheLumpName ('FLOOR16', PU_STATIC);
+    dest := 0;
 
-    if 320 and 63 <> 0 then
+    for y := 0 to 200 - 1 do
     begin
-      memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 320 and 63);
-      dest := dest + (320 and 63);
+      for x := 0 to (320 div 64) - 1 do
+      begin
+        memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 64);
+        dest := dest + 64;
+      end;
+
+      if 320 and 63 <> 0 then
+      begin
+        memcpy(@screens[SCN_TMP, dest], @src[_SHL(y and 63, 6)], 320 and 63);
+        dest := dest + (320 and 63);
+      end;
     end;
+    Z_ChangeTag(src, PU_CACHE);
   end;
-  Z_ChangeTag(src, PU_CACHE);
 end;
-
 
 //========================================================================
 //
@@ -516,7 +582,8 @@ end;
 // IN_DrTextB
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_DrTextB(const txt: string; x, y: integer);
 var
   i: integer;
@@ -544,7 +611,8 @@ end;
 // IN_DrawNumber
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_DrawNumber(val: integer; x, y: integer; digits: integer);
 var
   patch: Ppatch_t;
@@ -633,7 +701,8 @@ end;
 // IN_DrawTime
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_DrawTime(x, y: integer; h, m, s: integer);
 begin
   if h <> 0 then
@@ -652,24 +721,96 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// IN_DrawFinished
+//
+//==============================================================================
+procedure IN_DrawFinished;
+var
+  x, y: integer;
+  lpic: Ppatch_t;
+  leveltitle: string;
+begin
+  y := 3;
+
+  // The level defines a new name but no texture for the name.
+  if (wbs.lastmapinfo <> nil) and (wbs.lastmapinfo.levelname <> '') and (wbs.lastmapinfo.levelpic = '') then
+  begin
+    x := 160 - M_StringWidth2(wbs.lastmapinfo.levelname) div 2;
+    IN_DrTextB(wbs.lastmapinfo.levelname, x, 3);
+
+    y := 25;
+  end
+  else if (wbs.lastmapinfo <> nil) and (wbs.lastmapinfo.levelpic <> '') then
+  begin
+    lpic := W_CacheLumpName(wbs.lastmapinfo.levelpic, PU_CACHE);
+
+    V_DrawPatch((320 - lpic.width) div 2, y, SCN_TMP, lpic, false);
+
+    y := y + (5 * lpic.height) div 4;
+  end
+  else
+  begin
+    leveltitle := P_GetMapTitle(wbs.epsd + 1, wbs.last + 1);
+    x := 160 - M_StringWidth2(leveltitle) div 2;
+    IN_DrTextB(leveltitle, x, 3);
+    y := 25;
+  end;
+
+  x := 160 - M_StringWidth('FINISHED') div 2;
+  M_WriteText(x, y, 'FINISHED');
+end;
+
+//==============================================================================
+//
+// IN_DrawEntering
+//
+//==============================================================================
+procedure IN_DrawEntering(const y: Integer);
+var
+  x: integer;
+  lpic: Ppatch_t;
+  leveltitle: string;
+begin
+  x := 160 - M_StringWidth('NOW ENTERING:') div 2;
+  M_WriteText(x, y, 'NOW ENTERING:');
+
+  // The level defines a new name but no texture for the name.
+  if (wbs.nextmapinfo <> nil) and (wbs.nextmapinfo.levelname <> '') and (wbs.nextmapinfo.levelpic = '') then
+  begin
+    x := 160 - M_StringWidth2(wbs.nextmapinfo.levelname) div 2;
+    IN_DrTextB(wbs.nextmapinfo.levelname, x, y + 10);
+  end
+  else if (wbs.nextmapinfo <> nil) and (wbs.nextmapinfo.levelpic <> '') then
+  begin
+    lpic := W_CacheLumpName(wbs.nextmapinfo.levelpic, PU_CACHE);
+
+    V_DrawPatch((320 - lpic.width) div 2, y + 10, SCN_TMP, lpic, false);
+  end
+  else
+  begin
+    leveltitle := P_GetMapTitle(wbs.nextep + 1, wbs.next + 1);
+    x := 160 - M_StringWidth2(leveltitle) div 2;
+    IN_DrTextB(leveltitle, x, y + 10);
+  end;
+end;
 
 var
   in_sounds: integer;
 
+//==============================================================================
+//
+// IN_DrawSingleStats
+//
+//==============================================================================
 procedure IN_DrawSingleStats;
-var
-  x: integer;
-  leveltitle: string;
 begin
   IN_DrTextB('KILLS', 50, 65);
   IN_DrTextB('ITEMS', 50, 90);
   IN_DrTextB('SECRETS', 50, 115);
 
-  leveltitle := P_GetMapTitle(gameepisode, prevmap);
-  x := 160 - M_StringWidth2(leveltitle) div 2;
-  IN_DrTextB(leveltitle, x, 3);
-  x := 160 - M_StringWidth('FINISHED') div 2;
-  M_WriteText(x, 25, 'FINISHED');
+  IN_DrawFinished;
 
   if intertime < 30 then
   begin
@@ -727,11 +868,7 @@ begin
   end
   else
   begin
-    x := 160 - M_StringWidth('NOW ENTERING:') div 2;
-    M_WriteText(x, 160, 'NOW ENTERING:');
-    leveltitle := P_GetMapTitle(gameepisode, gamemap);
-    x := 160 - M_StringWidth2(leveltitle) div 2;
-    IN_DrTextB(leveltitle, x, 170);
+    IN_DrawEntering(160);
     skipintermission := false;
   end;
 end;
@@ -745,22 +882,21 @@ end;
 var
   in_sounds2: integer;
 
+//==============================================================================
+//
+// IN_DrawCoopStats
+//
+//==============================================================================
 procedure IN_DrawCoopStats;
 var
   i: integer;
-  x: integer;
   ypos: integer;
-  leveltitle: string;
 begin
   IN_DrTextB('KILLS', 95, 35);
   IN_DrTextB('BONUS', 155, 35);
   IN_DrTextB('SECRET', 232, 35);
 
-  leveltitle := P_GetMapTitle(gameepisode, prevmap);
-  x := 160 - M_StringWidth2(leveltitle) div 2;
-  IN_DrTextB(leveltitle, x, 3);
-  x := 160 - M_StringWidth('FINISHED') div 2;
-  M_WriteText(x, 25, 'FINISHED');
+  IN_DrawFinished;
 
   ypos := 50;
   for i := 0 to MAXPLAYERS - 1 do
@@ -790,7 +926,6 @@ begin
   end;
 end;
 
-
 //========================================================================
 //
 // IN_DrawDMStats
@@ -800,6 +935,11 @@ end;
 var
   in_sounds3: integer;
 
+//==============================================================================
+//
+// IN_DrawDMStats
+//
+//==============================================================================
 procedure IN_DrawDMStats;
 var
   i: integer;
@@ -890,97 +1030,94 @@ end;
 // IN_DrawOldLevel
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_DrawOldLevel;
 var
   i: integer;
-  x: integer;
-  leveltitle: string;
 begin
-  leveltitle := P_GetMapTitle(gameepisode, prevmap);
-  x := 160 - M_StringWidth2(leveltitle) div 2;
-  IN_DrTextB(leveltitle, x, 3);
-  x := 160 - M_StringWidth('FINISHED') div 2;
-  M_WriteText(x, 25, 'FINISHED');
+  IN_DrawFinished;
 
-  if prevmap = 9 then
+  if enterpic = '' then
   begin
-    for i := 0 to gamemap - 1 do
+    if wbs.last + 1 = 9 then
     begin
-      V_DrawPatch(YAHspot[gameepisode - 1][i].x, YAHspot[gameepisode - 1][i].y,
-        SCN_TMP,
-          patchBEENTHERE, false);
-    end;
-    if intertime and 16 = 0 then
+      for i := 0 to gamemap - 1 do
+      begin
+        V_DrawPatch(YAHspot[gameepisode - 1][i].x, YAHspot[gameepisode - 1][i].y,
+          SCN_TMP,
+            patchBEENTHERE, false);
+      end;
+      if intertime and 16 = 0 then
+      begin
+        V_DrawPatch(YAHspot[gameepisode - 1][8].x, YAHspot[gameepisode - 1][8].y,
+          SCN_TMP,
+            patchBEENTHERE, false);
+      end;
+    end
+    else
     begin
-      V_DrawPatch(YAHspot[gameepisode - 1][8].x, YAHspot[gameepisode - 1][8].y,
-        SCN_TMP,
-          patchBEENTHERE, false);
-    end;
-  end
-  else
-  begin
-    for i := 0 to prevmap - 1 do
-    begin
-      V_DrawPatch(YAHspot[gameepisode - 1][i].x, YAHspot[gameepisode - 1][i].y,
-        SCN_TMP,
-          patchBEENTHERE, false);
-    end;
-    if players[consoleplayer].didsecret then
-    begin
-      V_DrawPatch(YAHspot[gameepisode - 1][8].x, YAHspot[gameepisode - 1][8].y,
-        SCN_TMP,
-          patchBEENTHERE, false);
-    end;
-    if intertime and 16 = 0 then
-    begin
-      V_DrawPatch(YAHspot[gameepisode - 1][prevmap - 1].x, YAHspot[gameepisode - 1][prevmap - 1].y,
-        SCN_TMP,
-          patchBEENTHERE, false);
+      for i := 0 to wbs.last do
+      begin
+        V_DrawPatch(YAHspot[gameepisode - 1][i].x, YAHspot[gameepisode - 1][i].y,
+          SCN_TMP,
+            patchBEENTHERE, false);
+      end;
+      if players[consoleplayer].didsecret then
+      begin
+        V_DrawPatch(YAHspot[gameepisode - 1][8].x, YAHspot[gameepisode - 1][8].y,
+          SCN_TMP,
+            patchBEENTHERE, false);
+      end;
+      if intertime and 16 = 0 then
+      begin
+        V_DrawPatch(YAHspot[gameepisode - 1][wbs.last].x, YAHspot[gameepisode - 1][wbs.last].y,
+          SCN_TMP,
+            patchBEENTHERE, false);
+      end;
     end;
   end;
 end;
-
 
 //========================================================================
 //
 // IN_DrawYAH
 //
 //========================================================================
-
+//
+//==============================================================================
 procedure IN_DrawYAH;
 var
   i: integer;
-  x: integer;
-  leveltitle: string;
+  prevmap: integer;
 begin
-  x := 160 - M_StringWidth('NOW ENTERING:') div 2;
-  M_WriteText(x, 10, 'NOW ENTERING:');
-  leveltitle := P_GetMapTitle(gameepisode, gamemap);
-  x := 160 - M_StringWidth2(leveltitle) div 2;
-  IN_DrTextB(leveltitle, x, 20);
+  IN_DrawEntering(10);
 
-  if prevmap = 9 then
-    prevmap := gamemap - 1;
+  if (enterpic = '') or (wbs.lastmapinfo <> nil) then
+  begin
+    if wbs.last = 8 then
+      prevmap := gamemap - 1
+    else
+      prevmap := wbs.last;
 
-  for i := 0 to prevmap - 1 do
-    V_DrawPatch(YAHspot[gameepisode - 1][i].x, YAHspot[gameepisode - 1][i].y,
-      SCN_TMP,
-        patchBEENTHERE, false);
+    for i := 0 to prevmap - 1 do
+      V_DrawPatch(YAHspot[gameepisode - 1][i].x, YAHspot[gameepisode - 1][i].y,
+        SCN_TMP,
+          patchBEENTHERE, false);
 
-  if players[consoleplayer].didsecret then
-    V_DrawPatch(YAHspot[gameepisode - 1][8].x, YAHspot[gameepisode - 1][8].y,
-      SCN_TMP,
-        patchBEENTHERE, false);
+    if players[consoleplayer].didsecret then
+      V_DrawPatch(YAHspot[gameepisode - 1][8].x, YAHspot[gameepisode - 1][8].y,
+        SCN_TMP,
+          patchBEENTHERE, false);
 
-  if (intertime and 16 = 0) or (interstate = 3) then
-  begin // draw the destination 'X'
-    V_DrawPatch(YAHspot[gameepisode - 1][gamemap - 1].x, YAHspot[gameepisode - 1][gamemap - 1].y,
-      SCN_TMP,
-        patchGOINGTHERE, false);
+    if (intertime and 16 = 0) or (interstate = 3) then
+    begin // draw the destination 'X'
+      V_DrawPatch(YAHspot[gameepisode - 1][gamemap - 1].x, YAHspot[gameepisode - 1][gamemap - 1].y,
+        SCN_TMP,
+          patchGOINGTHERE, false);
+    end;
   end;
 end;
-
 
 //========================================================================
 //
@@ -991,6 +1128,11 @@ end;
 var
   oldinterstate: integer;
 
+//==============================================================================
+//
+// IN_Drawer
+//
+//==============================================================================
 procedure IN_Drawer;
 begin
   if not intermission then
@@ -1020,7 +1162,12 @@ begin
       end;
     1: // leaving old level
       begin
-        if gameepisode < 4 then
+        if enterpic <> '' then
+        begin
+          V_TileScreen8(enterpic, SCN_TMP);
+          IN_DrawFinished;
+        end
+        else if gameepisode < 4 then
         begin
           V_DrawPatchFullScreenTMP320x200(patchINTERPIC);
           IN_DrawOldLevel;
@@ -1028,7 +1175,12 @@ begin
       end;
     2: // going to the next level
       begin
-        if gameepisode < 4 then
+        if enterpic <> '' then
+        begin
+          V_TileScreen8(enterpic, SCN_TMP);
+          IN_DrawEntering(10);
+        end
+        else if gameepisode < 4 then
         begin
           V_DrawPatchFullScreenTMP320x200(patchINTERPIC);
           IN_DrawYAH;
@@ -1036,7 +1188,9 @@ begin
       end;
     3: // waiting before going to the next level
       begin
-        if gameepisode < 4 then
+        if enterpic <> '' then
+          V_TileScreen8(enterpic, SCN_TMP)
+        else if gameepisode < 4 then
           V_DrawPatchFullScreenTMP320x200(patchINTERPIC);
       end;
    else

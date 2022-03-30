@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -29,8 +29,6 @@
 unit d_event;
 
 interface
-
-
 
 //
 // Event handling.
@@ -46,10 +44,10 @@ type
 // mouse/joystick y move
 
   event_t = record
-    _type : evtype_t;
-    data1 : integer;
-    data2 : integer;
-    data3 : integer;
+    _type: evtype_t;
+    data1: integer;
+    data2: integer;
+    data3: integer;
   end;
   Pevent_t = ^event_t;
 
@@ -148,7 +146,6 @@ const
 const
   NUMJOYBUTTONS = 12;
 
-
 var
 //
 // EVENT HANDLING
@@ -161,7 +158,6 @@ var
   eventtail: integer;
 
 implementation
-
 
 end.
 

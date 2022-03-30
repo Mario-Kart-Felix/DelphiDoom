@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Chase camera, teleport zoom effect
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -38,8 +38,18 @@ uses
   m_fixed,
   p_mobj_h;
 
+//==============================================================================
+//
+// R_AdjustChaseCamera
+//
+//==============================================================================
 procedure R_AdjustChaseCamera;
 
+//==============================================================================
+//
+// R_AdjustTeleportZoom
+//
+//==============================================================================
 procedure R_AdjustTeleportZoom(const player: Pplayer_t);
 
 var
@@ -61,7 +71,7 @@ uses
   p_3dfloors,
   p_sight,
   p_map,
-  p_telept,
+  udmf_telept,
   r_defs,
   r_main,
   r_data,
@@ -70,12 +80,15 @@ uses
 const
   CAMERARADIOUS = 8 * FRACUNIT;
 
+//==============================================================================
+// R_AdjustChaseCamera
 //
 // P_AdjustChaseCamera
 //
 // JVAL: Adjust the chace camera position
 //       A bit clumsy but works OK
 //
+//==============================================================================
 procedure R_AdjustChaseCamera;
 var
   c_an: angle_t;
@@ -139,6 +152,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_AdjustTeleportZoom
+//
+//==============================================================================
 procedure R_AdjustTeleportZoom(const player: Pplayer_t);
 var
   mo: Pmobj_t;

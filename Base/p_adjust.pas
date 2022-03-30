@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,6 +30,11 @@ unit p_adjust;
 
 interface
 
+//==============================================================================
+//
+// P_AdjustMissingTextures
+//
+//==============================================================================
 procedure P_AdjustMissingTextures;
 
 var
@@ -40,11 +45,14 @@ implementation
 uses
   r_defs,
   p_setup;
+
+//==============================================================================
 //
 // P_AdjustMissingTextures()
 //
 // JVAL: Try to adjust missing textures
 //
+//==============================================================================
 procedure P_AdjustMissingTextures;
 var
   i, j: integer;
@@ -54,11 +62,6 @@ begin
   ld := @lines[0];
   for i := 0 to numlines - 1 do
   begin
-  if i = 740 then
-  begin
-    inc(ld);
-    dec(ld);
-  end;
     if (ld.frontsector <> nil) and (ld.backsector <> nil) then
       if (ld.sidenum[0] >= 0) and (ld.sidenum[1] >= 0) then
       begin
@@ -112,6 +115,14 @@ begin
                   end;
               end;
             end;
+            if sides[ld.sidenum[1]].toptexture = 0 then
+              sides[ld.sidenum[1]].toptexture := sides[ld.sidenum[1]].bottomtexture;
+            if sides[ld.sidenum[1]].toptexture = 0 then
+              if ld.sidenum[0] >= 0 then
+                sides[ld.sidenum[1]].toptexture := sides[ld.sidenum[0]].bottomtexture;
+            if sides[ld.sidenum[1]].toptexture = 0 then
+              if ld.sidenum[0] >= 0 then
+                sides[ld.sidenum[1]].toptexture := sides[ld.sidenum[0]].toptexture;
           end;
 
         if (ld.frontsector.floorheight > ld.backsector.floorheight) then
@@ -148,6 +159,14 @@ begin
                   end;
               end;
             end;
+            if sides[ld.sidenum[1]].bottomtexture = 0 then
+              sides[ld.sidenum[1]].bottomtexture := sides[ld.sidenum[1]].toptexture;
+            if sides[ld.sidenum[1]].bottomtexture = 0 then
+              if ld.sidenum[0] >= 0 then
+                sides[ld.sidenum[1]].bottomtexture := sides[ld.sidenum[0]].toptexture;
+            if sides[ld.sidenum[1]].bottomtexture = 0 then
+              if ld.sidenum[0] >= 0 then
+                sides[ld.sidenum[1]].bottomtexture := sides[ld.sidenum[0]].bottomtexture;
           end;
 
         if (ld.frontsector.ceilingheight > ld.backsector.ceilingheight) then
@@ -184,6 +203,14 @@ begin
                   end;
               end;
             end;
+            if sides[ld.sidenum[0]].toptexture = 0 then
+              sides[ld.sidenum[0]].toptexture := sides[ld.sidenum[0]].bottomtexture;
+            if sides[ld.sidenum[0]].toptexture = 0 then
+              if ld.sidenum[1] > 0 then
+                sides[ld.sidenum[0]].toptexture := sides[ld.sidenum[1]].bottomtexture;
+            if sides[ld.sidenum[0]].toptexture = 0 then
+              if ld.sidenum[1] > 0 then
+                sides[ld.sidenum[0]].toptexture := sides[ld.sidenum[1]].toptexture;
           end;
 
         if (ld.frontsector.floorheight < ld.backsector.floorheight) then
@@ -220,6 +247,14 @@ begin
                   end;
               end;
             end;
+            if sides[ld.sidenum[0]].bottomtexture = 0 then
+              sides[ld.sidenum[0]].bottomtexture := sides[ld.sidenum[0]].toptexture;
+            if sides[ld.sidenum[0]].bottomtexture = 0 then
+              if ld.sidenum[1] >= 0 then
+                sides[ld.sidenum[0]].bottomtexture := sides[ld.sidenum[1]].toptexture;
+            if sides[ld.sidenum[0]].bottomtexture = 0 then
+              if ld.sidenum[1] >= 0 then
+                sides[ld.sidenum[0]].bottomtexture := sides[ld.sidenum[1]].bottomtexture;
           end;
 
       end;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //    This one is the original DOOM version, preserved.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -44,14 +44,39 @@ uses
 var
   statenames: TTokenList;
 
+//==============================================================================
+//
+// SC_ParseStatedefLump
+//
+//==============================================================================
 procedure SC_ParseStatedefLump;
 
+//==============================================================================
+//
+// SC_DefaultStatedefLump
+//
+//==============================================================================
 procedure SC_DefaultStatedefLump;
 
-function P_GetStateFromName(const actor: Pmobj_t; const s: string): integer;
+//==============================================================================
+//
+// P_GetStateFromName
+//
+//==============================================================================
+function P_GetStateFromName(const actor: Pmobj_t; const s1: string): integer;
 
-function P_GetStateFromNameWithOffsetCheck(const actor: Pmobj_t; const s: string): integer;
+//==============================================================================
+//
+// P_GetStateFromNameWithOffsetCheck
+//
+//==============================================================================
+function P_GetStateFromNameWithOffsetCheck(const actor: Pmobj_t; const s1: string): integer;
 
+//==============================================================================
+//
+// SC_FillStateNames
+//
+//==============================================================================
 procedure SC_FillStateNames;
 
 implementation
@@ -63,6 +88,7 @@ uses
   info,
   info_common,
   sc_engine,
+  sc_params,
   w_wad;
 
 const
@@ -71,6 +97,11 @@ const
 var
   default_states_added: boolean = false;
 
+//==============================================================================
+//
+// SC_DefaultStatedefLump
+//
+//==============================================================================
 procedure SC_DefaultStatedefLump;
 var
   st: statenum_t;
@@ -85,6 +116,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_ParseStatedefLump
+//
+//==============================================================================
 procedure SC_ParseStatedefLump;
 var
   i: integer;
@@ -130,9 +166,14 @@ begin
     SC_DefaultStatedefLump;
 end;
 
-function P_GetStateFromName(const actor: Pmobj_t; const s: string): integer;
+//==============================================================================
+//
+// P_GetStateFromName
+//
+//==============================================================================
+function P_GetStateFromName(const actor: Pmobj_t; const s1: string): integer;
 var
-  st: string;
+  s, st: string;
   fw, sw: string;
   pps, ppp, ppb: integer;
 
@@ -219,6 +260,11 @@ var
         result := inf.crashstate;
         exit;
       end
+      else if sss1 = 'CRUSH' then
+      begin
+        result := inf.crushstate;
+        exit;
+      end
       else if sss1 = 'INTERACT' then
       begin
         result := inf.interactstate;
@@ -228,13 +274,17 @@ var
 
     sss1 := 'S_' + strupper(actor.info.name) + '_' + sss;
     result := statenames.IndexOfToken(sss1);
+    if result < 0 then
+      if StrIsLongWord(s1) then
+        result := atoi(s1);
   end;
 
 begin
-  st := strtrim(strupper(strtrim(s)));
-  pps := Pos('+', st);
-  ppp := Pos('-', st);
-  ppb := Pos(' ', st);
+  s := SC_EvalString(s1);
+  st := strupper(strtrim(s));
+  pps := CharPos('+', st);
+  ppp := CharPos('-', st);
+  ppb := CharPos(' ', st);
   if (ppb = 0) and (ppp = 0) and (pps = 0) then
   begin
     Result := _stindex(st);
@@ -245,17 +295,17 @@ begin
   //       20191003 rewritten, fixed
   begin
     st := strremovespaces(st);
-    pps := Pos('+', st);
-    ppp := Pos('-', st);
+    pps := CharPos('+', st);
+    ppp := CharPos('-', st);
     if pps > 0 then
     begin
-      splitstring(st, fw, sw, '+');
+      splitstring_ch(st, fw, sw, '+');
       Result := _stindex(fw) + atoi(sw, 0);
       Exit;
     end;
     if ppp > 0 then
     begin
-      splitstring(st, fw, sw, '-');
+      splitstring_ch(st, fw, sw, '-');
       Result := _stindex(fw) - atoi(sw, 0);
       Exit;
     end;
@@ -263,10 +313,17 @@ begin
   Result := -1; // JVAL: No match
 end;
 
-function P_GetStateFromNameWithOffsetCheck(const actor: Pmobj_t; const s: string): integer;
+//==============================================================================
+//
+// P_GetStateFromNameWithOffsetCheck
+//
+//==============================================================================
+function P_GetStateFromNameWithOffsetCheck(const actor: Pmobj_t; const s1: string): integer;
 var
+  s: string;
   check: string;
 begin
+  s := SC_EvalString(s1);
   check := s;
   if check = '' then
   begin
@@ -283,6 +340,11 @@ begin
     Result := P_GetStateFromName(actor, s);
 end;
 
+//==============================================================================
+//
+// SC_FillStateNames
+//
+//==============================================================================
 procedure SC_FillStateNames;
 begin
   while statenames.Count < numstates do

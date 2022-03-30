@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  Pending weapon.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,13 +36,37 @@ unit p_user;
 interface
 
 uses
+  m_fixed,
+  tables,
   p_mobj_h,
   d_player;
 
+//==============================================================================
+//
+// P_PlayerThink
+//
+//==============================================================================
 procedure P_PlayerThink(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_CalcHeight
+//
+//==============================================================================
 procedure P_CalcHeight(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_Thrust
+//
+//==============================================================================
+procedure P_Thrust(player: Pplayer_t; angle: angle_t; const move: fixed_t);
+
+//==============================================================================
+//
+// P_PlayerFaceMobj
+//
+//==============================================================================
 procedure P_PlayerFaceMobj(const player: Pplayer_t; const face: Pmobj_t; const ticks: integer);
 
 var
@@ -52,9 +76,7 @@ implementation
 
 uses
   d_delphi,
-  m_fixed,
   m_rnd,
-  tables,
   d_ticcmd,
   d_event,
   info_h,
@@ -63,7 +85,10 @@ uses
   i_io,
 {$ENDIF}
   g_game,
+  p_common,
   p_genlin,
+  p_playertrace,
+  p_friends,
   p_mobj,
   p_tick,
   p_pspr,
@@ -91,10 +116,12 @@ const
 var
   onground: boolean;
 
+//==============================================================================
 //
 // P_Thrust
 // Moves the given origin along a given angle.
 //
+//==============================================================================
 procedure P_Thrust(player: Pplayer_t; angle: angle_t; const move: fixed_t);
 begin
   {$IFDEF FPC}
@@ -107,10 +134,12 @@ begin
   player.mo.momy := player.mo.momy + FixedMul(move, finesine[angle]);
 end;
 
+//==============================================================================
 //
 // P_CalcHeight
 // Calculate the walking / running height adjustment
 //
+//==============================================================================
 procedure P_CalcHeight(player: Pplayer_t);
 var
   angle: integer;
@@ -200,6 +229,11 @@ begin
     player.viewz := player.mo.ceilingz - 4 * FRACUNIT;
 end;
 
+//==============================================================================
+//
+// P_CalcHeight205
+//
+//==============================================================================
 procedure P_CalcHeight205(player: Pplayer_t);
 var
   angle: integer;
@@ -265,7 +299,12 @@ begin
     player.viewz := player.mo.ceilingz - 4 * FRACUNIT;
 end;
 
+//==============================================================================
+// P_SlopesCalcHeight
+//
 // JVAL: Slopes
+//
+//==============================================================================
 procedure P_SlopesCalcHeight(player: Pplayer_t);
 var
   angle: integer;
@@ -382,6 +421,11 @@ begin
   player.oldviewz := oldviewz;
 end;
 
+//==============================================================================
+//
+// P_GetMoveFactor
+//
+//==============================================================================
 function P_GetMoveFactor(const mo: Pmobj_t): fixed_t;
 var
   momentum, friction: integer;
@@ -423,9 +467,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_MovePlayer
 //
+//==============================================================================
 procedure P_MovePlayer(player: Pplayer_t);
 var
   cmd: Pticcmd_t;
@@ -450,8 +496,21 @@ begin
   if onground then
     player.lastongroundtime := leveltime; // JVAL: 20211101 - Crouch
 
-  cmd_jump := (cmd.jump_crouch and CMD_JUMP_MASK) shr CMD_JUMP_SHIFT;
-  cmd_crouch := (cmd.jump_crouch and CMD_CROUCH_MASK) shr CMD_CROUCH_SHIFT;
+  // JVAL: 20220225 - NOJUMP sector flag (UDMF)
+  if Psubsector_t(player.mo.subsector).sector.flags and SF_NOJUMP <> 0 then
+    cmd_jump := 0
+  else if (gamemapinfo <> nil) and gamemapinfo.nojump then
+    cmd_jump := 0
+  else
+    cmd_jump := (cmd.jump_crouch and CMD_JUMP_MASK) shr CMD_JUMP_SHIFT;
+
+  // JVAL: 20220226 - NOCROUCH sector flag (UDMF)
+  if Psubsector_t(player.mo.subsector).sector.flags and SF_NOCROUCH <> 0 then
+    cmd_crouch := 0
+  else if (gamemapinfo <> nil) and gamemapinfo.nocrouch then
+    cmd_crouch := 0
+  else
+    cmd_crouch := (cmd.jump_crouch and CMD_CROUCH_MASK) shr CMD_CROUCH_SHIFT;
 
   // villsa [STRIFE] allows player to climb over things by jumping
   // haleyjd 20110205: air control thrust should be 256, not cmd.forwardmove
@@ -694,6 +753,11 @@ const
   ANG5 = ANG90 div 18;
   ANG355 = ANG270 +  ANG5 * 17; // add by JVAL
 
+//==============================================================================
+//
+// P_DeathThink
+//
+//==============================================================================
 procedure P_DeathThink(player: Pplayer_t);
 var
   angle: angle_t;
@@ -754,6 +818,11 @@ var
   brsnd2: integer = -1;
   rnd_breath: Integer = 0;
 
+//==============================================================================
+//
+// A_PlayerBreath
+//
+//==============================================================================
 procedure A_PlayerBreath(p: Pplayer_t);
 var
   sndidx: integer;
@@ -788,6 +857,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// P_AngleTarget
+//
+//==============================================================================
 procedure P_AngleTarget(player: Pplayer_t);
 var
   ticks: LongWord;
@@ -813,6 +887,11 @@ begin
   dec(player.angletargetticks);
 end;
 
+//==============================================================================
+//
+// P_PlayerFaceMobj
+//
+//==============================================================================
 procedure P_PlayerFaceMobj(const player: Pplayer_t; const face: Pmobj_t; const ticks: integer);
 begin
   player.angletargetx := face.x;
@@ -820,9 +899,11 @@ begin
   player.angletargetticks := ticks;
 end;
 
+//==============================================================================
 //
 // P_PlayerThink
 //
+//==============================================================================
 procedure P_PlayerThink(player: Pplayer_t);
 var
   cmd: Pticcmd_t;
@@ -862,11 +943,19 @@ begin
       player.teleporttics := 0;
   end;
 
+  P_AimLineAttack(player.mo, player.mo.angle, 16 * 64 * FRACUNIT);
+  if (player.plinetarget = nil) and (linetarget <> nil) then
+    player.pcrosstic := leveltime;
+  player.plinetarget := linetarget;
+
   if player.playerstate = PST_DEAD then
   begin
     P_DeathThink(player);
     exit;
   end;
+
+  P_PlayerHistoryNotify(player);  // JVAL: 20211224 - Notify player history
+  P_HandleFriendsNearMe(player);  // JVAL: 20220107 - Handle nearby friends
 
   P_AngleTarget(player);
 
@@ -974,7 +1063,6 @@ begin
 
   if player.bonuscount <> 0 then
     player.bonuscount := player.bonuscount - 1;
-
 
   // Handling colormaps.
   if player.powers[Ord(pw_invulnerability)] <> 0 then

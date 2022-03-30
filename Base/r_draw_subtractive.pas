@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,10 +30,33 @@ unit r_draw_subtractive;
 
 interface
 
+//==============================================================================
+// R_DrawColumnSubtractLowest
+//
 // Alpha column drawers (transparency effects)
+//
+//==============================================================================
 procedure R_DrawColumnSubtractLowest;
+
+//==============================================================================
+//
+// R_DrawColumnSubtractLow
+//
+//==============================================================================
 procedure R_DrawColumnSubtractLow;
+
+//==============================================================================
+//
+// R_DrawColumnSubtractMedium
+//
+//==============================================================================
 procedure R_DrawColumnSubtractMedium;
+
+//==============================================================================
+//
+// R_DrawColumnSubtractHi
+//
+//==============================================================================
 procedure R_DrawColumnSubtractHi;
 
 implementation
@@ -47,6 +70,11 @@ uses
   r_trans8,
   r_main;
 
+//==============================================================================
+//
+// R_DrawColumnSubtractLowest
+//
+//==============================================================================
 procedure R_DrawColumnSubtractLowest;
 var
   count: integer;
@@ -100,6 +128,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnSubtractLow
+//
+//==============================================================================
 procedure R_DrawColumnSubtractLow;
 var
   count: integer;
@@ -147,6 +180,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnSubtractMedium
+//
+//==============================================================================
 procedure R_DrawColumnSubtractMedium;
 var
   count: integer;
@@ -177,17 +215,33 @@ begin
   // Inner loop that does the actual texture mapping,
   //  e.g. a DDA-lile scaling.
   // This is as fast as it gets.
+  while frac < fraclimit do
+  begin
+  // Re-map color indices from wall texture column
+  //  using a lighting/special effects LUT.
+    dest^ := cursubtract8table[dest^ + (dc_colormap[dc_source[(LongWord(frac) shr FRACBITS) and 127]] shl 8)];
+    inc(dest, swidth);
+    inc(frac, fracstep);
+
+    dest^ := cursubtract8table[dest^ + (dc_colormap[dc_source[(LongWord(frac) shr FRACBITS) and 127]] shl 8)];
+    inc(dest, swidth);
+    inc(frac, fracstep);
+  end;
   while frac <= fraclimit do
   begin
   // Re-map color indices from wall texture column
   //  using a lighting/special effects LUT.
     dest^ := cursubtract8table[dest^ + (dc_colormap[dc_source[(LongWord(frac) shr FRACBITS) and 127]] shl 8)];
-
     inc(dest, swidth);
     inc(frac, fracstep);
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawColumnSubtractHi
+//
+//==============================================================================
 procedure R_DrawColumnSubtractHi;
 var
   count: integer;

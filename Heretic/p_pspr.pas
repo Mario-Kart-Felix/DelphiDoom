@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHeretic: A modified and improved Heretic port for Windows
+//  DelphiHeretic is a source port of the game Heretic and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Heretic source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
 //  Action functions for weapons.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -56,117 +56,436 @@ const
   FF_FULLBRIGHT = $8000; // flag in thing.frame
   FF_FRAMEMASK = $7fff;
 
+//==============================================================================
+//
+// P_DropWeapon
+//
+//==============================================================================
 procedure P_DropWeapon(player: Pplayer_t);
 
+//==============================================================================
+//
+// A_WeaponReady
+//
+//==============================================================================
 procedure A_WeaponReady(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_ReFire
+//
+//==============================================================================
 procedure A_ReFire(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_CheckReload
+//
+//==============================================================================
 procedure A_CheckReload(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_BeakRaise
+//
+//==============================================================================
 procedure A_BeakRaise(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_BeakAttackPL1
+//
+//==============================================================================
 procedure A_BeakAttackPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_BeakAttackPL2
+//
+//==============================================================================
 procedure A_BeakAttackPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_StaffAttackPL1
+//
+//==============================================================================
 procedure A_StaffAttackPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_StaffAttackPL2
+//
+//==============================================================================
 procedure A_StaffAttackPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireBlasterPL1
+//
+//==============================================================================
 procedure A_FireBlasterPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireBlasterPL2
+//
+//==============================================================================
 procedure A_FireBlasterPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireGoldWandPL1
+//
+//==============================================================================
 procedure A_FireGoldWandPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireGoldWandPL2
+//
+//==============================================================================
 procedure A_FireGoldWandPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireMacePL1B
+//
+//==============================================================================
 procedure A_FireMacePL1B(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireMacePL1
+//
+//==============================================================================
 procedure A_FireMacePL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_MaceBallImpact
+//
+//==============================================================================
 procedure A_MaceBallImpact(ball: Pmobj_t);
 
+//==============================================================================
+//
+// A_MacePL1Check
+//
+//==============================================================================
 procedure A_MacePL1Check(ball: Pmobj_t);
 
+//==============================================================================
+//
+// A_MaceBallImpact2
+//
+//==============================================================================
 procedure A_MaceBallImpact2(ball: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireMacePL2
+//
+//==============================================================================
 procedure A_FireMacePL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_DeathBallImpact
+//
+//==============================================================================
 procedure A_DeathBallImpact(ball: Pmobj_t);
 
+//==============================================================================
+//
+// A_SpawnRippers
+//
+//==============================================================================
 procedure A_SpawnRippers(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireCrossbowPL1
+//
+//==============================================================================
 procedure A_FireCrossbowPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireCrossbowPL2
+//
+//==============================================================================
 procedure A_FireCrossbowPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_BoltSpark
+//
+//==============================================================================
 procedure A_BoltSpark(bolt: Pmobj_t);
 
+//==============================================================================
+//
+// A_FireSkullRodPL1
+//
+//==============================================================================
 procedure A_FireSkullRodPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireSkullRodPL2
+//
+//==============================================================================
 procedure A_FireSkullRodPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_SkullRodPL2Seek
+//
+//==============================================================================
 procedure A_SkullRodPL2Seek(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_AddPlayerRain
+//
+//==============================================================================
 procedure A_AddPlayerRain(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_SkullRodStorm
+//
+//==============================================================================
 procedure A_SkullRodStorm(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_RainImpact
+//
+//==============================================================================
 procedure A_RainImpact(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_HideInCeiling
+//
+//==============================================================================
 procedure A_HideInCeiling(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FirePhoenixPL1
+//
+//==============================================================================
 procedure A_FirePhoenixPL1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_PhoenixPuff
+//
+//==============================================================================
 procedure A_PhoenixPuff(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_InitPhoenixPL2
+//
+//==============================================================================
 procedure A_InitPhoenixPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FirePhoenixPL2
+//
+//==============================================================================
 procedure A_FirePhoenixPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_ShutdownPhoenixPL2
+//
+//==============================================================================
 procedure A_ShutdownPhoenixPL2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FlameEnd
+//
+//==============================================================================
 procedure A_FlameEnd(actor: Pmobj_t);
 
+//==============================================================================
+//
+// A_FloatPuff
+//
+//==============================================================================
 procedure A_FloatPuff(puff: Pmobj_t);
 
+//==============================================================================
+//
+// A_GauntletAttack
+//
+//==============================================================================
 procedure A_GauntletAttack(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_BeakReady
+//
+//==============================================================================
 procedure A_BeakReady(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Lower
+//
+//==============================================================================
 procedure A_Lower(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Raise
+//
+//==============================================================================
 procedure A_Raise(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Light0
+//
+//==============================================================================
 procedure A_Light0(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Light1
+//
+//==============================================================================
 procedure A_Light1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Light2
+//
+//==============================================================================
 procedure A_Light2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// P_SetupPsprites
+//
+//==============================================================================
 procedure P_SetupPsprites(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_MovePsprites
+//
+//==============================================================================
 procedure P_MovePsprites(player: Pplayer_t);
 
-procedure P_BulletSlope(mo: Pmobj_t);
-
+//==============================================================================
+//
+// P_UpdateBeak
+//
+//==============================================================================
 procedure P_UpdateBeak(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// P_SetPsprite
+//
+//==============================================================================
 procedure P_SetPsprite(player: Pplayer_t; position: integer; stnum: statenum_t);
 
+//==============================================================================
+//
+// P_PostChickenWeapon
+//
+//==============================================================================
 procedure P_PostChickenWeapon(player: Pplayer_t; weapon: weapontype_t);
 
+//==============================================================================
+//
+// P_OpenWeapons
+//
+//==============================================================================
 procedure P_OpenWeapons;
 
+//==============================================================================
+//
+// P_CloseWeapons
+//
+//==============================================================================
 procedure P_CloseWeapons;
 
+//==============================================================================
+//
+// P_RepositionMace
+//
+//==============================================================================
 procedure P_RepositionMace(mo: Pmobj_t);
 
+//==============================================================================
+//
+// P_AddMaceSpot
+//
+//==============================================================================
 procedure P_AddMaceSpot(mthing: Pmapthing_t);
 
+//==============================================================================
+//
+// P_ActivateBeak
+//
+//==============================================================================
 procedure P_ActivateBeak(player: Pplayer_t);
+
+//==============================================================================
+//
+// P_CheckAmmo
+//
+//==============================================================================
+function P_CheckAmmo(player: Pplayer_t): boolean;
+
+const
+  USE_GWND_AMMO_1 = 1;
+  USE_GWND_AMMO_2 = 1;
+  USE_CBOW_AMMO_1 = 1;
+  USE_CBOW_AMMO_2 = 1;
+  USE_BLSR_AMMO_1 = 1;
+  USE_BLSR_AMMO_2 = 5;
+  USE_SKRD_AMMO_1 = 1;
+  USE_SKRD_AMMO_2 = 5;
+  USE_PHRD_AMMO_1 = 1;
+  USE_PHRD_AMMO_2 = 1;
+  USE_MACE_AMMO_1 = 1;
+  USE_MACE_AMMO_2 = 5;
+
+var
+  WeaponAmmoUsePL1: array[0..Ord(NUMWEAPONS) - 1] of integer = (
+    0,          // staff
+    USE_GWND_AMMO_1,  // gold wand
+    USE_CBOW_AMMO_1,  // crossbow
+    USE_BLSR_AMMO_1,  // blaster
+    USE_SKRD_AMMO_1,  // skull rod
+    USE_PHRD_AMMO_1,  // phoenix rod
+    USE_MACE_AMMO_1,  // mace
+    0,          // gauntlets
+    0          // beak
+  );
+
+  WeaponAmmoUsePL2: array[0..Ord(NUMWEAPONS) - 1] of integer = (
+    0,          // staff
+    USE_GWND_AMMO_2,  // gold wand
+    USE_CBOW_AMMO_2,  // crossbow
+    USE_BLSR_AMMO_2,  // blaster
+    USE_SKRD_AMMO_2,  // skull rod
+    USE_PHRD_AMMO_2,  // phoenix rod
+    USE_MACE_AMMO_2,  // mace
+    0,          // gauntlets
+    0          // beak
+  );
 
 implementation
 
@@ -187,7 +506,6 @@ uses
   m_rnd,
   p_common,
   p_local,
-  p_plats,
   p_tick,
   p_mobj,
   p_enemy,
@@ -195,13 +513,10 @@ uses
   p_inter,
   p_maputl,
   r_main,
-  r_draw,
   r_defs,
   s_sound,
-// State.
-  doomstat,
 // Data.
-  sounds;
+  sounddata;
 
 //
 // Adjust weapon bottom and top
@@ -233,31 +548,6 @@ type
 var
   MaceSpots: array[0..MAX_MACE_SPOTS - 1] of macespot_t;
 
-const
-  WeaponAmmoUsePL1: array[0..Ord(NUMWEAPONS) - 1] of integer = (
-    0,          // staff
-    USE_GWND_AMMO_1,  // gold wand
-    USE_CBOW_AMMO_1,  // crossbow
-    USE_BLSR_AMMO_1,  // blaster
-    USE_SKRD_AMMO_1,  // skull rod
-    USE_PHRD_AMMO_1,  // phoenix rod
-    USE_MACE_AMMO_1,  // mace
-    0,          // gauntlets
-    0          // beak
-  );
-
-  WeaponAmmoUsePL2: array[0..Ord(NUMWEAPONS) - 1] of integer = (
-    0,          // staff
-    USE_GWND_AMMO_2,  // gold wand
-    USE_CBOW_AMMO_2,  // crossbow
-    USE_BLSR_AMMO_2,  // blaster
-    USE_SKRD_AMMO_2,  // skull rod
-    USE_PHRD_AMMO_2,  // phoenix rod
-    USE_MACE_AMMO_2,  // mace
-    0,          // gauntlets
-    0          // beak
-  );
-
 //---------------------------------------------------------------------------
 //
 // PROC P_OpenWeapons
@@ -265,7 +555,8 @@ const
 // Called at level load before things are loaded.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_OpenWeapons;
 begin
   MaceSpotCount := 0;
@@ -276,7 +567,8 @@ end;
 // PROC P_AddMaceSpot
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_AddMaceSpot(mthing: Pmapthing_t);
 begin
   if MaceSpotCount = MAX_MACE_SPOTS then
@@ -294,7 +586,8 @@ end;
 // Chooses the next spot to place the mace.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_RepositionMace(mo: Pmobj_t);
 var
   spot: integer;
@@ -318,7 +611,8 @@ end;
 // Called at level load after things are loaded.
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_CloseWeapons;
 var
   spot: integer;
@@ -335,16 +629,24 @@ begin
   P_SpawnMobj(MaceSpots[spot].x, MaceSpots[spot].y, ONFLOORZ, Ord(MT_WMACE));
 end;
 
-
-
 //
 // P_SetPsprite
 //
+const
+  PSPR_CYCLE_LIMIT = 1000000;
+
+//==============================================================================
+//
+// P_SetPsprite
+//
+//==============================================================================
 procedure P_SetPsprite(player: Pplayer_t; position: integer; stnum: statenum_t);
 var
   psp: Ppspdef_t;
   state: Pstate_t;
+  cycle_counter: integer;
 begin
+  cycle_counter := 0;
   psp := @player.psprites[position];
   repeat
     if Ord(stnum) = 0 then
@@ -369,6 +671,8 @@ begin
     // Modified handling.
     if Assigned(state.action.acp2) then
     begin
+      if state.params <> nil then
+        state.params.actor := player.mo;
       state.action.acp2(player, psp);
       if psp.state = nil then
         break;
@@ -376,16 +680,22 @@ begin
 
     stnum := psp.state.nextstate;
 
+    inc(cycle_counter);
+    if cycle_counter > PSPR_CYCLE_LIMIT then
+      I_Error('P_SetPsprite(): Infinite state cycle detected in player sprites (readyweapon=%d, pendinfweapon=%d)!',
+        [Ord(player.readyweapon), Ord(player.pendingweapon)]);
   until psp.tics <> 0;
   // an initial state of 0 could cycle through
 end;
 
+//==============================================================================
 //
 // P_BringUpWeapon
 // Starts bringing the pending weapon up
 // from the bottom of the screen.
 // Uses player
 //
+//==============================================================================
 procedure P_BringUpWeapon(player: Pplayer_t);
 var
   newstate: statenum_t;
@@ -407,11 +717,13 @@ begin
   P_SetPsprite(player, Ord(ps_weapon), newstate);
 end;
 
+//==============================================================================
 //
 // P_CheckAmmo
 // Returns true if there is enough ammo to shoot.
 // If not, selects the next weapon to use.
 //
+//==============================================================================
 function P_CheckAmmo(player: Pplayer_t): boolean;
 var
   ammo: ammotype_t;
@@ -481,9 +793,11 @@ begin
   result := false;
 end;
 
+//==============================================================================
 //
 // P_FireWeapon.
 //
+//==============================================================================
 procedure P_FireWeapon(player: Pplayer_t);
 var
   newstate: statenum_t;
@@ -508,10 +822,12 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_DropWeapon
 // Player died, so put the weapon away.
 //
+//==============================================================================
 procedure P_DropWeapon(player: Pplayer_t);
 begin
   if player.powers[Ord(pw_weaponlevel2)] <> 0 then
@@ -520,6 +836,7 @@ begin
     P_SetPsprite(player, Ord(ps_weapon), statenum_t(wpnlev1info[Ord(player.readyweapon)].downstate));
 end;
 
+//==============================================================================
 //
 // A_WeaponReady
 // The player can fire the weapon
@@ -527,6 +844,7 @@ end;
 // Follows after getting weapon up,
 // or after previous attack/fire sequence.
 //
+//==============================================================================
 procedure A_WeaponReady(player: Pplayer_t; psp: Ppspdef_t);
 var
   newstate: statenum_t;
@@ -579,11 +897,13 @@ begin
   psp.sy := WEAPONTOP + FixedMul(player.bob, finesine[angle]);
 end;
 
+//==============================================================================
 //
 // A_ReFire
 // The player can re-fire the weapon
 // without lowering it entirely.
 //
+//==============================================================================
 procedure A_ReFire(player: Pplayer_t; psp: Ppspdef_t);
 begin
   // check for fire
@@ -602,6 +922,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_CheckReload
+//
+//==============================================================================
 procedure A_CheckReload(player: Pplayer_t; psp: Ppspdef_t);
 begin
   P_CheckAmmo(player);
@@ -613,11 +938,13 @@ begin
 }
 end;
 
+//==============================================================================
 //
 // A_Lower
 // Lowers current weapon,
 //  and changes weapon at bottom.
 //
+//==============================================================================
 procedure A_Lower(player: Pplayer_t; psp: Ppspdef_t);
 begin
   if player.chickenTics <> 0 then
@@ -656,16 +983,19 @@ end;
 // PROC A_BeakRaise
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BeakRaise(player: Pplayer_t; psp: Ppspdef_t);
 begin
   psp.sy := WEAPONTOP;
   P_SetPsprite(player, Ord(ps_weapon), statenum_t(wpnlev1info[Ord(player.readyweapon)].readystate));
 end;
 
+//==============================================================================
 //
 // A_Raise
 //
+//==============================================================================
 procedure A_Raise(player: Pplayer_t; psp: Ppspdef_t);
 var
   newstate: statenum_t;
@@ -687,42 +1017,6 @@ begin
   P_SetPsprite(player, Ord(ps_weapon), newstate);
 end;
 
-//
-// WEAPON ATTACKS
-//
-
-
-//
-// P_BulletSlope
-// Sets a slope so a near miss is at aproximately
-// the height of the intended target
-//
-var
-  bulletslope: fixed_t;
-
-
-procedure P_BulletSlope(mo: Pmobj_t);
-var
-  an: angle_t;
-begin
-  // see which target is to be aimed at
-  an := mo.angle;
-  bulletslope := P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT);
-
-  if linetarget = nil then
-  begin
-    an := an + $4000000;
-    bulletslope := P_AimLineAttack (mo, an, 16 * 64 * FRACUNIT);
-    if linetarget = nil then
-    begin
-      an := an - $8000000;
-      bulletslope := P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT);
-      if zaxisshift and (linetarget = nil) then
-        bulletslope := (Pplayer_t(mo.player).lookdir * FRACUNIT) div 173;
-    end;
-  end;
-end;
-
 //****************************************************************************
 //
 // WEAPON ATTACKS
@@ -734,18 +1028,21 @@ end;
 // PROC A_BeakAttackPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BeakAttackPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
   damage: integer;
   slope: integer;
+  mrange: integer;
 begin
   damage := 1 + (P_Random and 3);
   angle := player.mo.angle;
-  slope := P_AimLineAttack(player.mo, angle, MELEERANGE);
+  mrange := P_GetPlayerMeleeRange(player);
+  slope := P_AimLineAttack(player.mo, angle, mrange);
   PuffType := MT_BEAKPUFF;
-  P_LineAttack(player.mo, angle, MELEERANGE, slope, damage);
+  P_LineAttack(player.mo, angle, mrange, slope, damage);
   if linetarget <> nil then
   begin
     player.mo.angle := R_PointToAngle2(player.mo.x, player.mo.y, linetarget.x, linetarget.y);
@@ -760,18 +1057,21 @@ end;
 // PROC A_BeakAttackPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BeakAttackPL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
   damage: integer;
   slope: integer;
+  mrange: integer;
 begin
   damage := HITDICE(4);
   angle := player.mo.angle;
-  slope := P_AimLineAttack(player.mo, angle, MELEERANGE);
+  mrange := P_GetPlayerMeleeRange(player);
+  slope := P_AimLineAttack(player.mo, angle, mrange);
   PuffType := MT_BEAKPUFF;
-  P_LineAttack(player.mo, angle, MELEERANGE, slope, damage);
+  P_LineAttack(player.mo, angle, mrange, slope, damage);
   if linetarget <> nil then
     player.mo.angle := R_PointToAngle2(player.mo.x,  player.mo.y, linetarget.x, linetarget.y);
   S_StartSound(player.mo, Ord(sfx_chicpk1) + (P_Random mod 3));
@@ -784,19 +1084,22 @@ end;
 // PROC A_StaffAttackPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_StaffAttackPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
   damage: integer;
   slope: integer;
+  mrange: integer;
 begin
   damage := 5 + (P_Random and 15);
   angle := player.mo.angle;
   angle := angle + LongWord((P_Random - P_Random) * $40000);
-  slope := P_AimLineAttack(player.mo, angle, MELEERANGE);
+  mrange := P_GetPlayerMeleeRange(player);
+  slope := P_AimLineAttack(player.mo, angle, mrange);
   PuffType := MT_STAFFPUFF;
-  P_LineAttack(player.mo, angle, MELEERANGE, slope, damage);
+  P_LineAttack(player.mo, angle, mrange, slope, damage);
   if linetarget <> nil then
   begin
     //S_StartSound(player.mo, sfx_stfhit);
@@ -810,20 +1113,23 @@ end;
 // PROC A_StaffAttackPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_StaffAttackPL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
   damage: integer;
   slope: integer;
+  mrange: integer;
 begin
   // P_inter.c:P_DamageMobj handles target momentums
   damage := 18 + (P_Random and 63);
   angle := player.mo.angle;
   angle := angle + LongWord((P_Random - P_Random) * $40000);
-  slope := P_AimLineAttack(player.mo, angle, MELEERANGE);
+  mrange := P_GetPlayerMeleeRange(player);
+  slope := P_AimLineAttack(player.mo, angle, mrange);
   PuffType := MT_STAFFPUFF2;
-  P_LineAttack(player.mo, angle, MELEERANGE, slope, damage);
+  P_LineAttack(player.mo, angle, mrange, slope, damage);
   if linetarget <> nil then
   begin
     //S_StartSound(player.mo, sfx_stfpow);
@@ -837,7 +1143,8 @@ end;
 // PROC A_FireBlasterPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireBlasterPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -863,7 +1170,8 @@ end;
 // PROC A_FireBlasterPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireBlasterPL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -886,7 +1194,8 @@ end;
 // PROC A_FireGoldWandPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireGoldWandPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -910,7 +1219,8 @@ end;
 // PROC A_FireGoldWandPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireGoldWandPL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   i: integer;
@@ -944,7 +1254,8 @@ end;
 // PROC A_FireMacePL1B
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireMacePL1B(player: Pplayer_t; psp: Ppspdef_t);
 var
   pmo: Pmobj_t;
@@ -979,7 +1290,8 @@ end;
 // PROC A_FireMacePL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireMacePL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   ball: Pmobj_t;
@@ -1006,7 +1318,8 @@ end;
 // PROC A_MacePL1Check
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MacePL1Check(ball: Pmobj_t);
 var
   angle: angle_t;
@@ -1031,7 +1344,8 @@ end;
 // PROC A_MaceBallImpact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MaceBallImpact(ball: Pmobj_t);
 begin
   if (ball.z <= ball.floorz) and (P_HitFloor(ball) <> FLOOR_SOLID) then
@@ -1061,7 +1375,8 @@ end;
 // PROC A_MaceBallImpact2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_MaceBallImpact2(ball: Pmobj_t);
 var
   tiny: Pmobj_t;
@@ -1113,7 +1428,8 @@ end;
 // PROC A_FireMacePL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireMacePL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -1140,7 +1456,8 @@ end;
 // PROC A_DeathBallImpact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_DeathBallImpact(ball: Pmobj_t);
 var
   i: integer;
@@ -1209,7 +1526,8 @@ end;
 // PROC A_SpawnRippers
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SpawnRippers(actor: Pmobj_t);
 var
   i: integer;
@@ -1234,7 +1552,8 @@ end;
 // PROC A_FireCrossbowPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireCrossbowPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   pmo: Pmobj_t;
@@ -1251,7 +1570,8 @@ end;
 // PROC A_FireCrossbowPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireCrossbowPL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   pmo: Pmobj_t;
@@ -1274,7 +1594,8 @@ end;
 // PROC A_BoltSpark
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BoltSpark(bolt: Pmobj_t);
 var
   spark: Pmobj_t;
@@ -1292,7 +1613,8 @@ end;
 // PROC A_FireSkullRodPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireSkullRodPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -1316,7 +1638,8 @@ end;
 // for the sound looping.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FireSkullRodPL2(player: Pplayer_t; psp: Ppspdef_t);
 begin
   if deathmatch <> 0 then
@@ -1346,7 +1669,8 @@ end;
 // PROC A_SkullRodPL2Seek
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SkullRodPL2Seek(actor: Pmobj_t);
 begin
   P_SeekerMissile(actor, ANG1 * 10, ANG1 * 30);
@@ -1357,7 +1681,8 @@ end;
 // PROC A_AddPlayerRain
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_AddPlayerRain(actor: Pmobj_t);
 var
   playerNum: integer;
@@ -1402,7 +1727,8 @@ end;
 // PROC A_SkullRodStorm
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_SkullRodStorm(actor: Pmobj_t);
 var
   x: fixed_t;
@@ -1455,7 +1781,8 @@ end;
 // PROC A_RainImpact
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_RainImpact(actor: Pmobj_t);
 begin
   if actor.z > actor.floorz then
@@ -1469,7 +1796,8 @@ end;
 // PROC A_HideInCeiling
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_HideInCeiling(actor: Pmobj_t);
 begin
   actor.z := actor.ceilingz + 4 * FRACUNIT;
@@ -1480,7 +1808,8 @@ end;
 // PROC A_FirePhoenixPL1
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FirePhoenixPL1(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
@@ -1499,7 +1828,8 @@ end;
 // PROC A_PhoenixPuff
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_PhoenixPuff(actor: Pmobj_t);
 var
   puff: Pmobj_t;
@@ -1525,7 +1855,8 @@ end;
 // PROC A_InitPhoenixPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_InitPhoenixPL2(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.flamecount := FLAME_THROWER_TICS;
@@ -1538,7 +1869,8 @@ end;
 // Flame thrower effect.
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FirePhoenixPL2(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -1581,7 +1913,8 @@ end;
 // PROC A_ShutdownPhoenixPL2
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_ShutdownPhoenixPL2(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.ammo[Ord(am_phoenixrod)] := player.ammo[Ord(am_phoenixrod)] - USE_PHRD_AMMO_2;
@@ -1592,7 +1925,8 @@ end;
 // PROC A_FlameEnd
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FlameEnd(actor: Pmobj_t);
 begin
   actor.momz := actor.momz + $18000;
@@ -1603,7 +1937,8 @@ end;
 // PROC A_FloatPuff
 //
 //----------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_FloatPuff(puff: Pmobj_t);
 begin
   puff.momz := puff.momz + 117964;
@@ -1614,7 +1949,8 @@ end;
 // PROC A_GauntletAttack
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_GauntletAttack(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
@@ -1629,14 +1965,14 @@ begin
   if player.powers[Ord(pw_weaponlevel2)] <> 0 then
   begin
     damage := HITDICE(2);
-    dist := 4 * MELEERANGE;
+    dist := 4 * P_GetPlayerMeleeRange(player);
     angle := angle + LongWord((P_Random - P_Random) * $20000);
     PuffType := MT_GAUNTLETPUFF2;
   end
   else
   begin
     damage := HITDICE(2);
-    dist := MELEERANGE + 1;
+    dist := P_GetPlayerMeleeRange(player) + 1;
     angle := angle + LongWord((P_Random - P_Random) * $40000);
     PuffType := MT_GAUNTLETPUFF1;
   end;
@@ -1689,28 +2025,43 @@ begin
   player.mo.flags := player.mo.flags or MF_JUSTATTACKED;
 end;
 
+//==============================================================================
+// A_Light0
 //
 // ?
 //
+//==============================================================================
 procedure A_Light0(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := 0;
 end;
 
+//==============================================================================
+//
+// A_Light1
+//
+//==============================================================================
 procedure A_Light1(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := 1;
 end;
 
+//==============================================================================
+//
+// A_Light2
+//
+//==============================================================================
 procedure A_Light2(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := 2;
 end;
 
+//==============================================================================
 //
 // P_SetupPsprites
 // Called at start of level for each player.
 //
+//==============================================================================
 procedure P_SetupPsprites(player: Pplayer_t);
 var
   i: integer;
@@ -1724,10 +2075,12 @@ begin
   P_BringUpWeapon(player);
 end;
 
+//==============================================================================
 //
 // P_MovePsprites
 // Called every tic by player thinking routine.
 //
+//==============================================================================
 procedure P_MovePsprites(player: Pplayer_t);
 var
   i: integer;
@@ -1756,6 +2109,11 @@ begin
   player.psprites[Ord(ps_flash)].sy := player.psprites[Ord(ps_weapon)].sy;
 end;
 
+//==============================================================================
+//
+// P_UpdateBeak
+//
+//==============================================================================
 procedure P_UpdateBeak(player: Pplayer_t; psp: Ppspdef_t);
 begin
   psp.sy := WEAPONTOP + _SHL(player.chickenPeck, FRACBITS - 1);
@@ -1766,7 +2124,8 @@ end;
 // PROC A_BeakReady
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure A_BeakReady(player: Pplayer_t; psp: Ppspdef_t);
 begin
   if player.cmd.buttons and BT_ATTACK <> 0 then
@@ -1793,7 +2152,8 @@ end;
 // PROC P_ActivateBeak
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_ActivateBeak(player: Pplayer_t);
 begin
   player.pendingweapon := wp_nochange;
@@ -1807,7 +2167,8 @@ end;
 // PROC P_PostChickenWeapon
 //
 //---------------------------------------------------------------------------
-
+//
+//==============================================================================
 procedure P_PostChickenWeapon(player: Pplayer_t; weapon: weapontype_t);
 begin
   if weapon = wp_beak then // Should never happen

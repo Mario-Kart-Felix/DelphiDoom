@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //   Save/Load screen preview
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -55,10 +55,25 @@ var
   mn_screenshotbuffer: menuscreenbuffer_t;
   mn_makescreenshot: boolean = false;
 
+//==============================================================================
+//
+// MN_ScreenShotFromBlitBuffer
+//
+//==============================================================================
 procedure MN_ScreenShotFromBlitBuffer;
 
+//==============================================================================
+//
+// MN_ScreenShotFromSaveGame
+//
+//==============================================================================
 procedure MN_ScreenShotFromSaveGame(const path: string; const outbuff: Pmenuscreenbuffer_t);
 
+//==============================================================================
+//
+// MN_ValidScreenShot
+//
+//==============================================================================
 function MN_ValidScreenShot(const mnbuf: Pmenuscreenbuffer_t): boolean;
 
 implementation
@@ -74,6 +89,11 @@ uses
   r_draw,
   v_video;
 
+//==============================================================================
+//
+// MN_ScreenShotFromBlitBuffer
+//
+//==============================================================================
 procedure MN_ScreenShotFromBlitBuffer;
 var
   i, x, y: integer;
@@ -113,6 +133,11 @@ begin
   mn_makescreenshot := false;
 end;
 
+//==============================================================================
+//
+// MN_ScreenShotFromSaveGame
+//
+//==============================================================================
 procedure MN_ScreenShotFromSaveGame(const path: string; const outbuff: Pmenuscreenbuffer_t);
 var
   f: TFile;
@@ -135,6 +160,11 @@ begin
   f.Free;
 end;
 
+//==============================================================================
+//
+// MN_ValidScreenShot
+//
+//==============================================================================
 function MN_ValidScreenShot(const mnbuf: Pmenuscreenbuffer_t): boolean;
 var
   i: integer;

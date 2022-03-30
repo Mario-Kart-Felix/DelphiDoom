@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  some internal structures shared by many modules are here
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -64,7 +64,7 @@ type
     ML_SECTORS,   // Sectors, from editing
     ML_REJECT,    // LUT, sector-sector visibility
     ML_BLOCKMAP,  // LUT, motion clipping, walls/grid element
-    ML_CODE       // JVAL: script goes here
+    ML_BEHAVIOR   // ACS Object Code
   );
 
   mapvertex_t = record
@@ -153,8 +153,12 @@ const
 //JVAL: Script Events
 //line triggers
   ML_TRIGGERSCRIPTS = 1024;
-//
+// Do not clip
   ML_NOCLIP = 2048;
+// Block monsters without the INFLOAT flag
+  ML_BLOCKLANDMONSTERS = 4096;
+// Block players
+  ML_BLOCKPLAYERS = 8192;
 
 type
 // Sector definition, from editing.

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,13 +39,34 @@ uses
   d_delphi,
   m_fixed;
 
+//==============================================================================
+//
+// R_InitPrecalc
+//
+//==============================================================================
 procedure R_InitPrecalc;
 
+//==============================================================================
+//
+// R_ShutDownPrecalc
+//
+//==============================================================================
 procedure R_ShutDownPrecalc;
 
+//==============================================================================
+//
+// R_GetPrecalc32Tables
+//
+//==============================================================================
 procedure R_GetPrecalc32Tables(const f: fixed_t; var tr, tg, tb: PIntegerArray; const fog: boolean);  // JVAL: Mars fog sectors
 
 {$IFDEF HEXEN}
+
+//==============================================================================
+//
+// R_GetFogPrecalc32Tables
+//
+//==============================================================================
 procedure R_GetFogPrecalc32Tables(const f: fixed_t; var tr, tg, tb: PIntegerArray);
 {$ENDIF}
 
@@ -58,6 +79,11 @@ var
   precalc_fog_r: array[0..255] of PIntegerArray;
   precalc_fog_g: array[0..255] of PIntegerArray;
   precalc_fog_b: array[0..255] of PIntegerArray;
+  average_byte: array[0..511] of Byte;
+  average_r: array[0..511] of LongWord;
+  average_g: array[0..511] of LongWord;
+  average_b: array[0..511] of LongWord;
+  add32_c: array[0..511] of Byte;
 
 implementation
 
@@ -66,6 +92,11 @@ var
   precalc32_g: array[0..255] of PIntegerArray;
   precalc32_b: array[0..255] of PIntegerArray;
 
+//==============================================================================
+//
+// R_InitPrecalc
+//
+//==============================================================================
 procedure R_InitPrecalc;
 var
   i, j: integer;
@@ -129,8 +160,25 @@ begin
     precal32_ic[i] := l + l shl 8 + l shl 16;
   end;
 
+  for i := 0 to 511 do
+  begin
+    average_byte[i] := i div 2;
+    average_r[i] := i div 2;
+    average_g[i] := (i div 2) shl 8;
+    average_b[i] := (i div 2) shl 16;
+    if i > 255 then
+      add32_c[i] := 255
+    else
+      add32_c[i] := i;
+  end;
+
 end;
 
+//==============================================================================
+//
+// R_ShutDownPrecalc
+//
+//==============================================================================
 procedure R_ShutDownPrecalc;
 var
   i: integer;
@@ -146,6 +194,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_GetPrecalc32Tables
+//
+//==============================================================================
 procedure R_GetPrecalc32Tables(const f: fixed_t; var tr, tg, tb: PIntegerArray; const fog: boolean);  // JVAL: Mars fog sectors
 var
   lf: Integer;
@@ -168,6 +221,12 @@ begin
 end;
 
 {$IFDEF HEXEN}
+
+//==============================================================================
+//
+// R_GetFogPrecalc32Tables
+//
+//==============================================================================
 procedure R_GetFogPrecalc32Tables(const f: fixed_t; var tr, tg, tb: PIntegerArray);
 var
   lf: Integer;

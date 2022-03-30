@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Enum display modes
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -32,7 +32,6 @@
 unit i_displaymodes;
 
 interface
-
 
 type
   displaymode_t = record
@@ -46,16 +45,42 @@ var
   displaymodes: Pdisplaymode_tArray = nil;
   numdisplaymodes: integer = 0;
 
+//==============================================================================
+//
+// I_DisplayModeIndex
+//
+//==============================================================================
 function I_DisplayModeIndex(const w, h: integer): integer;
 
+//==============================================================================
+//
+// I_NearestDisplayModeIndex
+//
+//==============================================================================
 function I_NearestDisplayModeIndex(const w, h: integer): integer;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// I_FindWindowSize
+//
+//==============================================================================
 procedure I_FindWindowSize(const mode: integer);
 {$ENDIF}
 
+//==============================================================================
+//
+// I_EnumDisplayModes
+//
+//==============================================================================
 procedure I_EnumDisplayModes;
 
+//==============================================================================
+//
+// I_ClearDisplayModes
+//
+//==============================================================================
 procedure I_ClearDisplayModes;
 
 // JVAL: Not the right place to put fullscreen modes
@@ -79,6 +104,11 @@ uses
   {$ENDIF}
   i_system;
 
+//==============================================================================
+//
+// SortDisplayModes
+//
+//==============================================================================
 procedure SortDisplayModes;
 
   function sortvalue(const idx: integer): double;
@@ -121,7 +151,11 @@ begin
     qsort(0, numdisplaymodes - 1);
 end;
 
-
+//==============================================================================
+//
+// I_DisplayModeIndex
+//
+//==============================================================================
 function I_DisplayModeIndex(const w, h: integer): integer;
 var
   i: integer;
@@ -139,6 +173,11 @@ begin
     end;
 end;
 
+//==============================================================================
+//
+// I_NearestDisplayModeIndex
+//
+//==============================================================================
 function I_NearestDisplayModeIndex(const w, h: integer): integer;
 var
   i: integer;
@@ -165,11 +204,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// IsAvailableScreenResolution
+//
+//==============================================================================
 function IsAvailableScreenResolution(const w, h: integer): boolean;
 begin
   result := I_DisplayModeIndex(w, h) >= 0;
 end;
 
+//==============================================================================
+//
+// I_EnumDisplayModes
+//
+//==============================================================================
 procedure I_EnumDisplayModes;
 var
   dm: TDevMode;
@@ -225,6 +274,12 @@ begin
 end;
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// I_FindWindowSize
+//
+//==============================================================================
 procedure I_FindWindowSize(const mode: integer);
 var
   i: integer;
@@ -276,6 +331,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// I_ClearDisplayModes
+//
+//==============================================================================
 procedure I_ClearDisplayModes;
 begin
   realloc(pointer(displaymodes), numdisplaymodes * SizeOf(displaymode_t), 0);

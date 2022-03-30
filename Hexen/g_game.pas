@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,47 +39,104 @@ uses
   d_player,
   d_ticcmd;
 
-//-----------------------------------------------------------------------------
-//
-// DESCRIPTION:
-//   Duh.
-//
-//-----------------------------------------------------------------------------
-
+//==============================================================================
+// G_DeathMatchSpawnPlayer
 //
 // GAME
 //
-
+//==============================================================================
 procedure G_DeathMatchSpawnPlayer(playernum: integer);
 
+//==============================================================================
+//
+// G_InitNew
+//
+//==============================================================================
 procedure G_InitNew(skill: skill_t; episode: integer; map: integer);
 
+//==============================================================================
+// G_DeferedInitNew
+//
 // Can be called by the startup code or M_Responder.
 // A normal game starts at map 1,
 // but a warp test can start elsewhere
-procedure G_DeferedInitNew(skill:skill_t; map: integer);
+//
+//==============================================================================
+procedure G_DeferedInitNew(skill: skill_t; map: integer);
 
-procedure G_DeferedInitNewUntranslated(skill:skill_t; map: integer);
+//==============================================================================
+//
+// G_DeferedInitNewUntranslated
+//
+//==============================================================================
+procedure G_DeferedInitNewUntranslated(skill: skill_t; map: integer);
 
+//==============================================================================
+//
+// G_CmdNewGame
+//
+//==============================================================================
 procedure G_CmdNewGame(const parm1, parm2: string);
 
 { Can be called by the startup code or M_Responder, }
 { calls P_SetupLevel or W_EnterWorld. }
+
+//==============================================================================
+//
+// G_LoadGame
+//
+//==============================================================================
 procedure G_LoadGame(slot: integer);
 
+//==============================================================================
+//
+// G_DoLoadGame
+//
+//==============================================================================
 procedure G_DoLoadGame;
 
 { Called by M_Responder. }
+
+//==============================================================================
+//
+// G_SaveGame
+//
+//==============================================================================
 procedure G_SaveGame(slot: integer; description: string);
 
+//==============================================================================
+//
+// G_CmdSaveGame
+//
+//==============================================================================
 procedure G_CmdSaveGame(const sname: string; const description: string);
 
+//==============================================================================
+//
+// G_WorldDone
+//
+//==============================================================================
 procedure G_WorldDone;
 
+//==============================================================================
+//
+// G_Ticker
+//
+//==============================================================================
 procedure G_Ticker;
 
+//==============================================================================
+//
+// G_Responder
+//
+//==============================================================================
 function G_Responder(ev: Pevent_t): boolean;
 
+//==============================================================================
+//
+// G_ScreenShot
+//
+//==============================================================================
 procedure G_ScreenShot;
 
 var
@@ -186,12 +243,32 @@ var
 
   usergame: boolean; // ok to save / end game
 
+//==============================================================================
+//
+// G_SetKeyboardMode
+//
+//==============================================================================
 procedure G_SetKeyboardMode(const mode: integer);
 
+//==============================================================================
+//
+// G_PlayerReborn
+//
+//==============================================================================
 procedure G_PlayerReborn(player: integer);
 
+//==============================================================================
+//
+// G_BuildTiccmd
+//
+//==============================================================================
 procedure G_BuildTiccmd(cmd: Pticcmd_t);
 
+//==============================================================================
+//
+// G_Completed
+//
+//==============================================================================
 procedure G_Completed(map, position: integer);
 
 var
@@ -214,8 +291,18 @@ var
 
   angleturn: array[0..2] of integer = (640, 1280, 320);
 
+//==============================================================================
+//
+// G_NeedsCompatibilityMode
+//
+//==============================================================================
 function G_NeedsCompatibilityMode: boolean;
 
+//==============================================================================
+//
+// G_PlayingEngineVersion
+//
+//==============================================================================
 function G_PlayingEngineVersion: byte;
 
 var
@@ -267,7 +354,6 @@ implementation
 uses
   c_cmds,
   z_zone,
-  doomstat,
   doomdata,
   am_map,
   d_net,
@@ -277,13 +363,12 @@ uses
   info_h,
   info,
   i_system,
-  i_io,
-  m_argv,
   m_misc,
   m_menu,
   m_rnd,
   g_demo,
   a_action,
+  p_mapinfo,
   p_setup,
   p_tick,
   p_local,
@@ -302,7 +387,7 @@ uses
   s_sound,
 // Data.
   xn_strings,
-  sounds,
+  sounddata,
 // SKY handling - still the wrong place.
   r_data,
   r_sky,
@@ -312,18 +397,21 @@ uses
   r_intrpl,
   s_sndseq,
   sv_save,
+  udmf_telept,
   tables;
 
-
-//==========================================================================
 //
 // G_StartNewInit
 //
-//==========================================================================
 
 var
   RebornPosition: integer;
 
+//==============================================================================
+//
+// G_StartNewInit
+//
+//==============================================================================
 procedure G_StartNewInit;
 begin
   SV_InitBaseSlot;
@@ -333,15 +421,17 @@ begin
   RebornPosition := 0;
 end;
 
-
-//==========================================================================
 //
 // G_StartNewGame
 //
-//==========================================================================
 var
   TempSkill: skill_t;
 
+//==============================================================================
+//
+// G_StartNewGame
+//
+//==============================================================================
 procedure G_StartNewGame(skill: skill_t);
 var
   realMap: integer;
@@ -353,13 +443,11 @@ begin
   G_InitNew(TempSkill, 1, realMap);
 end;
 
-
-//==========================================================================
+//==============================================================================
 //
 // G_DoNewGame
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_DoNewGame;
 begin
   G_FinishedDemoPlayback; // JVAL: remove???
@@ -371,6 +459,11 @@ var
   TempEpisode: integer;
   TempMap: integer;
 
+//==============================================================================
+//
+// G_DoInitNew
+//
+//==============================================================================
 procedure G_DoInitNew;
 begin
   SV_InitBaseSlot;
@@ -378,7 +471,6 @@ begin
   G_InitNew(TempSkill, TempEpisode, TempMap);
   gameaction := ga_nothing;
 end;
-
 
 var
   sendsave: boolean;         // send a save event next tic
@@ -388,6 +480,11 @@ var
 
   consistancy: array[0..MAXPLAYERS - 1] of array[0..BACKUPTICS - 1] of smallint;
 
+//==============================================================================
+//
+// MAXPLMOVE
+//
+//==============================================================================
 function MAXPLMOVE(pclass: integer): fixed_t;
 begin
   result := forwardmove[pclass, 1];
@@ -426,13 +523,17 @@ var
 var
   usearti: boolean = true;
 
-
 const
   BODYQUESIZE  = 32;
 
 var
   bodyque: array[0..BODYQUESIZE - 1] of Pmobj_t;
 
+//==============================================================================
+//
+// G_CmdChecksum
+//
+//==============================================================================
 function G_CmdChecksum(cmd: Pticcmd_t): integer;
 var
   i: integer;
@@ -442,12 +543,14 @@ begin
     result := result + PIntegerArray(cmd)[i];
 end;
 
+//==============================================================================
 //
 // G_BuildTiccmd
 // Builds a ticcmd from all of the available inputs
 // or reads it from the demo buffer.
 // If recording a demo, write it out
 //
+//==============================================================================
 procedure G_BuildTiccmd(cmd: Pticcmd_t);
 var
   i: integer;
@@ -600,6 +703,10 @@ begin
      (usemouse and mousebuttons[mousebfire]) or
      (usejoystick and joybuttons[joybfire]) then
     cmd.buttons := cmd.buttons or BT_ATTACK;
+
+  if G_PlayingEngineVersion >= VERSION207 then
+    if players[consoleplayer].nextfire > leveltime then
+      cmd.buttons := cmd.buttons and not BT_ATTACK;
 
   if gamekeydown[key_use] or (usejoystick and joybuttons[joybuse]) then
   begin
@@ -897,6 +1004,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// G_BuildTiccmd202
+//
+//==============================================================================
 procedure G_BuildTiccmd202(cmd: Pticcmd_t202);
 var
   i: integer;
@@ -1296,9 +1408,11 @@ begin
 
 end;
 
+//==============================================================================
 //
 // G_DoLoadLevel
 //
+//==============================================================================
 procedure G_DoLoadLevel;
 var
   i: integer;
@@ -1313,7 +1427,7 @@ begin
   levelstarttic := gametic;        // for time calculation
 
   if wipegamestate = Ord(GS_LEVEL) then
-    wipegamestate := -1;             // force a wipe
+    wipegamestate := -1;  // force a wipe
 
   gamestate := GS_LEVEL;
 
@@ -1361,10 +1475,12 @@ end;
 var
   inventoryTics: integer = 0;
 
+//==============================================================================
 //
 // G_Responder
 // Get info needed to make ticcmd_ts for the players.
 //
+//==============================================================================
 function G_Responder(ev: Pevent_t): boolean;
 var
   bmask: integer;
@@ -1571,14 +1687,13 @@ end;
 // also see P_SpawnPlayer in P_Things
 //
 
-//==========================================================================
+//==============================================================================
 //
 // G_PlayerExitMap
 //
 // Called when the player leaves a map.
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_PlayerExitMap(playerNumber: integer);
 var
   i: integer;
@@ -1632,11 +1747,12 @@ begin
   end;
 end;
 
-
+//==============================================================================
 //
 // G_PlayerFinishLevel
 // Can when a player completes a level.
 //
+//==============================================================================
 procedure G_PlayerFinishLevel(p: Pplayer_t);
 begin
   ZeroMemory(@p.powers, SizeOf(p.powers));
@@ -1653,6 +1769,11 @@ begin
   p.bonuscount := 0;
 end;
 
+//==============================================================================
+//
+// G_SetKeyboardMode
+//
+//==============================================================================
 procedure G_SetKeyboardMode(const mode: integer);
 begin
   if mode = 0 then
@@ -1685,6 +1806,13 @@ begin
     key_weapon1 := Ord('2');
     key_weapon2 := Ord('3');
     key_weapon3 := Ord('4');
+    AM_GOBIGKEY := Ord('o');
+    AM_FOLLOWKEY := Ord('f');
+    AM_GRIDKEY := Ord('g');
+    AM_ROTATEKEY := Ord('r');
+    AM_TEXTUREDAUTOMAP := Ord('t');
+    AM_MARKKEY := Ord('m');
+    AM_CLEARMARKKEY := Ord('c');
   end
   else if mode = 1 then
   begin
@@ -1716,6 +1844,13 @@ begin
     key_weapon1 := Ord('2');
     key_weapon2 := Ord('3');
     key_weapon3 := Ord('4');
+    AM_GOBIGKEY := Ord('o');
+    AM_FOLLOWKEY := Ord('f');
+    AM_GRIDKEY := Ord('g');
+    AM_ROTATEKEY := Ord('r');
+    AM_TEXTUREDAUTOMAP := Ord('t');
+    AM_MARKKEY := Ord('m');
+    AM_CLEARMARKKEY := Ord('c');
   end
   else if mode = 2 then
   begin
@@ -1747,14 +1882,23 @@ begin
     key_weapon1 := Ord('2');
     key_weapon2 := Ord('3');
     key_weapon3 := Ord('4');
-  end
+    AM_GOBIGKEY := Ord('o');
+    AM_FOLLOWKEY := Ord('l');
+    AM_GRIDKEY := Ord('g');
+    AM_ROTATEKEY := Ord('r');
+    AM_TEXTUREDAUTOMAP := Ord('t');
+    AM_MARKKEY := Ord('m');
+    AM_CLEARMARKKEY := Ord('c');
+  end;
 end;
 
+//==============================================================================
 //
 // G_PlayerReborn
 // Called after a player dies
 // almost everything is cleared and initialized
 //
+//==============================================================================
 procedure G_PlayerReborn(player: integer);
 var
   p: Pplayer_t;
@@ -1817,12 +1961,14 @@ begin
 
 end;
 
+//==============================================================================
 //
 // G_CheckSpot
 // Returns false if the player cannot be respawned
 // at the given mapthing_t spot
 // because something is occupying it
 //
+//==============================================================================
 function G_CheckSpot(playernum: integer; mthing: Pmapthing_t): boolean;
 var
   x: fixed_t;
@@ -1889,11 +2035,13 @@ begin
   result := true;
 end;
 
+//==============================================================================
 //
 // G_DeathMatchSpawnPlayer
 // Spawns a player at one of the random death match spots
 // called at level load and each death
 //
+//==============================================================================
 procedure G_DeathMatchSpawnPlayer(playernum: integer);
 var
   i, j: integer;
@@ -1909,21 +2057,20 @@ begin
     if G_CheckSpot(playernum, @deathmatchstarts[i]) then
     begin
       deathmatchstarts[i]._type := playernum + 1;
-      P_SpawnPlayer(@deathmatchstarts[i]);
+      P_SpawnPlayer(@deathmatchstarts[i], @udeathmatchstarts[i]);
       exit;
     end;
   end;
 
   // no good spot, so the player will probably get stuck
-  P_SpawnPlayer(@playerstarts[playernum]);
+  P_SpawnPlayer(@playerstarts[playernum], @uplayerstarts[playernum]);
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_DoReborn
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_DoReborn(playernum: integer);
 var
   i: integer;
@@ -1966,7 +2113,7 @@ begin
     foundSpot := false;
     if G_CheckSpot(playernum, @playerstarts[RebornPosition][playernum]) then
     begin // Appropriate player start spot is open
-      P_SpawnPlayer(@playerstarts[RebornPosition, playernum]);
+      P_SpawnPlayer(@playerstarts[RebornPosition, playernum], @uplayerstarts[RebornPosition, playernum]);
       foundSpot := true;
     end
     else
@@ -1979,7 +2126,7 @@ begin
 
           // Fake as other player
           playerstarts[RebornPosition, i]._type := playernum + 1;
-          P_SpawnPlayer(@playerstarts[RebornPosition, i]);
+          P_SpawnPlayer(@playerstarts[RebornPosition, i], @uplayerstarts[RebornPosition, i]);
 
           // Restore proper player type
           playerstarts[RebornPosition, i]._type := i + 1;
@@ -1992,7 +2139,7 @@ begin
 
     if not foundSpot then
     begin // Player's going to be inside something
-      P_SpawnPlayer(@playerstarts[RebornPosition][playernum]);
+      P_SpawnPlayer(@playerstarts[RebornPosition][playernum], @uplayerstarts[RebornPosition][playernum]);
     end;
 
     // Restore keys and weapons
@@ -2016,20 +2163,24 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// G_ScreenShot
+//
+//==============================================================================
 procedure G_ScreenShot;
 begin
   gameaction := ga_screenshot;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_TeleportNewMap
 //
 // Only called by the warp cheat code.  Works just like normal map to map
 // teleporting, but doesn't do any interlude stuff.
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_TeleportNewMap(map: integer;  position: integer);
 begin
   gameaction := ga_leavemap;
@@ -2037,12 +2188,11 @@ begin
   LeavePosition := position;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_DoTeleportNewMap
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_DoTeleportNewMap;
 begin
   SV_MapTeleport(LeaveMap, LeavePosition);
@@ -2051,14 +2201,14 @@ begin
   RebornPosition := LeavePosition;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_Completed
 //
 // Starts intermission routine, which is used only during hub exits,
 // and DeathMatch games.
-//==========================================================================
-
+//
+//==============================================================================
 procedure G_Completed(map, position: integer);
 begin
   gameaction := ga_completed;
@@ -2066,6 +2216,11 @@ begin
   LeavePosition := position;
 end;
 
+//==============================================================================
+//
+// G_DoCompleted
+//
+//==============================================================================
 procedure G_DoCompleted;
 var
   i: integer;
@@ -2093,14 +2248,21 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // G_WorldDone
 //
+//==============================================================================
 procedure G_WorldDone;
 begin
   gameaction := ga_worlddone;
 end;
 
+//==============================================================================
+//
+// G_DoWorldDone
+//
+//==============================================================================
 procedure G_DoWorldDone;
 begin
   gamestate := GS_LEVEL;
@@ -2109,15 +2271,14 @@ begin
   viewactive := true;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_DoSingleReborn
 //
 // Called by G_Ticker based on gameaction.  Loads a game from the reborn
 // save slot.
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_DoSingleReborn;
 begin
   gameaction := ga_nothing;
@@ -2125,32 +2286,33 @@ begin
   SB_SetClassData;
 end;
 
-
-//==========================================================================
 //
 // G_LoadGame
 //
 // Can be called by the startup code or the menu task.
 //
-//==========================================================================
 
 var
   GameLoadSlot: integer;
 
+//==============================================================================
+//
+// G_LoadGame
+//
+//==============================================================================
 procedure G_LoadGame(slot: integer);
 begin
   GameLoadSlot := slot;
   gameaction := ga_loadgame;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_DoLoadGame
 //
 // Called by G_Ticker based on gameaction.
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_DoLoadGame;
 begin
   gameaction := ga_nothing;
@@ -2164,14 +2326,13 @@ begin
   borderneedsrefresh := true;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_SaveGame
 //
 // Called by the menu task.  <description> is a 24 byte text string.
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_SaveGame(slot: integer; description: string);
 begin
   savegameslot := slot;
@@ -2179,14 +2340,13 @@ begin
   sendsave := true;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // G_DoSaveGame
 //
 // Called by G_Ticker based on gameaction.
 //
-//==========================================================================
-
+//==============================================================================
 procedure G_DoSaveGame;
 begin
   SV_SaveGame(savegameslot, savedescription);
@@ -2196,7 +2356,11 @@ begin
   borderneedsrefresh := true;
 end;
 
-
+//==============================================================================
+//
+// G_CmdSaveGame
+//
+//==============================================================================
 procedure G_CmdSaveGame(const sname: string; const description: string);
 var
   slot: integer;
@@ -2218,12 +2382,14 @@ begin
   G_SaveGame(slot, description);
 end;
 
+//==============================================================================
+// G_DeferedInitNew
 //
 // G_InitNew
 // Can be called by the startup code or the menu task,
 // consoleplayer, displayplayer, playeringame[] should be set.
 //
-
+//==============================================================================
 procedure G_DeferedInitNew(skill: skill_t; map: integer);
 begin
   TempSkill := skill;
@@ -2232,7 +2398,12 @@ begin
   gameaction := ga_initnew;
 end;
 
-procedure G_DeferedInitNewUntranslated(skill:skill_t; map: integer);
+//==============================================================================
+//
+// G_DeferedInitNewUntranslated
+//
+//==============================================================================
+procedure G_DeferedInitNewUntranslated(skill: skill_t; map: integer);
 begin
   TempSkill := skill;
   TempEpisode := 1;
@@ -2240,6 +2411,11 @@ begin
   gameaction := ga_initnew;
 end;
 
+//==============================================================================
+//
+// G_CmdNewGame
+//
+//==============================================================================
 procedure G_CmdNewGame(const parm1, parm2: string);
 var
   map: integer;
@@ -2273,6 +2449,11 @@ begin
     I_Warning('G_CmdNewGame(): Can not load map: %s.'#13#10, [parm1]);
 end;
 
+//==============================================================================
+//
+// G_InitNew
+//
+//==============================================================================
 procedure G_InitNew(skill: skill_t; episode, map: integer);
 var
   i: integer;
@@ -2288,7 +2469,6 @@ begin
     skill := sk_baby
   else if skill > sk_nightmare then
     skill := sk_nightmare;
-
 
   if map < 1 then
     map := 1
@@ -2347,10 +2527,12 @@ begin
   G_DoLoadLevel;
 end;
 
+//==============================================================================
 //
 // G_Ticker
 // Make ticcmd_ts for the players.
 //
+//==============================================================================
 procedure G_Ticker;
 var
   i: integer;
@@ -2510,11 +2692,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// G_NeedsCompatibilityMode
+//
+//==============================================================================
 function G_NeedsCompatibilityMode: boolean;
 begin
   result := compatibilitymode;
 end;
 
+//==============================================================================
+//
+// G_PlayingEngineVersion
+//
+//==============================================================================
 function G_PlayingEngineVersion: byte;
 begin
   if demoplayback then

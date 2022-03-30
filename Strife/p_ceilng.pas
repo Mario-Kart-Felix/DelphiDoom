@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //  Ceiling aninmation (lowering, crushing, raising)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -45,19 +45,44 @@ uses
   p_spec,
   r_defs,
   s_sound,
-  sounds;
+  sounddata;
 
 var
   activeceilings: array[0..MAXCEILINGS - 1] of Pceiling_t;
 
+//==============================================================================
+//
+// T_MoveCeiling
+//
+//==============================================================================
 procedure T_MoveCeiling(ceiling: Pceiling_t);
 
+//==============================================================================
+//
+// EV_DoCeiling
+//
+//==============================================================================
 function EV_DoCeiling(line: Pline_t; _type: ceiling_e): integer;
 
+//==============================================================================
+//
+// P_AddActiveCeiling
+//
+//==============================================================================
 procedure P_AddActiveCeiling(c: Pceiling_t);
 
+//==============================================================================
+//
+// EV_CeilingCrushStop
+//
+//==============================================================================
 function EV_CeilingCrushStop(line: Pline_t): integer;
 
+//==============================================================================
+//
+// P_ActivateInStasisCeiling
+//
+//==============================================================================
 function P_ActivateInStasisCeiling(line: Pline_t): integer;
 
 implementation
@@ -65,15 +90,17 @@ implementation
 uses
   i_system,
   m_fixed,
-  p_mobj_h,
   p_tick,
   p_setup,
   p_slopes,
   p_floor;
 
+//==============================================================================
+// P_AddActiveCeiling
 //
 // Add an active ceiling
 //
+//==============================================================================
 procedure P_AddActiveCeiling(c: Pceiling_t);
 var
   i: integer;
@@ -87,9 +114,12 @@ begin
   I_Warning('P_AddActiveCeiling(): Can not add ceiling, limit %d reached'#13#10, [MAXCEILINGS]);
 end;
 
+//==============================================================================
+// P_RemoveActiveCeiling
 //
 // Remove a ceiling's thinker
 //
+//==============================================================================
 procedure P_RemoveActiveCeiling(c: Pceiling_t);
 var
   i: integer;
@@ -104,9 +134,12 @@ begin
     end;
 end;
 
+//==============================================================================
+// P_ActivateInStasisCeiling
 //
 // Restart a ceiling that's in-stasis
 //
+//==============================================================================
 function P_ActivateInStasisCeiling(line: Pline_t): integer;
 var
   i: integer;
@@ -123,10 +156,11 @@ begin
     end;
 end;
 
+//==============================================================================
 //
 // T_MoveCeiling
 //
-
+//==============================================================================
 procedure T_MoveCeiling(ceiling: Pceiling_t);
 var
   res: result_e;
@@ -148,7 +182,7 @@ begin
         begin
           if (ceiling._type <> silentCrushAndRaise) and
              (ceiling._type <> genSilentCrusher) then
-            S_StartSound(Pmobj_t(@ceiling.sector.soundorg), Ord(sfx_stnmov));
+            S_StartSound(@ceiling.sector.soundorg, Ord(sfx_stnmov));
         end;
 
         if res = pastdest then
@@ -173,7 +207,7 @@ begin
 
             silentCrushAndRaise:
               begin
-                S_StartSound(Pmobj_t(@ceiling.sector.soundorg), Ord(sfx_pstop));
+                S_StartSound(@ceiling.sector.soundorg, Ord(sfx_pstop));
                 ceiling.direction := -1;
               end;
             fastCrushAndRaise,
@@ -196,7 +230,7 @@ begin
         begin
           if (ceiling._type <> silentCrushAndRaise) and
              (ceiling._type <> genSilentCrusher) then
-            S_StartSound(Pmobj_t(@ceiling.sector.soundorg), Ord(sfx_stnmov));
+            S_StartSound(@ceiling.sector.soundorg, Ord(sfx_stnmov));
         end;
 
         if res = pastdest then
@@ -213,7 +247,7 @@ begin
               end;
             silentCrushAndRaise:
               begin
-                S_StartSound(Pmobj_t(@ceiling.sector.soundorg), Ord(sfx_pstop));
+                S_StartSound(@ceiling.sector.soundorg, Ord(sfx_pstop));
                 ceiling.speed := CEILSPEED;
                 ceiling.direction := 1;
               end;
@@ -270,6 +304,7 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // EV_DoCeiling
 // Move a ceiling up/down and all around!
@@ -279,6 +314,8 @@ end;
 // * lowerAndCrush was apparently "fixed" to actually crush, and was also
 //   altered to lower all the way to the floor rather than remain 8 above.
 // * silentCrushAndRaise and crushAndRaise no longer crush.
+//
+//==============================================================================
 function EV_DoCeiling(line: Pline_t; _type: ceiling_e): integer;
 var
   initial: boolean;
@@ -389,10 +426,12 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // EV_CeilingCrushStop
 // Stop a ceiling from crushing!
 //
+//==============================================================================
 function EV_CeilingCrushStop(line: Pline_t): integer;
 var
   i: integer;

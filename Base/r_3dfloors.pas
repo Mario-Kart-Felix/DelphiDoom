@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -43,10 +43,25 @@ var
   hasExtraFloors: Boolean = False;
   viewsubsector: Psubsector_t;
 
+//==============================================================================
+//
+// R_RenderThickSideRange
+//
+//==============================================================================
 procedure R_RenderThickSideRange(const ds: Pdrawseg_t; const x1, x2: integer);
 
+//==============================================================================
+//
+// R_StoreThickSideRange
+//
+//==============================================================================
 procedure R_StoreThickSideRange(const ds: Pdrawseg_t; const frontsector, backsector: Psector_t);
 
+//==============================================================================
+//
+// R_3dVisplaneFromSubsector
+//
+//==============================================================================
 procedure R_3dVisplaneFromSubsector(const ssector: Psubsector_t; const floorlightlevel: Psmallint);
 
 var
@@ -68,10 +83,25 @@ var
   seglooplightlevel1, seglooplightlevel2: integer;
   segloopcolormap1, segloopcolormap2: PByteArray;
 
+//==============================================================================
+//
+// R_DrawFFloors
+//
+//==============================================================================
 procedure R_DrawFFloors;  // JVAL: 3d Floors
 
+//==============================================================================
+//
+// R_DrawFFloorsMultiThread
+//
+//==============================================================================
 procedure R_DrawFFloorsMultiThread;  // JVAL: 3d Floors
 
+//==============================================================================
+//
+// R_ClearVisPlanes3d
+//
+//==============================================================================
 procedure R_ClearVisPlanes3d;
 
 implementation
@@ -80,12 +110,9 @@ uses
   doomtype,
   doomdef,
   p_setup,
-  i_system,
-  r_bsp,
   r_column,
   r_data,
   r_draw,
-  r_flat8,
   r_hires,
   r_main,
   r_plane,
@@ -95,9 +122,15 @@ uses
   r_clipper,
   r_cliputils,
   r_depthbuffer,
+  r_zbuffer,
   tables,
   z_zone;
 
+//==============================================================================
+//
+// R_StoreThickSideRange
+//
+//==============================================================================
 procedure R_StoreThickSideRange(const ds: Pdrawseg_t; const frontsector, backsector: Psector_t);
 var
   hicut, lowcut: fixed_t; // JVAL: 3d Floors
@@ -208,9 +241,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// R_DoRenderThickSideRange1_DBL
 //
 // R_RenderThickSideRange
 //
+//==============================================================================
 procedure R_DoRenderThickSideRange1_DBL(const ds: Pdrawseg_t; const x1, x2: integer);
 var
   index: integer;
@@ -218,9 +254,7 @@ var
   texnum: integer;
   i: integer;
   texturecolumn: integer;
-  {$IFNDEF HEXEN}
   curline: Pseg_t;
-  {$ENDIF}
   mid: Psector_t;
   midside: Pside_t;
   roverscale_dbl, roverstep_dbl: Double;
@@ -235,9 +269,7 @@ begin
 
   mid := ds.midsec;
   midside := ds.midside; //@sides[mid.midline.sidenum[0]];
-  {$IFNDEF HEXEN}
   curline := ds.curline;
-  {$ENDIF}
   texnum := texturetranslation[midside.midtexture];
 
   R_GetDCs(texnum, 0); // JVAL Also precache external texture if not loaded
@@ -245,12 +277,7 @@ begin
   lightnum := _SHR(ds.midsiderange.lightlevel[0], LIGHTSEGSHIFT) + extralight;
 
   if r_fakecontrast then
-  begin
-    if curline.v1.y = curline.v2.y then
-      dec(lightnum)
-    else if curline.v1.x = curline.v2.x then
-      inc(lightnum);
-  end;
+    inc(lightnum, curline.fakecontrastlight);
 
   if lightnum < 0 then
     lightnum := 0
@@ -294,7 +321,7 @@ begin
   texstep_dbl := dc_texturemid / FRACUNIT * ds.scalestep_dbl;
   texscale_dbl := texscale_dbl + (x1 - ds.x1) * texstep_dbl;
   // Thick side gets row offset from control line
-  dc_texturemid := dc_texturemid + midside.rowoffset;
+  dc_texturemid := dc_texturemid + midside.rowoffset + midside.midrowoffset;
   for i := x1 to x2 do
   begin
     dc_x := i;
@@ -378,6 +405,9 @@ begin
           R_DrawColumnWithDepthBufferCheckWrite(wallcolfunc)
         else
           wallcolfunc;
+
+        if domaskedzbuffer then
+          R_DrawColumnToZBuffer;
       end;
 
       maskedtexturecol[dc_x] := MAXSHORT;
@@ -388,6 +418,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DoRenderThickSideRange2_DBL
+//
+//==============================================================================
 procedure R_DoRenderThickSideRange2_DBL(const ds: Pdrawseg_t; const x1, x2: integer);
 var
   index: integer;
@@ -419,16 +454,8 @@ begin
 
   if r_fakecontrast then
   begin
-    if curline.v1.y = curline.v2.y then
-    begin
-      dec(lightnum[0]);
-      dec(lightnum[1]);
-    end
-    else if curline.v1.x = curline.v2.x then
-    begin
-      inc(lightnum[0]);
-      inc(lightnum[1]);
-    end;
+    inc(lightnum[0], curline.fakecontrastlight);
+    inc(lightnum[1], curline.fakecontrastlight);
   end;
 
   if lightnum[0] < 0 then
@@ -489,8 +516,8 @@ begin
   texscale_dbl[0] := texscale_dbl[0] + (x1 - ds.x1) * texstep_dbl[0];
   texscale_dbl[1] := texscale_dbl[1] + (x1 - ds.x1) * texstep_dbl[1];
   // Thick side gets row offset from control line
-  texturemid[0] := texturemid[0] + midside.rowoffset;
-  texturemid[1] := texturemid[1] + midside.rowoffset;
+  texturemid[0] := texturemid[0] + midside.rowoffset + midside.midrowoffset;
+  texturemid[1] := texturemid[1] + midside.rowoffset + midside.midrowoffset;
   for i := x1 to x2 do
   begin
     dc_x := i;
@@ -582,6 +609,9 @@ begin
           R_DrawColumnWithDepthBufferCheckWrite(wallcolfunc)
         else
           wallcolfunc;
+
+        if domaskedzbuffer then
+          R_DrawColumnToZBuffer;
       end;
 
       if fixedcolormap = nil then
@@ -608,6 +638,9 @@ begin
           R_DrawColumnWithDepthBufferCheckWrite(wallcolfunc)
         else
           wallcolfunc;
+
+        if domaskedzbuffer then
+          R_DrawColumnToZBuffer;
       end;
 
       maskedtexturecol[dc_x] := MAXSHORT;
@@ -620,6 +653,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DoRenderThickSideRange1
+//
+//==============================================================================
 procedure R_DoRenderThickSideRange1(const ds: Pdrawseg_t; const x1, x2: integer);
 var
   index: integer;
@@ -627,9 +665,7 @@ var
   texnum: integer;
   i: integer;
   texturecolumn: integer;
-  {$IFNDEF HEXEN}
   curline: Pseg_t;
-  {$ENDIF}
   mid: Psector_t;
   midside: Pside_t;
   roverscale, roverstep: fixed_t;
@@ -639,17 +675,10 @@ begin
   // Use different light tables
   //   for horizontal / vertical / diagonal. Diagonal?
   // OPTIMIZE: get rid of LIGHTSEGSHIFT globally
-  if ds.use_double then
-  begin
-    R_DoRenderThickSideRange1_DBL(ds, x1, x2);
-    Exit;
-  end;
 
   mid := ds.midsec;
   midside := ds.midside; //@sides[mid.midline.sidenum[0]];
-  {$IFNDEF HEXEN}
   curline := ds.curline;
-  {$ENDIF}
   texnum := texturetranslation[midside.midtexture];
 
   R_GetDCs(texnum, 0); // JVAL Also precache external texture if not loaded
@@ -657,12 +686,7 @@ begin
   lightnum := _SHR(ds.midsiderange.lightlevel[0], LIGHTSEGSHIFT) + extralight;
 
   if r_fakecontrast then
-  begin
-    if curline.v1.y = curline.v2.y then
-      dec(lightnum)
-    else if curline.v1.x = curline.v2.x then
-      inc(lightnum);
-  end;
+    inc(lightnum, curline.fakecontrastlight);
 
   if lightnum < 0 then
     lightnum := 0
@@ -707,7 +731,7 @@ begin
   texstep := FixedMul(dc_texturemid, ds.scalestep);
   texscale := texscale + (x1 - ds.x1) * texstep;
   // Thick side gets row offset from control line
-  dc_texturemid := dc_texturemid + midside.rowoffset;
+  dc_texturemid := dc_texturemid + midside.rowoffset + midside.midrowoffset;
   for i := x1 to x2 do
   begin
     dc_x := i;
@@ -769,6 +793,9 @@ begin
           R_DrawColumnWithDepthBufferCheckWrite(wallcolfunc)
         else
           wallcolfunc;
+
+        if domaskedzbuffer then
+          R_DrawColumnToZBuffer;
       end;
 
       maskedtexturecol[dc_x] := MAXSHORT;
@@ -779,6 +806,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DoRenderThickSideRange2
+//
+//==============================================================================
 procedure R_DoRenderThickSideRange2(const ds: Pdrawseg_t; const x1, x2: integer);
 var
   index: integer;
@@ -797,11 +829,6 @@ begin
   // Use different light tables
   //   for horizontal / vertical / diagonal. Diagonal?
   // OPTIMIZE: get rid of LIGHTSEGSHIFT globally
-  if ds.use_double then
-  begin
-    R_DoRenderThickSideRange2_DBL(ds, x1, x2);
-    Exit;
-  end;
 
   mid := ds.midsec;
   midside := ds.midside; //@sides[mid.midline.sidenum[0]];
@@ -815,16 +842,8 @@ begin
 
   if r_fakecontrast then
   begin
-    if curline.v1.y = curline.v2.y then
-    begin
-      dec(lightnum[0]);
-      dec(lightnum[1]);
-    end
-    else if curline.v1.x = curline.v2.x then
-    begin
-      inc(lightnum[0]);
-      inc(lightnum[1]);
-    end;
+    inc(lightnum[0], curline.fakecontrastlight);
+    inc(lightnum[1], curline.fakecontrastlight);
   end;
 
   if lightnum[0] < 0 then
@@ -886,8 +905,8 @@ begin
   texscale[0] := texscale[0] + (x1 - ds.x1) * texstep[0];
   texscale[1] := texscale[1] + (x1 - ds.x1) * texstep[1];
   // Thick side gets row offset from control line
-  texturemid[0] := texturemid[0] + midside.rowoffset;
-  texturemid[1] := texturemid[1] + midside.rowoffset;
+  texturemid[0] := texturemid[0] + midside.rowoffset + midside.midrowoffset;
+  texturemid[1] := texturemid[1] + midside.rowoffset + midside.midrowoffset;
   for i := x1 to x2 do
   begin
     dc_x := i;
@@ -957,6 +976,9 @@ begin
           R_DrawColumnWithDepthBufferCheckWrite(wallcolfunc)
         else
           wallcolfunc;
+
+        if domaskedzbuffer then
+          R_DrawColumnToZBuffer;
       end;
 
       sprtopscreen := centeryfrac - texscale[1];
@@ -984,6 +1006,9 @@ begin
           R_DrawColumnWithDepthBufferCheckWrite(wallcolfunc)
         else
           wallcolfunc;
+
+        if domaskedzbuffer then
+          R_DrawColumnToZBuffer;
       end;
 
       maskedtexturecol[dc_x] := MAXSHORT;
@@ -996,15 +1021,30 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_RenderThickSideRange
+//
+//==============================================================================
 procedure R_RenderThickSideRange(const ds: Pdrawseg_t; const x1, x2: integer);
 begin
   if ds.midsec = nil then
     exit;
 
   if ds.midsiderange.count = 1 then
-    R_DoRenderThickSideRange1(ds, x1, x2)
+  begin
+    if ds.use_double then
+      R_DoRenderThickSideRange1_DBL(ds, x1, x2)
+    else
+      R_DoRenderThickSideRange1(ds, x1, x2)
+  end
   else if ds.midsiderange.count = 2 then
-    R_DoRenderThickSideRange2(ds, x1, x2);
+  begin
+    if ds.use_double then
+      R_DoRenderThickSideRange2_DBL(ds, x1, x2)
+    else
+      R_DoRenderThickSideRange2(ds, x1, x2);
+  end;
 end;
 
 type
@@ -1018,6 +1058,11 @@ type
 var
   ffpoints: ffpoint_tArray;
 
+//==============================================================================
+//
+// R_ClearVisPlanes3d
+//
+//==============================================================================
 procedure R_ClearVisPlanes3d;
 var
   i: integer;
@@ -1033,6 +1078,11 @@ begin
   maxvisplane3d := -1;
 end;
 
+//==============================================================================
+//
+// R_NewVisPlane3d
+//
+//==============================================================================
 function R_NewVisPlane3d: Pvisplane3d_t;
 begin
   if lastvisplane3d = MAXVISPLANES3D then // JVAL: Do not overflow and crash
@@ -1061,6 +1111,11 @@ begin
   inc(lastvisplane3d);
 end;
 
+//==============================================================================
+//
+// R_3dVisplaneFromSubsector
+//
+//==============================================================================
 procedure R_3dVisplaneFromSubsector(const ssector: Psubsector_t; const floorlightlevel: Psmallint);
 var
   i, j: integer;
@@ -1181,7 +1236,6 @@ begin
     ffpoints[numffpoints] := ffpoints[0];
     Inc(numffpoints);
   end;
-
 
   if not ret then
   begin
@@ -1450,6 +1504,11 @@ begin
   curmidvis := plane;
 end;
 
+//==============================================================================
+//
+// R_DrawFFloors
+//
+//==============================================================================
 procedure R_DrawFFloors;  // JVAL: 3d Floors
 var
   i: integer;
@@ -1467,6 +1526,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_DrawFFloorsMultiThread
+//
+//==============================================================================
 procedure R_DrawFFloorsMultiThread;  // JVAL: 3d Floors
 var
   i: integer;

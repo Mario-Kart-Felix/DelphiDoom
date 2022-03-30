@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -188,7 +188,7 @@ type
 
     morphTics: integer; // player is a pig if > 0
     jumpTicks: integer; // delay the next jump for a moment
-    worldtimer: longword; // total time the player's been playing
+    worldtimer: LongWord; // total time the player's been playing
     ultimateMessage: boolean;
     yellowMessage: boolean;
     jumpTics: integer;
@@ -207,6 +207,10 @@ type
     lastongroundtime: integer;
     lastautocrouchtime: integer;
     crouchheight: fixed_t;
+    // JVAL: For the crosshair target
+    plinetarget: Pmobj_t;
+    pcrosstic: integer;
+    nextfire: integer;
   end;
   Pplayer_t = ^player_t;
 
@@ -314,7 +318,7 @@ type
 
     morphTics: integer; // player is a pig if > 0
     jumpTicks: integer; // delay the next jump for a moment
-    worldtimer: longword; // total time the player's been playing
+    worldtimer: LongWord; // total time the player's been playing
     ultimateMessage: boolean;
     yellowMessage: boolean;
     jumpTics: integer;
@@ -434,7 +438,7 @@ type
 
     morphTics: integer; // player is a pig if > 0
     jumpTicks: integer; // delay the next jump for a moment
-    worldtimer: longword; // total time the player's been playing
+    worldtimer: LongWord; // total time the player's been playing
     ultimateMessage: boolean;
     yellowMessage: boolean;
     jumpTics: integer;
@@ -552,7 +556,7 @@ type
 
     morphTics: integer; // player is a pig if > 0
     jumpTicks: integer; // delay the next jump for a moment
-    worldtimer: longword; // total time the player's been playing
+    worldtimer: LongWord; // total time the player's been playing
     ultimateMessage: boolean;
     yellowMessage: boolean;
     jumpTics: integer;
@@ -670,7 +674,7 @@ type
 
     morphTics: integer; // player is a pig if > 0
     jumpTicks: integer; // delay the next jump for a moment
-    worldtimer: longword; // total time the player's been playing
+    worldtimer: LongWord; // total time the player's been playing
     ultimateMessage: boolean;
     yellowMessage: boolean;
     jumpTics: integer;

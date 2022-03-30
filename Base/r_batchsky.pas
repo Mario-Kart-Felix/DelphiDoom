@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -30,12 +30,32 @@ unit r_batchsky;
 
 interface
 
+//==============================================================================
+//
+// R_StoreSkyColumn8
+//
+//==============================================================================
 procedure R_StoreSkyColumn8;
 
+//==============================================================================
+//
+// R_FlashSkyColumns8
+//
+//==============================================================================
 procedure R_FlashSkyColumns8;
 
+//==============================================================================
+//
+// R_StoreSkyColumn32
+//
+//==============================================================================
 procedure R_StoreSkyColumn32;
 
+//==============================================================================
+//
+// R_FlashSkyColumns32
+//
+//==============================================================================
 procedure R_FlashSkyColumns32;
 
 implementation
@@ -47,7 +67,6 @@ uses
   r_cache_walls,
   r_column,
   r_draw,
-  r_precalc,
   r_main;
 
 type
@@ -66,6 +85,11 @@ type
 var
   skies8: batchskyrenderinfo8_t = (numskies: 0);
 
+//==============================================================================
+//
+// R_StoreSkyColumn8
+//
+//==============================================================================
 procedure R_StoreSkyColumn8;
 var
   sk: Pskyrenderinfo8_t;
@@ -84,6 +108,11 @@ begin
     R_FlashSkyColumns8;
 end;
 
+//==============================================================================
+//
+// R_DrawBatchSkyColumns8
+//
+//==============================================================================
 procedure R_DrawBatchSkyColumns8;
 var
   sk: Pskyrenderinfo8_t;
@@ -315,7 +344,11 @@ begin
 
 end;
 
-
+//==============================================================================
+//
+// R_FlashSkyColumns8
+//
+//==============================================================================
 procedure R_FlashSkyColumns8;
 var
   i: integer;
@@ -373,6 +406,11 @@ type
 var
   skies32: batchskyrenderinfo32_t = (numskies: 0);
 
+//==============================================================================
+//
+// R_StoreSkyColumn32
+//
+//==============================================================================
 procedure R_StoreSkyColumn32;
 var
   sk: Pskyrenderinfo32_t;
@@ -391,6 +429,11 @@ begin
     R_FlashSkyColumns32;
 end;
 
+//==============================================================================
+//
+// R_DrawBatchSkyColumns32
+//
+//==============================================================================
 procedure R_DrawBatchSkyColumns32;
 var
   sk: Pskyrenderinfo32_t;
@@ -635,6 +678,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_FlashSkyColumns32
+//
+//==============================================================================
 procedure R_FlashSkyColumns32;
 var
   i: integer;

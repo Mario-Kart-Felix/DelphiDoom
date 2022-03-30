@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Multithreading flat rendering - 32 bit color
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -58,28 +58,63 @@ type
   flatrenderinfo32_tArray = array[0..$FFF] of flatrenderinfo32_t;
   Pflatrenderinfo32_tArray = ^flatrenderinfo32_tArray;
 
+//==============================================================================
+//
+// R_StoreFlatSpan32
+//
+//==============================================================================
 procedure R_StoreFlatSpan32;
 
+//==============================================================================
+//
+// R_InitFlatsCache32
+//
+//==============================================================================
 procedure R_InitFlatsCache32;
 
+//==============================================================================
+//
+// R_ShutDownFlatsCache32
+//
+//==============================================================================
 procedure R_ShutDownFlatsCache32;
 
+//==============================================================================
+//
+// R_RenderSingleThreadFlats32
+//
+//==============================================================================
 procedure R_RenderSingleThreadFlats32;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFlats32
+//
+//==============================================================================
 procedure R_RenderMultiThreadFlats32;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFFloors32
+//
+//==============================================================================
 procedure R_RenderMultiThreadFFloors32;
-
 
 var
   force_numflatrenderingthreads_32bit: integer = 0;
 
+//==============================================================================
+//
+// R_DrawSpanNormalMT
+//
+//==============================================================================
 procedure R_DrawSpanNormalMT(const fi: pointer);
 
 implementation
 
 uses
   i_system,
+  i_threads,
   mt_utils,
   r_draw,
   r_main,
@@ -93,6 +128,11 @@ var
   flatcachesize32: integer;
   flatcacherealsize32: integer;
 
+//==============================================================================
+//
+// R_GrowFlatsCache32
+//
+//==============================================================================
 procedure R_GrowFlatsCache32;
 begin
   if flatcachesize32 >= flatcacherealsize32 then
@@ -102,6 +142,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_StoreFlatSpan32
+//
+//==============================================================================
 procedure R_StoreFlatSpan32;
 var
   flat: Pflatrenderinfo32_t;
@@ -128,6 +173,11 @@ begin
   inc(flatcachesize32);
 end;
 
+//==============================================================================
+//
+// R_InitFlatsCache32
+//
+//==============================================================================
 procedure R_InitFlatsCache32;
 begin
   flatcache32 := nil;
@@ -135,6 +185,11 @@ begin
   flatcacherealsize32 := 0;
 end;
 
+//==============================================================================
+//
+// R_ShutDownFlatsCache32
+//
+//==============================================================================
 procedure R_ShutDownFlatsCache32;
 begin
   if flatcacherealsize32 <> 0 then
@@ -144,6 +199,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// R_RenderSingleThreadFlats32
+//
+//==============================================================================
 procedure R_RenderSingleThreadFlats32;
 var
   item1, item2: Pflatrenderinfo32_t;
@@ -164,22 +224,72 @@ end;
 const
   MAXFLATRENDERINGTHREADS32 = 16;
 
-procedure _flat_thread_worker32(const p: pointer) stdcall;
-var
-  item1, item2: Pflatrenderinfo32_t;
-begin
-  item1 := @flatcache32[mt_range_p(p).start];
-  item2 := @flatcache32[mt_range_p(p).finish];
-  while integer(item1) <= integer(item2) do
-  begin
-    item1.func(item1);
-    inc(item1);
+type
+  Pflatthreadparams32_t = ^flatthreadparams32_t;
+  flatthreadparams32_t = record
+    start, stop: integer;
+    next: Pflatthreadparams32_t;
   end;
+
+var
+  R: array[0..MAXFLATRENDERINGTHREADS32 - 1] of flatthreadparams32_t; // JVAL: 20220320 - Made global
+
+//==============================================================================
+//
+// _flat_thread_worker32
+//
+//==============================================================================
+function _flat_thread_worker32(parms: Pflatthreadparams32_t): integer; stdcall;
+var
+  item: Pflatrenderinfo32_t;
+  start, stop, part: integer;
+  i: integer;
+begin
+  while parms.start <= parms.stop do
+  begin
+    item := @flatcache32[parms.start];
+    item.func(item);
+    ThreadInc(parms.start);
+  end;
+
+  // No further operations in main thread
+  if parms = @R[0] then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  while true do
+  begin
+    parms := parms.next;
+    start := parms.start;
+    stop := parms.stop;
+    part := (stop - start) div 2;
+    if part > 2 then
+    begin
+      ThreadSet(parms.stop, parms.stop - part);
+      start := parms.stop + 1;
+      for i := start to stop do
+      begin
+        item := @flatcache32[i];
+        item.func(item);
+      end;
+    end
+    else if part < 1 then
+      Break;
+  end;
+
+  result := 0;
 end;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFlats32
+//
+//==============================================================================
 procedure R_RenderMultiThreadFlats32;
 var
-  R: array[0..MAXFLATRENDERINGTHREADS32 - 1] of mt_range_t;
+  step: float;
   numthreads: integer;
   i: integer;
 begin
@@ -212,18 +322,24 @@ begin
   if flatcachesize32 < numthreads then
   begin
     R[0].start := 0;
-    R[0].finish := flatcachesize32 - 1;
+    R[0].stop := flatcachesize32 - 1;
+    R[0].next := @R[0];
     _flat_thread_worker32(@R[0]);
     flatcachesize32 := 0;
     exit;
   end;
 
+  step := flatcachesize32 / numthreads;
   R[0].start := 0;
   for i := 1 to numthreads - 1 do
-    R[i].start := Round((flatcachesize32 / numthreads) * i);
+    R[i].start := Round(step * i);
   for i := 0 to numthreads - 2 do
-    R[i].finish := R[i + 1].start - 1;
-  R[numthreads - 1].finish := flatcachesize32 - 1;
+    R[i].stop := R[i + 1].start - 1;
+  R[numthreads - 1].stop := flatcachesize32 - 1;
+
+  for i := 0 to numthreads - 2 do
+    R[i].next := @R[i + 1];
+  R[numthreads - 1].next := @R[0];
 
   case numthreads of
    2:
@@ -411,16 +527,20 @@ begin
   flatcachesize32 := 0;
 end;
 
-
-procedure _flat3D_thread_worker32(const p: pointer) stdcall;
+//==============================================================================
+//
+// _flat3D_thread_worker32
+//
+//==============================================================================
+function _flat3D_thread_worker32(parms: Pflatthreadparams32_t): integer; stdcall;
 var
   item1, item2: Pflatrenderinfo32_t;
   start, finish: integer;
 begin
   item1 := @flatcache32[0];
   item2 := @flatcache32[flatcachesize32 - 1];
-  start := mt_range_p(p).start;
-  finish := mt_range_p(p).finish;
+  start := parms.start;
+  finish := parms.stop;
   while integer(item1) <= integer(item2) do
   begin
     if item1.ds_y >= start then
@@ -428,11 +548,18 @@ begin
         item1.func(item1);
     inc(item1);
   end;
+
+  Result := 0;
 end;
 
+//==============================================================================
+//
+// R_RenderMultiThreadFFloors32
+//
+//==============================================================================
 procedure R_RenderMultiThreadFFloors32;
 var
-  R: array[0..MAXFLATRENDERINGTHREADS32 - 1] of mt_range_t;
+  step: float;
   numthreads: integer;
   i: integer;
 begin
@@ -465,18 +592,24 @@ begin
   if viewheight < numthreads then
   begin
     R[0].start := 0;
-    R[0].finish := viewheight - 1;
+    R[0].stop := viewheight - 1;
+    R[0].next := @R[0];
     _flat3D_thread_worker32(@R[0]);
     flatcachesize32 := 0;
     exit;
   end;
 
+  step := viewheight / numthreads;
   R[0].start := 0;
   for i := 1 to numthreads - 1 do
-    R[i].start := Round((viewheight / numthreads) * i);
+    R[i].start := Round(step * i);
   for i := 0 to numthreads - 2 do
-    R[i].finish := R[i + 1].start - 1;
-  R[numthreads - 1].finish := viewheight - 1;
+    R[i].stop := R[i + 1].start - 1;
+  R[numthreads - 1].stop := viewheight - 1;
+
+  for i := 0 to numthreads - 2 do
+    R[i].next := @R[i + 1];
+  R[numthreads - 1].next := @R[0];
 
   case numthreads of
    2:
@@ -664,9 +797,12 @@ begin
   flatcachesize32 := 0;
 end;
 
+//==============================================================================
+// R_DrawSpanNormalMT
 //
 // Draws the actual span (Normal resolution).
 //
+//==============================================================================
 procedure R_DrawSpanNormalMT(const fi: pointer);
 var
   ds_source32: PLongWordArray;

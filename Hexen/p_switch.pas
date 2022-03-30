@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -36,8 +36,18 @@ uses
   p_mobj_h,
   p_spec;
 
+//==============================================================================
+//
+// P_InitSwitchList
+//
+//==============================================================================
 procedure P_InitSwitchList;
 
+//==============================================================================
+//
+// P_ChangeSwitchTexture
+//
+//==============================================================================
 procedure P_ChangeSwitchTexture(line: Pline_t; useAgain: boolean);
 
 var
@@ -46,25 +56,12 @@ var
 implementation
 
 uses
-  d_delphi,
-  doomdata,
-  m_fixed,
-  p_local,
   p_setup,
-  p_lights,
-  p_plats,
-  p_doors,
-  p_ceilng,
-  p_floor,
   i_system,
-  doomdef,
-  g_game,
   s_sound,
   r_data,
 // Data
-  sounds,
-// State
-  doomstat;
+  sounddata;
 
 type
 //
@@ -100,10 +97,12 @@ var
   switchlist: array[0..2 * MAXSWITCHES - 1] of integer;
   numswitches: integer;
 
+//==============================================================================
 //
 // P_InitSwitchList
 // Only called at game initialization.
 //
+//==============================================================================
 procedure P_InitSwitchList;
 var
   i: integer;
@@ -127,9 +126,12 @@ begin
   end;
 end;
 
+//==============================================================================
+// P_StartButton
 //
 // Start a button counting down till it turns off.
 //
+//==============================================================================
 procedure P_StartButton(line: Pline_t; w: bwhere_e; texture: integer; time: integer);
 var
   i: integer;
@@ -155,10 +157,13 @@ begin
   I_Error('P_StartButton(): no button slots left!');
 end;
 
+//==============================================================================
+// P_ChangeSwitchTexture
 //
 // Function that changes wall texture.
 // Tell it if switch is ok to use again (1=yes, it's a button).
 //
+//==============================================================================
 procedure P_ChangeSwitchTexture(line: Pline_t; useAgain: boolean);
 var
   texTop: integer;
@@ -179,7 +184,7 @@ begin
   begin
     if switchlist[i] = texTop then
     begin
-      S_StartSound(Pmobj_t(@line.frontsector.soundorg), alphSwitchList[i div 2].soundID);
+      S_StartSound(@line.frontsector.soundorg, alphSwitchList[i div 2].soundID);
       sides[line.sidenum[0]].toptexture := switchlist[i xor 1];
 
       if useAgain then
@@ -191,7 +196,7 @@ begin
     begin
       if switchlist[i] = texMid then
       begin
-        S_StartSound(Pmobj_t(@line.frontsector.soundorg), alphSwitchList[i div 2].soundID);
+        S_StartSound(@line.frontsector.soundorg, alphSwitchList[i div 2].soundID);
         sides[line.sidenum[0]].midtexture := switchlist[i xor 1];
 
         if useAgain then
@@ -203,7 +208,7 @@ begin
       begin
         if switchlist[i] = texBot then
         begin
-          S_StartSound(Pmobj_t(@line.frontsector.soundorg), alphSwitchList[i div 2].soundID);
+          S_StartSound(@line.frontsector.soundorg, alphSwitchList[i div 2].soundID);
           sides[line.sidenum[0]].bottomtexture := switchlist[i xor 1];
 
           if useAgain then

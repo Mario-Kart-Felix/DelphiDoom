@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,12 +33,32 @@ interface
 uses
   d_delphi;
 
+//==============================================================================
+//
+// T_DrawFullScreenPatch
+//
+//==============================================================================
 function T_DrawFullScreenPatch(const texname: string; const dest: PLongWordArray): boolean; overload;
 
+//==============================================================================
+//
+// T_DrawFullScreenPatch
+//
+//==============================================================================
 function T_DrawFullScreenPatch(const texid: integer; const dest: PLongWordArray): boolean; overload;
 
+//==============================================================================
+//
+// T_InitDrawTextures
+//
+//==============================================================================
 procedure T_InitDrawTextures;
 
+//==============================================================================
+//
+// T_ShutDownDrawTextures
+//
+//==============================================================================
 procedure T_ShutDownDrawTextures;
 
 implementation
@@ -50,7 +70,9 @@ uses
   r_mmx,
   t_main,
   v_video,
+  {$IFDEF OPENGL}
   v_data,
+  {$ENDIF}
   w_wad;
 
 type
@@ -66,6 +88,11 @@ var
   drawtextures: Pdrawtexture_tArray;
   numdrawtextures: integer;
 
+//==============================================================================
+//
+// T_GetDrawTextNumForName
+//
+//==============================================================================
 function T_GetDrawTextNumForName(const texname: string): integer;
 var
   lump: integer;
@@ -88,11 +115,21 @@ begin
   inc(numdrawtextures);
 end;
 
+//==============================================================================
+//
+// T_DrawFullScreenPatch
+//
+//==============================================================================
 function T_DrawFullScreenPatch(const texname: string; const dest: PLongWordArray): boolean; overload;
 begin
   result := T_DrawFullScreenPatch(T_GetDrawTextNumForName(texname), dest);
 end;
 
+//==============================================================================
+//
+// T_DrawFullScreenPatch
+//
+//==============================================================================
 function T_DrawFullScreenPatch(const texid: integer; const dest: PLongWordArray): boolean; overload;
 var
   t: PTexture;
@@ -112,7 +149,7 @@ begin
     exit;
   end;
 
-  if drawtextures[texid].texture32 = nil  then
+  if drawtextures[texid].texture32 = nil then
   begin
     t := T_LoadHiResTexture(W_GetNameForNum(drawtextures[texid].lump));
     if t = nil then
@@ -186,12 +223,22 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// T_InitDrawTextures
+//
+//==============================================================================
 procedure T_InitDrawTextures;
 begin
   drawtextures := nil;
   numdrawtextures := 0;
 end;
 
+//==============================================================================
+//
+// T_ShutDownDrawTextures
+//
+//==============================================================================
 procedure T_ShutDownDrawTextures;
 var
   i: integer;

@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
-//  Copyright (C) 2004-2016 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------
 //  E-Mail: jimmyvalavanis@yahoo.gr
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -82,6 +82,11 @@ type
 {$ENDIF}
   end;
 
+//==============================================================================
+//
+// CreateWaveFileOBffer
+//
+//==============================================================================
 function CreateWaveFileOBffer(Player: TPlayer; Filename: String): TOBuffer;
 
 implementation
@@ -90,6 +95,11 @@ uses
   i_system,
   Math, mp3_Header;
 
+//==============================================================================
+//
+// CreateWaveFileOBffer
+//
+//==============================================================================
 function CreateWaveFileOBffer(Player: TPlayer; Filename: String): TOBuffer;
 var Mode: TMode;
     WhichChannels: TChannels;
@@ -109,9 +119,14 @@ end;
 
 { TOBuffer_Wave }
 
+//==============================================================================
+// TOBuffer_Wave.Append
+//
 // Need to break up the 32-bit integer into 2 8-bit bytes.
 // (ignore the first two bytes - either 0x0000 or 0xffff)
 // Note that Intel byte order is backwards!!!
+//
+//==============================================================================
 procedure TOBuffer_Wave.Append(Channel: Cardinal; Value: SmallInt);
 begin
   FTemp[FBufferP[Channel]]   := (Value and $ff);
@@ -120,13 +135,22 @@ begin
   inc(FBufferP[Channel], FChannels shl 1);
 end;
 
+//==============================================================================
+//
+// TOBuffer_Wave.ClearBuffer
+//
+//==============================================================================
 procedure TOBuffer_Wave.ClearBuffer;
 begin
   // Since we write each frame, and seeks and stops occur between
   // frames, nothing is needed here.
 end;
 
-
+//==============================================================================
+//
+// TOBuffer_Wave.Create
+//
+//==============================================================================
 constructor TOBuffer_Wave.Create(NumberOfChannels: Cardinal; Player: TPlayer; Filename: String);
 var pwf: TWAVEFORMATEX;
     i: Cardinal;
@@ -187,10 +211,15 @@ begin
 
   mmioGetInfo(hmmioOut, @mmioinfoOut, 0);
 
-  for i := 0 to FChannels-1 do
+  for i := 0 to FChannels - 1 do
     FBufferP[i] := i * FChannels;
 end;
 
+//==============================================================================
+//
+// TOBuffer_Wave.Destroy
+//
+//==============================================================================
 destructor TOBuffer_Wave.Destroy;
 begin
   // Mark the current chunk as dirty and flush it
@@ -214,10 +243,20 @@ begin
   FreeMem(FTemp);
 end;
 
+//==============================================================================
+//
+// TOBuffer_Wave.SetStopFlag
+//
+//==============================================================================
 procedure TOBuffer_Wave.SetStopFlag;
 begin
 end;
 
+//==============================================================================
+//
+// TOBuffer_Wave.WriteBuffer
+//
+//==============================================================================
 procedure TOBuffer_Wave.WriteBuffer;
 var Write, i: Cardinal;
 begin
@@ -238,7 +277,7 @@ begin
   inc(Cardinal(mmioinfoOut.pchNext), FDataSize - Write);
 
   // Reset buffer pointers
-  for i := 0 to FChannels-1 do
+  for i := 0 to FChannels - 1 do
     FBufferP[i] := i * FChannels;
 end;
 

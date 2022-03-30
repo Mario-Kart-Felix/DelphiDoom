@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //    Head up display
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -64,25 +64,64 @@ const
 
   HU_MSGTIMEOUT = 8 * TICRATE;  // haleyjd [STRIFE] Doubled message timeout
 
+//==============================================================================
+// HU_Init
 //
 // HEADS UP TEXT
 //
+//==============================================================================
 procedure HU_Init;
 
+//==============================================================================
+//
+// HU_Start
+//
+//==============================================================================
 procedure HU_Start;
 
+//==============================================================================
+//
+// HU_Responder
+//
+//==============================================================================
 function HU_Responder(ev: Pevent_t): boolean;
 
+//==============================================================================
+//
+// HU_Ticker
+//
+//==============================================================================
 procedure HU_Ticker;
 
+//==============================================================================
+//
+// HU_Drawer
+//
+//==============================================================================
 procedure HU_Drawer;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// HU_Height
+//
+//==============================================================================
 function HU_Height: integer;
 {$ENDIF}
 
+//==============================================================================
+//
+// HU_dequeueChatChar
+//
+//==============================================================================
 function HU_dequeueChatChar: char;
 
+//==============================================================================
+//
+// HU_Erase
+//
+//==============================================================================
 procedure HU_Erase;
 
 var
@@ -91,7 +130,6 @@ var
 
 var
   m_font3: array['A'..Chr(Ord('Z') + 1)] of Ppatch_t;
-
 
   chat_on: boolean;
 
@@ -114,12 +152,23 @@ var
 var
   shiftxform: array[0..127] of char;
 
+//==============================================================================
+//
+// HU_DoFPSStuff
+//
+//==============================================================================
 procedure HU_DoFPSStuff;
 
+//==============================================================================
+//
+// HU_FPS
+//
+//==============================================================================
 function HU_FPS: integer;
 
 var
   drawfps: boolean;
+  drawcrosshair: boolean;
 
 implementation
 
@@ -131,7 +180,6 @@ uses
   i_system,
   doomstat,
   am_map,
-  dstrings,
   d_englsh,
   d_player,
   d_main,
@@ -139,10 +187,12 @@ uses
   hu_lib,
   m_menu,
   m_fixed,
+  p_mobj_h,
   p_tick,
   r_draw,
+  r_main,
   s_sound,
-  sounds,
+  sounddata,
   v_data,
   v_video;
 
@@ -158,6 +208,11 @@ var
   fpshead: integer = -1;
   fpshead2: integer = -1;
 
+//==============================================================================
+//
+// HU_DoFPSStuff
+//
+//==============================================================================
 procedure HU_DoFPSStuff;
 var
   ftime: integer;
@@ -169,6 +224,11 @@ begin
   FPSHISTORY2[fpshead2] := ftime;
 end;
 
+//==============================================================================
+//
+// HU_FPS
+//
+//==============================================================================
 function HU_FPS: integer;
 var
   fpsdiff: integer;
@@ -188,16 +248,31 @@ begin
     result := TICRATE;
 end;
 
+//==============================================================================
+//
+// HU_CmdFPS
+//
+//==============================================================================
 procedure HU_CmdFPS;
 begin
   printf('%d fps'#13#10, [HU_FPS]);
 end;
 
+//==============================================================================
+//
+// HU_CmdPlayerMessage
+//
+//==============================================================================
 procedure HU_CmdPlayerMessage(const parm1, parm2: string);
 begin
   players[consoleplayer]._message := parm1 + ' ' + parm2;
 end;
 
+//==============================================================================
+//
+// HU_TITLE
+//
+//==============================================================================
 function HU_TITLE: string;
 begin
   result := mapnames[gamemap - 1];
@@ -224,12 +299,22 @@ const
   HU_TITLEX = 0;
   HU_LEVELTIMEX = 0;
 
+//==============================================================================
+// HU_TITLEY
+//
 // haleyjd 09/01/10: [STRIFE] 167 -> 160 to move up level name
+//
+//==============================================================================
 function HU_TITLEY: integer;
 begin
   result := {$IFDEF OPENGL}V_GetScreenHeight(SCN_FG) * 160 div 200{$ELSE}160{$ENDIF} - hu_font[0].height;
 end;
 
+//==============================================================================
+//
+// HU_LEVELTIMEY
+//
+//==============================================================================
 function HU_LEVELTIMEY: integer;
 begin
   result := {$IFDEF OPENGL}V_GetScreenHeight(SCN_FG) * 160 div 200{$ELSE}160{$ENDIF} - 2 * hu_font[0].height;
@@ -238,11 +323,21 @@ end;
 const
   HU_INPUTTOGGLE: char = 't';
 
+//==============================================================================
+//
+// HU_INPUTX
+//
+//==============================================================================
 function HU_INPUTX: integer;
 begin
   result := HU_MSGX;
 end;
 
+//==============================================================================
+//
+// HU_INPUTY
+//
+//==============================================================================
 function HU_INPUTY: integer;
 begin
   result := HU_MSGY + HU_MSGHEIGHT * (hu_font[0].height + 1)
@@ -349,6 +444,11 @@ const
     'P','A','R','S','T','U','V','Z','X','Y','W','^','\','$','^',#127
   );
 
+//==============================================================================
+//
+// ForeignTranslation
+//
+//==============================================================================
 function ForeignTranslation(ch: char): char;
 begin
   if ch < #128 then
@@ -357,6 +457,14 @@ begin
     result := ch;
 end;
 
+var
+  crosshairs: array[0..4] of Ppatch_t;
+
+//==============================================================================
+//
+// HU_Init
+//
+//==============================================================================
 procedure HU_Init;
 var
   i: integer;
@@ -394,18 +502,32 @@ begin
 
   for i := 0 to FPSSIZE - 1 do
     FPSHISTORY[i] := 0;
+
   for i := 0 to FPSSIZE2 - 1 do
     FPSHISTORY2[i] := 0;
+
+  for i := 0 to 4 do
+    crosshairs[i] := W_CacheLumpName('XCROSS' + itoa(i), PU_STATIC);
 
   C_AddCmd('fps', @HU_CmdFPS);
   C_AddCmd('playermessage', @HU_CmdPlayerMessage);
 end;
 
+//==============================================================================
+//
+// HU_Stop
+//
+//==============================================================================
 procedure HU_Stop;
 begin
   headsupactive := false;
 end;
 
+//==============================================================================
+//
+// HU_Start
+//
+//==============================================================================
 procedure HU_Start;
 var
   i: integer;
@@ -467,6 +589,11 @@ end;
 var
   hu_h: integer = 0;
 
+//==============================================================================
+//
+// HU_Height
+//
+//==============================================================================
 function HU_Height: integer;
 begin
   result := hu_h;
@@ -477,6 +604,11 @@ var
   m_fps: string = '';
   fps_ticker: integer = 0;
 
+//==============================================================================
+//
+// HU_DrawFPS
+//
+//==============================================================================
 procedure HU_DrawFPS;
 var
   i: integer;
@@ -523,7 +655,56 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// HU_DrawCrossHair
+//
+//==============================================================================
+procedure HU_DrawCrossHair;
+var
+  cidx: integer;
+  p: Ppatch_t;
+  dx: integer;
+begin
+  if not drawcrosshair then
+    exit;
+
+  if (amstate = am_only) or (amstate = am_overlay) then
+    exit;
+
+  if plr = nil then
+    exit;
+
+  if plr.playerstate = PST_DEAD then
+    exit;
+
+  if plr.plinetarget = nil then
+    cidx := 0
+  else if plr.plinetarget.flags and MF_ALLY <> 0 then
+    cidx := 0
+  else if plr.plinetarget.flags2_ex and MF2_EX_FRIEND <> 0 then
+    cidx := 0
+  else
+    cidx := (((leveltime - plr.pcrosstic) div 8) mod 4) + 1;
+
+  if plr.lookdir2 < 128 then
+    dx := plr.lookdir2 * viewwidth div 40 
+  else
+    dx := - (255 - plr.lookdir2) * viewwidth div 40;
+
+  p := crosshairs[cidx];
+  if screenblocks > 10 then
+    V_DrawPatch(160 + dx, 100, SCN_FG, p, true)
+  else
+    V_DrawPatch(160 + dx, 84, SCN_FG, p, true);
+end;
+
+//==============================================================================
+// HU_DrawDemoProgress
+//
 // 19/9/2009 JVAL: For drawing demo progress
+//
+//==============================================================================
 procedure HU_DrawDemoProgress;
 var
   dp: Ppatch_t;
@@ -547,6 +728,11 @@ begin
   Z_ChangeTag(dp, PU_CACHE);
 end;
 
+//==============================================================================
+//
+// HU_Drawer
+//
+//==============================================================================
 procedure HU_Drawer;
 var
   i, t: integer;
@@ -562,6 +748,8 @@ begin
     HU_DrawFPS;
   if demoplayback and showdemoplaybackprogress then
     HU_DrawDemoProgress;
+
+  HU_DrawCrossHair;
 
   HUlib_drawSText(@w_message);
   {$IFDEF OPENGL}
@@ -598,6 +786,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// HU_Erase
+//
+//==============================================================================
 procedure HU_Erase;
 begin
   HUlib_eraseSText(@w_message);
@@ -605,6 +798,11 @@ begin
   HUlib_eraseTextLine(@w_title);
 end;
 
+//==============================================================================
+//
+// HU_Ticker
+//
+//==============================================================================
 procedure HU_Ticker;
 var
   i: integer;
@@ -635,7 +833,7 @@ begin
   if (showMessages <> 0) or message_dontfuckwithme then
   begin
     // display message if necessary
-    if ((plr._message <> '') and (not message_nottobefuckedwith)) or
+    if ((plr._message <> '') and not message_nottobefuckedwith) or
        ((plr._message <> '') and message_dontfuckwithme) then
     begin
       HUlib_addMessageToSText2(@w_message, '', plr._message);
@@ -695,6 +893,11 @@ var
   head: integer = 0;
   tail: integer = 0;
 
+//==============================================================================
+//
+// HU_queueChatChar
+//
+//==============================================================================
 procedure HU_queueChatChar(c: char);
 begin
   if ((head + 1) and (QUEUESIZE - 1)) = tail then
@@ -706,6 +909,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// HU_dequeueChatChar
+//
+//==============================================================================
 function HU_dequeueChatChar: char;
 begin
   if head <> tail then
@@ -723,6 +931,11 @@ var
   altdown: boolean = false;
   num_nobrainers: integer = 0;
 
+//==============================================================================
+//
+// HU_Responder
+//
+//==============================================================================
 function HU_Responder(ev: Pevent_t): boolean;
 var
   macromessage: string;

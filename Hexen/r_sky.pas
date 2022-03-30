@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiHexen: A modified and improved Hexen port for Windows
+//  DelphiHexen is a source port of the game Hexen and it is
 //  based on original Linux Doom as published by "id Software", on
 //  Hexen source as published by "Raven" software and DelphiDoom
 //  as published by Jim Valavanis.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -25,7 +25,7 @@
 //  Sky rendering.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -56,32 +56,43 @@ var
   Sky2ScrollDelta: fixed_t;
   DoubleSky: boolean;
 
+//==============================================================================
+//
+// R_InitSkyMap
+//
+//==============================================================================
 procedure R_InitSkyMap;
 
+//==============================================================================
+//
+// R_InitSky
+//
+//==============================================================================
 procedure R_InitSky(map: integer);
 
 implementation
 
 uses
-  p_setup;
+  p_mapinfo;
 
+//==============================================================================
 //
 // R_InitSkyMap
 // Called whenever the view size changes.
 //
+//==============================================================================
 procedure R_InitSkyMap;
 begin
   skytexturemid := 200 * FRACUNIT;
 end;
 
-//==========================================================================
+//==============================================================================
 //
 // R_InitSky
 //
 // Called at level load.
 //
-//==========================================================================
-
+//==============================================================================
 procedure R_InitSky(map: integer);
 begin
   SkyTexture := P_GetMapSky1Texture(map);

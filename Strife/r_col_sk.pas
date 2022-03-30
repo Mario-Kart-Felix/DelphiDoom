@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 //  02111-1307, USA.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -37,11 +37,34 @@ unit r_col_sk;
 
 interface
 
+//==============================================================================
+// R_DrawSkyColumnLow
+//
 // Sky column drawing functions
 // Sky column drawers
+//
+//==============================================================================
 procedure R_DrawSkyColumnLow;
+
+//==============================================================================
+//
+// R_DrawSkyColumn
+//
+//==============================================================================
 procedure R_DrawSkyColumn;
+
+//==============================================================================
+//
+// R_DrawSkyColumnHi
+//
+//==============================================================================
 procedure R_DrawSkyColumnHi;
+
+//==============================================================================
+//
+// R_DrawSkyColumnUltra
+//
+//==============================================================================
 procedure R_DrawSkyColumnUltra;
 
 implementation
@@ -52,13 +75,14 @@ uses
   m_fixed,
   r_draw,
   r_main,
-  r_column,
-  r_hires,
-  v_video;
+  r_column;
 
+//==============================================================================
+// R_DrawSkyColumnLow
 //
 // Sky Column
 //
+//==============================================================================
 procedure R_DrawSkyColumnLow;
 var
   count: integer;
@@ -111,6 +135,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// R_DrawSkyColumn
+//
+//==============================================================================
 procedure R_DrawSkyColumn;
 var
   count: integer;
@@ -135,6 +164,11 @@ begin
   {$I R_DrawSkyColumnMedium.inc}
 end;
 
+//==============================================================================
+//
+// R_DrawSkyColumnHi
+//
+//==============================================================================
 procedure R_DrawSkyColumnHi;
 var
   count: integer;
@@ -164,6 +198,11 @@ begin
   {$I R_DrawSkyColumnHi.inc}
 end;
 
+//==============================================================================
+//
+// R_DrawSkyColumnUltra
+//
+//==============================================================================
 procedure R_DrawSkyColumnUltra;
 var
   count: integer;
@@ -198,6 +237,7 @@ begin
   and_mask := 128 * (1 shl dc_texturefactorbits) - 1;
 
   swidth := SCREENWIDTH32PITCH;
+
   {$I R_DrawSkyColumnUltra.inc}
 end;
 

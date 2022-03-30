@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@
 //  Action functions for weapons.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -43,7 +43,6 @@ unit p_pspr;
 interface
 
 uses
-// Basic data types.
 // Needs fixed point, and BAM angles.
   m_fixed,
   tables,
@@ -60,63 +59,208 @@ const
   FF_FULLBRIGHT = $8000; // flag in thing->frame
   FF_FRAMEMASK = $7fff;
 
+//==============================================================================
+//
+// P_DropWeapon
+//
+//==============================================================================
 procedure P_DropWeapon(player: Pplayer_t);
 
+//==============================================================================
+//
+// A_WeaponReady
+//
+//==============================================================================
 procedure A_WeaponReady(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_ReFire
+//
+//==============================================================================
 procedure A_ReFire(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_CheckReload
+//
+//==============================================================================
 procedure A_CheckReload(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Lower
+//
+//==============================================================================
 procedure A_Lower(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Raise
+//
+//==============================================================================
 procedure A_Raise(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_GunFlash
+//
+//==============================================================================
 procedure A_GunFlash(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Punch
+//
+//==============================================================================
 procedure A_Punch(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireMissile
+//
+//==============================================================================
 procedure A_FireMissile(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Light0
+//
+//==============================================================================
 procedure A_Light0(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Light1
+//
+//==============================================================================
 procedure A_Light1(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_Light2
+//
+//==============================================================================
 procedure A_Light2(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_GunFlashThinker
+//
+//==============================================================================
 procedure A_GunFlashThinker(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireElectricBolt
+//
+//==============================================================================
 procedure A_FireElectricBolt(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FirePoisonBolt
+//
+//==============================================================================
 procedure A_FirePoisonBolt(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireRifle
+//
+//==============================================================================
 procedure A_FireRifle(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireFlameThrower
+//
+//==============================================================================
 procedure A_FireFlameThrower(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireMauler1
+//
+//==============================================================================
 procedure A_FireMauler1(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireMauler2
+//
+//==============================================================================
 procedure A_FireMauler2(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_MaulerSound
+//
+//==============================================================================
 procedure A_MaulerSound(player: Pplayer_t; psp: pspdef_t);
 
+//==============================================================================
+//
+// A_FireGrenade
+//
+//==============================================================================
 procedure A_FireGrenade(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_SigilSound
+//
+//==============================================================================
 procedure A_SigilSound(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_FireSigil
+//
+//==============================================================================
 procedure A_FireSigil(player: Pplayer_t; pspr: Ppspdef_t);
 
+//==============================================================================
+//
+// A_SigilShock
+//
+//==============================================================================
 procedure A_SigilShock(player: Pplayer_t; psp: Ppspdef_t);
 
+//==============================================================================
+//
+// A_TorpedoExplode
+//
+//==============================================================================
 procedure A_TorpedoExplode(actor: Pmobj_t);
 
+//==============================================================================
+//
+// P_SetupPsprites
+//
+//==============================================================================
 procedure P_SetupPsprites(player: Pplayer_t);
 
+//==============================================================================
+//
+// P_MovePsprites
+//
+//==============================================================================
 procedure P_MovePsprites(player: Pplayer_t);
 
-procedure P_BulletSlope(mo: Pmobj_t);
-
+//==============================================================================
+//
+// P_SetPsprite
+//
+//==============================================================================
 procedure P_SetPsprite(player: Pplayer_t; position: integer; stnum: statenum_t);
+
+//==============================================================================
+//
+// P_CheckAmmo
+//
+//==============================================================================
+function P_CheckAmmo(player: Pplayer_t): boolean;
 
 implementation
 
@@ -124,13 +268,6 @@ uses
   d_delphi,
   g_game,
   info,
-//
-// Needs to include the precompiled
-//  sprite animation tables.
-// Header generated by multigen utility.
-// This includes all the data for thing animation,
-// i.e. the Thing Atrributes table
-// and the Frame Sequence table.
   doomdef,
   d_event,
   d_items,
@@ -146,10 +283,8 @@ uses
   p_user,
   r_main,
   s_sound,
-// State.
-  doomstat,
 // Data.
-  sounds;
+  sounddata;
 
 //
 // Adjust weapon bottom and top
@@ -170,11 +305,21 @@ const
 //
 // P_SetPsprite
 //
+const
+  PSPR_CYCLE_LIMIT = 1000000;
+
+//==============================================================================
+//
+// P_SetPsprite
+//
+//==============================================================================
 procedure P_SetPsprite(player: Pplayer_t; position: integer; stnum: statenum_t);
 var
   psp: Ppspdef_t;
   state: Pstate_t;
+  cycle_counter: integer;
 begin
+  cycle_counter := 0;
   psp := @player.psprites[position];
   repeat
     if Ord(stnum) = 0 then
@@ -199,6 +344,8 @@ begin
     // Modified handling.
     if Assigned(state.action.acp2) then
     begin
+      if state.params <> nil then
+        state.params.actor := player.mo;
       state.action.acp2(player, psp);
       if psp.state = nil then
         break;
@@ -206,16 +353,22 @@ begin
 
     stnum := psp.state.nextstate;
 
+    inc(cycle_counter);
+    if cycle_counter > PSPR_CYCLE_LIMIT then
+      I_Error('P_SetPsprite(): Infinite state cycle detected in player sprites (readyweapon=%d, pendinfweapon=%d)!',
+        [Ord(player.readyweapon), Ord(player.pendingweapon)]);
   until psp.tics <> 0;
   // an initial state of 0 could cycle through
 end;
 
+//==============================================================================
 //
 // P_BringUpWeapon
 // Starts bringing the pending weapon up
 // from the bottom of the screen.
 // Uses player
 //
+//==============================================================================
 procedure P_BringUpWeapon(player: Pplayer_t);
 var
   newstate: statenum_t;
@@ -244,6 +397,7 @@ begin
 
 end;
 
+//==============================================================================
 //
 // P_CheckAmmo
 // Returns true if there is enough ammo to shoot.
@@ -251,6 +405,7 @@ end;
 //
 // villsa [STRIFE] Changes to handle Strife weapons
 //
+//==============================================================================
 function P_CheckAmmo(player: Pplayer_t): boolean;
 var
   ammo: ammotype_t;
@@ -259,7 +414,9 @@ begin
   ammo := weaponinfo[Ord(player.readyweapon)].ammo;
 
   // Minimal amount for one shot varies.
-  if player.readyweapon = wp_torpedo then
+  if weaponinfo[Ord(player.readyweapon)].intflags and WIF_ENABLEAPS <> 0 then
+    count := weaponinfo[Ord(player.readyweapon)].ammopershot
+  else if player.readyweapon = wp_torpedo then
     count := 30
   else if player.readyweapon = wp_mauler then
     count := 20
@@ -310,18 +467,19 @@ begin
   else
     player.pendingweapon := wp_fist;
 
-
   // Now set appropriate weapon overlay.
   P_SetPsprite(player, Ord(ps_weapon), statenum_t(weaponinfo[Ord(player.readyweapon)].downstate));
 
   result := false;
 end;
 
+//==============================================================================
 //
 // P_FireWeapon.
 //
 // villsa [STRIFE] Changes for player state and weapons
 //
+//==============================================================================
 procedure P_FireWeapon(player: Pplayer_t);
 var
   newstate: statenum_t;
@@ -340,15 +498,18 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // P_DropWeapon
 // Player died, so put the weapon away.
 //
+//==============================================================================
 procedure P_DropWeapon(player: Pplayer_t);
 begin
   P_SetPsprite(player, Ord(ps_weapon), statenum_t(weaponinfo[Ord(player.readyweapon)].downstate));
 end;
 
+//==============================================================================
 //
 // A_WeaponReady
 // The player can fire the weapon
@@ -356,6 +517,7 @@ end;
 // Follows after getting weapon up,
 // or after previous attack/fire sequence.
 //
+//==============================================================================
 procedure A_WeaponReady(player: Pplayer_t; psp: Ppspdef_t);
 var
   newstate: statenum_t;
@@ -405,11 +567,13 @@ begin
   psp.sy := WEAPONTOP + FixedMul(player.bob, finesine[angle]);
 end;
 
+//==============================================================================
 //
 // A_ReFire
 // The player can re-fire the weapon
 // without lowering it entirely.
 //
+//==============================================================================
 procedure A_ReFire(player: Pplayer_t; psp: Ppspdef_t);
 begin
   // check for fire
@@ -428,6 +592,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// A_CheckReload
+//
+//==============================================================================
 procedure A_CheckReload(player: Pplayer_t; psp: Ppspdef_t);
 begin
   P_CheckAmmo(player);
@@ -437,11 +606,13 @@ begin
     P_SetPsprite(player, Ord(player.readyweapon), S_XBOW_10);
 end;
 
+//==============================================================================
 //
 // A_Lower
 // Lowers current weapon,
 //  and changes weapon at bottom.
 //
+//==============================================================================
 procedure A_Lower(player: Pplayer_t; psp: Ppspdef_t);
 begin
   psp.sy := psp.sy + LOWERSPEED;
@@ -472,9 +643,11 @@ begin
   P_BringUpWeapon(player);
 end;
 
+//==============================================================================
 //
 // A_Raise
 //
+//==============================================================================
 procedure A_Raise(player: Pplayer_t; psp: Ppspdef_t);
 var
   newstate: statenum_t;
@@ -493,9 +666,11 @@ begin
   P_SetPsprite(player, Ord(ps_weapon), newstate);
 end;
 
+//==============================================================================
 //
 // A_GunFlash
 //
+//==============================================================================
 procedure A_GunFlash(player: Pplayer_t; psp: Ppspdef_t);
 begin
   P_SetMobjState(player.mo, S_PLAY_06);
@@ -506,16 +681,18 @@ end;
 // WEAPON ATTACKS
 //
 
-
+//==============================================================================
 //
 // A_Punch
 //
+//==============================================================================
 procedure A_Punch(player: Pplayer_t; psp: Ppspdef_t);
 var
   angle: angle_t;
   damage: integer;
   slope: integer;
   stamina: integer;
+  mrange: integer;
 begin
   // villsa [STRIFE] new damage formula
   // haleyjd 09/19/10: seriously corrected...
@@ -527,8 +704,9 @@ begin
 
   angle := player.mo.angle;
   angle := angle + _SHLW(P_Random - P_Random, 18);
-  slope := P_AimLineAttack(player.mo, angle, PLAYERMELEERANGE);
-  P_LineAttack(player.mo, angle, PLAYERMELEERANGE, slope, damage);
+  mrange := P_GetPlayerMeleeRange(player);
+  slope := P_AimLineAttack(player.mo, angle, mrange);
+  P_LineAttack(player.mo, angle, mrange, slope, damage);
 
   // turn to face target
   if linetarget <> nil then
@@ -552,11 +730,13 @@ begin
     S_StartSound (player.mo, Ord(sfx_swish));
 end;
 
+//==============================================================================
 //
 // A_FireFlameThrower
 //
 // villsa [STRIFE] new codepointer
 //
+//==============================================================================
 procedure A_FireFlameThrower(player: Pplayer_t; psp: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -569,11 +749,13 @@ begin
   mo.momz := mo.momz + (5 * FRACUNIT);
 end;
 
+//==============================================================================
 //
 // A_FireMissile
 //
 // villsa [STRIFE] completly new compared to the original
 //
+//==============================================================================
 procedure A_FireMissile(player: Pplayer_t; psp: Ppspdef_t);
 var
   an: angle_t;
@@ -588,11 +770,13 @@ begin
   player.mo.angle := an;
 end;
 
+//==============================================================================
 //
 // A_FireMauler2
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FireMauler2(player: Pplayer_t; pspr: Ppspdef_t);
 begin
   P_SetMobjState(player.mo, S_PLAY_06);
@@ -603,11 +787,13 @@ begin
   P_Thrust(player, player.mo.angle + ANG180, 512000);
 end;
 
+//==============================================================================
 //
 // A_FireGrenade
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FireGrenade(player: Pplayer_t; pspr: Ppspdef_t);
 var
   _type: integer;
@@ -661,10 +847,12 @@ begin
   mo.flags := mo.flags or MF_BOUNCE;
 end;
 
+//==============================================================================
 //
 // A_FireElectricBolt
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FireElectricBolt(player: Pplayer_t; pspr: Ppspdef_t);
 var
   an: angle_t;
@@ -678,10 +866,12 @@ begin
   S_StartSound(player.mo, Ord(sfx_xbow));
 end;
 
+//==============================================================================
 //
 // A_FirePoisonBolt
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FirePoisonBolt(player: Pplayer_t; pspr: Ppspdef_t);
 var
   an: angle_t;
@@ -695,51 +885,13 @@ begin
   S_StartSound(player.mo, Ord(sfx_xbow));
 end;
 
-
-//
-// P_BulletSlope
-// Sets a slope so a near miss is at aproximately
-// the height of the intended target
-//
-// haleyjd 09/06/10 [STRIFE] Modified with a little target hack...
-//
-var
-  bulletslope: fixed_t;
-
-
-procedure P_BulletSlope(mo: Pmobj_t);
-var
-  an: angle_t;
-begin
-  // see which target is to be aimed at
-  an := mo.angle;
-  bulletslope := P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT);
-
-  if linetarget = nil then
-  begin
-    an := an + $4000000;
-    bulletslope := P_AimLineAttack (mo, an, 16 * 64 * FRACUNIT);
-    if linetarget = nil then
-    begin
-      an := an - $8000000;
-      bulletslope := P_AimLineAttack(mo, an, 16 * 64 * FRACUNIT);
-      if zaxisshift and (linetarget = nil) then
-        if mo.player <> nil then
-          bulletslope := (Pplayer_t(mo.player).lookdir * FRACUNIT) div 173;
-    end;
-  end;
-
-  // haleyjd 09/06/10: [STRIFE] Somebody added this here, and without it, you
-  // will get spurious crashing in routines such as P_LookForPlayers!
-  if linetarget <> nil then
-    mo.target := linetarget;
-end;
-
+//==============================================================================
 //
 // P_GunShot
 //
 // [STRIFE] Modifications to support accuracy.
 //
+//==============================================================================
 procedure P_GunShot(mo: Pmobj_t; accurate: boolean);
 var
   angle: angle_t;
@@ -760,11 +912,13 @@ begin
   P_LineAttack(mo, angle, MISSILERANGE, bulletslope, damage);
 end;
 
+//==============================================================================
 //
 // A_FireRifle
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FireRifle(player: Pplayer_t; pspr: Ppspdef_t);
 begin
   S_StartSound(player.mo, Ord(sfx_rifle));
@@ -774,15 +928,19 @@ begin
     P_SetMobjState(player.mo, S_PLAY_06); // 293
     dec(player.ammo[Ord(weaponinfo[Ord(player.readyweapon)].ammo)]);
     P_BulletSlope(player.mo);
+    if linetarget <> nil then
+      player.mo.target := linetarget;
     P_GunShot(player.mo, player.refire = 0);
   end;
 end;
 
+//==============================================================================
 //
 // A_FireMauler1
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FireMauler1(player: Pplayer_t; pspr: Ppspdef_t);
 var
   i: integer;
@@ -794,6 +952,8 @@ begin
   begin
     dec(player.ammo[Ord(weaponinfo[Ord(player.readyweapon)].ammo)], 20);
     P_BulletSlope(player.mo);
+    if linetarget <> nil then
+      player.mo.target := linetarget;
     S_StartSound(player.mo, Ord(sfx_pgrdat));
 
     for i := 0 to 19 do
@@ -807,22 +967,26 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_SigilSound
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_SigilSound(player: Pplayer_t; pspr: Ppspdef_t);
 begin
   S_StartSound(player.mo, Ord(sfx_siglup));
   player.extralight := 2;
 end;
 
+//==============================================================================
 //
 // A_FireSigil
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_FireSigil(player: Pplayer_t; pspr: Ppspdef_t);
 var
   mo: Pmobj_t;
@@ -862,6 +1026,8 @@ begin
     0:
       begin
         P_BulletSlope(player.mo);
+        if linetarget <> nil then
+          player.mo.target := linetarget;
         if linetarget <> nil then
         begin
           // haleyjd 09/18/10: corrected z coordinate
@@ -905,6 +1071,8 @@ begin
       begin
         P_BulletSlope(player.mo);
         if linetarget <> nil then
+          player.mo.target := linetarget;
+        if linetarget <> nil then
         begin
           mo := P_SpawnPlayerMissile(player.mo, Ord(MT_SIGIL_D_SHOT));
           mo.tracer := linetarget;
@@ -936,11 +1104,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_GunFlashThinker
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_GunFlashThinker(player: Pplayer_t; pspr: Ppspdef_t);
 begin
   if (player.readyweapon = wp_sigil) and (player.sigiltype <> 0) then
@@ -949,39 +1119,56 @@ begin
     P_SetPsprite(player, Ord(ps_flash), S_NULL);
 end;
 
+//==============================================================================
+// A_Light0
 //
 // ?
 //
+//==============================================================================
 procedure A_Light0(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := 0;
 end;
 
+//==============================================================================
+//
+// A_Light1
+//
+//==============================================================================
 procedure A_Light1(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := 1;
 end;
 
+//==============================================================================
+//
+// A_Light2
+//
+//==============================================================================
 procedure A_Light2(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := 2;
 end;
 
+//==============================================================================
 //
 // A_SigilShock
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_SigilShock(player: Pplayer_t; psp: Ppspdef_t);
 begin
   player.extralight := -3;
 end;
 
+//==============================================================================
 //
 // A_TorpedoExplode
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_TorpedoExplode(actor: Pmobj_t);
 var
   i: integer;
@@ -995,11 +1182,13 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // A_MaulerSound
 //
 // villsa [STRIFE] - new codepointer
 //
+//==============================================================================
 procedure A_MaulerSound(player: Pplayer_t; psp: pspdef_t);
 begin
   S_StartSound(player.mo, Ord(sfx_proton));
@@ -1007,10 +1196,12 @@ begin
   psp.sy := psp.sy + (P_Random - P_Random) * 1024;
 end;
 
+//==============================================================================
 //
 // P_SetupPsprites
 // Called at start of level for each player.
 //
+//==============================================================================
 procedure P_SetupPsprites(player: Pplayer_t);
 var
   i: integer;
@@ -1024,10 +1215,12 @@ begin
   P_BringUpWeapon(player);
 end;
 
+//==============================================================================
 //
 // P_MovePsprites
 // Called every tic by player thinking routine.
 //
+//==============================================================================
 procedure P_MovePsprites(player: Pplayer_t);
 var
   i: integer;

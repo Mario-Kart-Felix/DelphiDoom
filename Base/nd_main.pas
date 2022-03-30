@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Node builder (glbsp wrapper)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -335,14 +335,39 @@ type
   GLNode_tArray = array[0..$FFFF] of GLNode_t;
   PGLNode_tArray = ^GLNode_tArray;
 
+//==============================================================================
+//
+// gld_GetGLNodesVersion
+//
+//==============================================================================
 function gld_GetGLNodesVersion(const base: integer): integer;
 
+//==============================================================================
+//
+// gld_GetGLVertexes
+//
+//==============================================================================
 procedure gld_GetGLVertexes(v: Pvertex_t; lump: integer; count: integer; ver: integer);
 
+//==============================================================================
+//
+// gld_GetGLMapLump
+//
+//==============================================================================
 function gld_GetGLMapLump(const maplump: integer): integer;
 
+//==============================================================================
+//
+// gld_BuildNodes
+//
+//==============================================================================
 function gld_BuildNodes(const wadfile, gwafile: string): boolean;
 
+//==============================================================================
+//
+// ND_GetNodes
+//
+//==============================================================================
 function ND_GetNodes(const mapname: string): string;
 
 type
@@ -371,19 +396,45 @@ type
     property mapsegs: PGLSeg3_tArray read fmapsegs;
   end;
 
+//==============================================================================
+//
+// ND_LoadVertexes
+//
+//==============================================================================
 procedure ND_LoadVertexes(lump: integer; gwa: TGWAFile);
 
+//==============================================================================
+//
+// ND_LoadSubsectors
+//
+//==============================================================================
 procedure ND_LoadSubsectors(gwa: TGWAFile);
 
+//==============================================================================
+//
+// ND_LoadNodes
+//
+//==============================================================================
 procedure ND_LoadNodes(gwa: TGWAFile);
 
+//==============================================================================
+//
+// ND_LoadSegs
+//
+//==============================================================================
 procedure ND_LoadSegs(gwa: TGWAFile);
 
+//==============================================================================
+//
+// ND_NodesCheck
+//
+//==============================================================================
 procedure ND_NodesCheck(const lumpname: string);
 
 implementation
 
 uses
+  acs,
   m_crc32,
   i_tmp,
   i_exec,
@@ -395,10 +446,13 @@ uses
   r_main,
   z_zone;
 
+//==============================================================================
+// gld_GetGLNodesVersion
 //
 // JVAL
 //  Returns the glbsp nodes version.
 //
+//==============================================================================
 function gld_GetGLNodesVersion(const base: integer): integer;
 var
   data: pointer;
@@ -458,6 +512,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// gld_GetGLVertexes
+//
+//==============================================================================
 procedure gld_GetGLVertexes(v: Pvertex_t; lump: integer; count: integer; ver: integer);
 var
   i: integer;
@@ -500,6 +559,11 @@ end;
 const
   MOD_ADLER = 65521;
 
+//==============================================================================
+//
+// GetMapAdler32
+//
+//==============================================================================
 function GetMapAdler32(maplump: integer): LongWord;
 var
   data: PByteArray;
@@ -534,10 +598,12 @@ begin
 
 end;
 
+//==============================================================================
 //
 // GetGLMapAdler32
 // JVAL: This function returns the Adler-32 value of glBSP utility
 //
+//==============================================================================
 function GetGLMapAdler32(glmaplump: integer; glmapname: string): LongWord;
 var
   txt: string;
@@ -573,7 +639,7 @@ begin
   check := strupper(glmapname) = strupper(char8tostring(W_GetNameForNum(glmaplump)));
   for i := 0 to sglinf.Count - 1 do
   begin
-    splitstring(sglinf.Strings[i], s1, s2, '=');
+    splitstring_ch(sglinf.Strings[i], s1, s2, '=');
     if s1 = 'CHECKSUM' then
       result := atoui(s2)
     else if not check and (s1 = 'MAPNAME') then
@@ -590,7 +656,11 @@ begin
     result := 0;
 end;
 
-
+//==============================================================================
+//
+// gld_GetGLMapLump
+//
+//==============================================================================
 function gld_GetGLMapLump(const maplump: integer): integer;
 var
   adler32: LongWord;
@@ -647,7 +717,7 @@ begin
 
   // No luck so far? Look for the lumps previous to map
   // Check all the lumps after the map
-  for i := 0 to maplump -1 do
+  for i := 0 to maplump - 1 do
     if (lumpinfo[i].v1 = glmapname8.x[0]) and
        (lumpinfo[i].v2 = glmapname8.x[1]) then
       begin
@@ -4253,6 +4323,11 @@ const
     $69, $6D, $70, $5F, $5F, $66, $77, $72, $69, $74, $65, $00
   );
 
+//==============================================================================
+//
+// gld_BuildNodes
+//
+//==============================================================================
 function gld_BuildNodes(const wadfile, gwafile: string): boolean;
 var
   size: integer;
@@ -4277,6 +4352,11 @@ begin
     I_Warning('gld_BuildNodes(): Failed to build GL-Friendly nodes for %s'#13#10, [wadfile]);
 end;
 
+//==============================================================================
+//
+// HextW
+//
+//==============================================================================
 function HextW(w: Word): string;
 const
   h: array[0..15] of Char = '0123456789abcdef';
@@ -4284,6 +4364,11 @@ begin
   result := h[Hi(w) shr 4] + h[Hi(w) and $F] + h[Lo(w) shr 4] + h[Lo(w) and $F];
 end;
 
+//==============================================================================
+//
+// HextL
+//
+//==============================================================================
 function HextL(l: Longint): string;
 type
   Long = record
@@ -4295,6 +4380,50 @@ begin
     result := HextW(HiWord) + HextW(LoWord);
 end;
 
+{$IFNDEF HEXEN}
+type
+  hexenmapthing_t = record
+    tid: smallint;
+    x: smallint;
+    y: smallint;
+    height: smallint;
+    angle: smallint;
+    _type: word;
+    options: smallint;
+    special: byte;
+    arg1: byte;
+    arg2: byte;
+    arg3: byte;
+    arg4: byte;
+    arg5: byte;
+  end;
+  Phexenmapthing_t = ^hexenmapthing_t;
+  hexenmapthing_tArray = array[0..$FFFF] of hexenmapthing_t;
+  Phexenmapthing_tArray = ^hexenmapthing_tArray;
+
+  hexenmaplinedef_t = record
+    v1: smallint;
+    v2: smallint;
+    flags: smallint;
+    special: byte;
+    arg1: byte;
+    arg2: byte;
+    arg3: byte;
+    arg4: byte;
+    arg5: byte;
+  // sidenum[1] will be -1 if one sided
+    sidenum: array[0..1] of smallint;
+  end;
+  Phexenmaplinedef_t = ^hexenmaplinedef_t;
+  hexenmaplinedef_tArray = array[0..$FFFF] of hexenmaplinedef_t;
+  Phexenmaplinedef_tArray = ^hexenmaplinedef_tArray;
+{$ENDIF}
+
+//==============================================================================
+//
+// ND_GetNodes
+//
+//==============================================================================
 function ND_GetNodes(const mapname: string): string;
 var
   header: wadinfo_t;
@@ -4305,8 +4434,20 @@ var
   path: string;
   mapfilename: string;
   gwafilename: string;
-  infotable: array[0..{$IFDEF HEXEN}11{$ELSE}10{$ENDIF}] of filelump_t;
+  infotable: array[0..11] of filelump_t;
+  ninfolumps: integer;
   buf: PByteArray;
+  hasbehavior: boolean;
+{$IFNDEF HEXEN}
+  x: integer;
+  hlen: integer;
+  vthings: Pmapthing_tArray;
+  hthings: Phexenmapthing_tArray;
+  nthings: integer;
+  vlinedefs: Pmaplinedef_tArray;
+  hlinedefs: Phexenmaplinedef_tArray;
+  nlinedefs: integer;
+{$ENDIF}
 begin
   maplump := W_GetNumForName(mapname);
   adler32 := GetMapAdler32(maplump);
@@ -4324,14 +4465,20 @@ begin
 
     header.identification :=
       integer(Ord('P') or (Ord('W') shl 8) or (Ord('A') shl 16) or (Ord('D') shl 24));
-    header.numlumps := {$IFDEF HEXEN}12{$ELSE}11{$ENDIF};
+
+    hasbehavior := acc_isbehaviorlump(maplump + Ord(ML_BEHAVIOR));
+    if hasbehavior then
+      ninfolumps := 12
+    else
+      ninfolumps := 11;
+    header.numlumps := {$IFDEF HEXEN}12{$ELSE}ninfolumps{$ENDIF};
 
     f := TFile.Create(mapfilename, fCreate);
     f.Write(header, SizeOf(header));
 
     ZeroMemory(@infotable, SizeOf(infotable));
 
-    for i := 0 to {$IFDEF HEXEN}11{$ELSE}10{$ENDIF} do
+    for i := 0 to ninfolumps - 1 do
     begin
       lump := maplump + i;
       if lump >= W_NumLumps then
@@ -4340,17 +4487,90 @@ begin
       len := W_LumpLength(lump);
 
       infotable[i].filepos := f.Position;
-      infotable[i].size := len;
       infotable[i].name := lumpinfo[lump].name;
 
-      buf := malloc(len);
-      W_ReadLump(lump, buf);
-      f.Write(buf^, len);
-      memfree(pointer(buf), len);
+      {$IFNDEF HEXEN}
+      if hasbehavior and (i = Ord(ML_THINGS)) then
+      begin
+        vthings := malloc(len);
+        W_ReadLump(lump, vthings);
+        nthings := len div SizeOf(mapthing_t);
+        hlen := nthings * SizeOf(hexenmapthing_t);
+        hthings := malloc(hlen);
+        for x := 0 to nthings - 1 do
+        begin
+          hthings[x].tid := 0;
+          hthings[x].x := vthings[x].x;
+          hthings[x].y := vthings[x].y;
+          hthings[x].height := 0;
+          hthings[x].angle := vthings[x].angle;
+          hthings[x]._type := vthings[x]._type;
+          hthings[x].options := vthings[x].options;
+          hthings[x].special := 0;
+          hthings[x].arg1 := 0;
+          hthings[x].arg2 := 0;
+          hthings[x].arg3 := 0;
+          hthings[x].arg4 := 0;
+          hthings[x].arg5 := 0;
+        end;
+        infotable[i].size := hlen;
+        f.Write(hthings^, hlen);
+        memfree(pointer(vthings), len);
+        memfree(pointer(hthings), hlen);
+      end
+      else if hasbehavior and (i = Ord(ML_LINEDEFS)) then
+      begin
+        vlinedefs := malloc(len);
+        W_ReadLump(lump, vlinedefs);
+        nlinedefs := len div SizeOf(maplinedef_t);
+        hlen := nlinedefs * SizeOf(hexenmaplinedef_t);
+        hlinedefs := malloc(hlen);
+        for x := 0 to nlinedefs - 1 do
+        begin
+          hlinedefs[x].v1 := vlinedefs[x].v1;
+          hlinedefs[x].v2 := vlinedefs[x].v2;
+          hlinedefs[x].flags := vlinedefs[x].flags;
+          if IsIntegerInRange(vlinedefs[x].special, 0, 255) then
+            hlinedefs[x].special := vlinedefs[x].special
+          else
+            hlinedefs[x].special := 0;
+          hlinedefs[x].arg1 := 0;
+          hlinedefs[x].arg2 := 0;
+          hlinedefs[x].arg3 := 0;
+          hlinedefs[x].arg4 := 0;
+          hlinedefs[x].arg5 := 0;
+          // sidenum[1] will be -1 if one sided
+          hlinedefs[x].sidenum[0] := vlinedefs[x].sidenum[0];
+          hlinedefs[x].sidenum[1] := vlinedefs[x].sidenum[1];
+        end;
+        infotable[i].size := hlen;
+        f.Write(hlinedefs^, hlen);
+        memfree(pointer(vlinedefs), len);
+        memfree(pointer(hlinedefs), hlen);
+      end
+      else
+      {$ENDIF}
+      begin
+        infotable[i].size := len;
+
+        buf := malloc(len);
+        W_ReadLump(lump, buf);
+        f.Write(buf^, len);
+        memfree(pointer(buf), len);
+      end;
     end;
 
+    {$IFDEF HEXEN}
+    if not hasbehavior then
+    begin
+      infotable[11].filepos := 0;
+      infotable[11].size := 0;
+      infotable[11].name := stringtochar8('BEHAVIOR');
+    end;
+    {$ENDIF}
+
     header.infotableofs := f.Position;
-    f.Write(infotable, SizeOf(infotable));
+    f.Write(infotable, header.numlumps * SizeOf(filelump_t));
     f.Seek(0, sFromBeginning);
     f.Write(header, SizeOf(header));
     f.Free;
@@ -4362,7 +4582,6 @@ begin
       result := '';
       exit;
     end;
-
   end;
 
   result := gwafilename;
@@ -4371,6 +4590,11 @@ end;
 var
   firstglvert: integer;
 
+//==============================================================================
+//
+// TGWAFile.Create
+//
+//==============================================================================
 constructor TGWAFile.Create(const afilename: string);
 var
   f: TFile;
@@ -4559,6 +4783,11 @@ begin
   f.Free;
 end;
 
+//==============================================================================
+//
+// TGWAFile.Destroy
+//
+//==============================================================================
 destructor TGWAFile.Destroy;
 begin
   memfree(pointer(fglvertexes), fnumglvertexes * SizeOf(GLVertex2_t));
@@ -4568,6 +4797,11 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// ND_LoadVertexes
+//
+//==============================================================================
 procedure ND_LoadVertexes(lump: integer; gwa: TGWAFile);
 var
   data: pointer;
@@ -4621,6 +4855,7 @@ begin
     li.x := ml.x * FRACUNIT;
     li.y := ml.y * FRACUNIT;
     li.amvalidcount := 0;
+    li.interpvalidcount := 0;
     inc(ml);
     inc(li);
   end;
@@ -4633,19 +4868,22 @@ begin
   // Free buffer memory.
   Z_Free(data);
 
-
   for i := 0 to numglverts - 1 do
   begin
     li.x := gwa.glvertexes[i].x;
     li.y := gwa.glvertexes[i].y;
     li.amvalidcount := 0;
+    li.interpvalidcount := 0;
     inc(li);
   end;
 end;
 
+//==============================================================================
+// ND_LoadSubsectors
 //
 // P_LoadSubsectors
 //
+//==============================================================================
 procedure ND_LoadSubsectors(gwa: TGWAFile);
 var
   i: integer;
@@ -4664,6 +4902,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// ND_LoadNodes
+//
+//==============================================================================
 procedure ND_LoadNodes(gwa: TGWAFile);
 var
   i: integer;
@@ -4692,6 +4935,12 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// gldist
+//
+//==============================================================================
 function gldist(dx, dy: integer): float;
 var
   fx, fy: float;
@@ -4702,6 +4951,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// CheckGLVertex
+//
+//==============================================================================
 function CheckGLVertex(num: integer): integer;
 begin
   if glnodesver <= 2 then
@@ -4731,6 +4985,11 @@ begin
   result := num;
 end;
 
+//==============================================================================
+//
+// GetOffset
+//
+//==============================================================================
 function GetOffset(v1, v2: Pvertex_t): fixed_t;
 var
   a, b: single;
@@ -4740,6 +4999,11 @@ begin
   result := round(sqrt(a * a + b * b) * FRACUNIT);
 end;
 
+//==============================================================================
+//
+// ND_LoadSegs
+//
+//==============================================================================
 procedure ND_LoadSegs(gwa: TGWAFile);
 var
   i: integer;
@@ -4814,12 +5078,15 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // ND_NodesCheck
 //
 // Checks is nodes are available in wad map
 // If not we will build the nodes.
 // This routine allows to load levels without building the nodes (eg slige.out)
+//
+//==============================================================================
 procedure ND_NodesCheck(const lumpname: string);
 var
   lumpnum: integer;

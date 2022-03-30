@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiStrife: A modified and improved Strife source port for Windows.
+//  DelphiStrife is a source port of the game Strife.
 //
 //  Based on:
 //    - Linux Doom by "id Software"
@@ -10,7 +10,7 @@
 //  Copyright (C) 1993-1996 by id Software, Inc.
 //  Copyright (C) 2005 Simon Howard
 //  Copyright (C) 2010 James Haley, Samuel Villarreal
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@
 //  Game completion, final screen animation.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -44,16 +44,37 @@ uses
   d_event,
   info_h;
 
+//==============================================================================
+//
+// F_Responder
+//
+//==============================================================================
 function F_Responder(ev: Pevent_t): boolean;
 
 { Called by main loop. }
+
+//==============================================================================
+//
+// F_Ticker
+//
+//==============================================================================
 procedure F_Ticker;
 
 { Called by main loop. }
+
+//==============================================================================
+//
+// F_Drawer
+//
+//==============================================================================
 procedure F_Drawer;
 
+//==============================================================================
+//
+// F_StartFinale
+//
+//==============================================================================
 procedure F_StartFinale;
-
 
 //
 // Final DOOM 2 animation
@@ -99,6 +120,11 @@ const
   F_STAGE_ARTSCREEN = 1;
   F_STAGE_CAST = 2;
 
+//==============================================================================
+//
+// F_Init
+//
+//==============================================================================
 procedure F_Init;
 
 implementation
@@ -126,7 +152,7 @@ uses
   w_wad,
   s_sound,
 // Data.
-  sounds,
+  sounddata,
   doomdef,
   doomstat,
   hu_stuff;
@@ -189,12 +215,32 @@ const
     // JVAL: Teaser demo textdrawer
     SLIDE_TEXT        =  50;
 
+//==============================================================================
+//
+// F_StartCast
+//
+//==============================================================================
 procedure F_StartCast; forward;
 
+//==============================================================================
+//
+// F_CastTicker
+//
+//==============================================================================
 procedure F_CastTicker; forward;
 
+//==============================================================================
+//
+// F_CastResponder
+//
+//==============================================================================
 function F_CastResponder(ev: Pevent_t): boolean; forward;
 
+//==============================================================================
+//
+// F_TextWrite
+//
+//==============================================================================
 procedure F_TextWrite;
 var
   w: integer;
@@ -261,12 +307,16 @@ begin
     D_StartTitle;
 end;
 
-
 var
   slideshow_panel: string;
   slideshow_state: integer;
   slideshow_tics: integer;
 
+//==============================================================================
+//
+// F_StartFinale
+//
+//==============================================================================
 procedure F_StartFinale;
 begin
   gameaction := ga_nothing;
@@ -340,6 +390,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// F_Responder
+//
+//==============================================================================
 function F_Responder(ev: Pevent_t): boolean;
 begin
   if finalestage = F_STAGE_CAST then
@@ -348,7 +403,7 @@ begin
     result := false;
 end;
 
-
+//==============================================================================
 //
 // F_WaitTicker
 //
@@ -356,23 +411,26 @@ end;
 // haleyjd 09/13/10: This is called from G_Ticker if gamestate is 1, but we
 // have no idea for what it's supposed to be. It is unused.
 //
+//==============================================================================
 procedure F_WaitTicker;
 begin
   inc(finalecount);
   if finalecount >= 250 then
   begin
-    gamestate   := GS_FINALE;
+    gamestate := GS_FINALE;
     finalestage := 0;
     finalecount := 0;
   end;
 end;
 
+//==============================================================================
 //
 // F_DoSlideShow
 //
 // [STRIFE] New function
 // haleyjd 09/13/10: Handles slideshow states. Begging to be tabulated!
 //
+//==============================================================================
 procedure F_DoSlideShow;
 var
   patch: Ppatch_t;
@@ -582,9 +640,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // F_Ticker
 //
+//==============================================================================
 procedure F_Ticker;
 var
   i: integer;
@@ -615,7 +675,6 @@ begin
     F_DoSlideShow;
 end;
 
-
 var
   castnum: integer;
   casttics: integer;
@@ -625,6 +684,7 @@ var
   castonmelee: integer;
   castattacking: boolean;
 
+//==============================================================================
 //
 // F_StartCast
 //
@@ -632,6 +692,7 @@ var
 // Evidence suggests this was meant to be started from a menu item.
 // See m_menu.c for more info.
 //
+//==============================================================================
 procedure F_StartCast;
 begin
   if finalestage = F_STAGE_CAST then
@@ -653,9 +714,11 @@ begin
   castattacking := false;
 end;
 
+//==============================================================================
 //
 // F_CastTicker
 //
+//==============================================================================
 procedure F_CastTicker;
 var
   st: integer;
@@ -750,9 +813,11 @@ begin
     casttics := 15;
 end;
 
+//==============================================================================
 //
 // F_CastResponder
 //
+//==============================================================================
 function F_CastResponder(ev: Pevent_t): boolean;
 begin
   if ev._type <> ev_keydown then
@@ -781,6 +846,11 @@ begin
   result := true;
 end;
 
+//==============================================================================
+//
+// F_CastPrint
+//
+//==============================================================================
 procedure F_CastPrint(const text: string);
 var
   ch: string;
@@ -831,9 +901,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // F_CastDrawer
 //
+//==============================================================================
 procedure F_CastDrawer;
 var
   sprdef: Pspritedef_t;
@@ -873,9 +945,11 @@ begin
   V_FullScreenStretch;
 end;
 
+//==============================================================================
 //
 // F_DrawPatchCol
 //
+//==============================================================================
 procedure F_DrawPatchCol(x: integer; patch: Ppatch_t; col: integer);
 var
   column: Pcolumn_t;
@@ -926,6 +1000,11 @@ end;
 var
   laststage: integer = 0;
 
+//==============================================================================
+//
+// F_DrawMap34End
+//
+//==============================================================================
 procedure F_DrawMap34End;
 var
   scrolled: integer;
@@ -983,12 +1062,14 @@ begin
   V_FullScreenStretch;
 end;
 
+//==============================================================================
 //
 // F_Drawer
 //
 // [STRIFE]
 // haleyjd 09/13/10: Modified for slideshow, demo version, etc.
 //
+//==============================================================================
 procedure F_Drawer;
 var
   patch: Ppatch_t;
@@ -1035,11 +1116,21 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// F_CmdStartCast
+//
+//==============================================================================
 procedure F_CmdStartCast(const parm: string);
 begin
   F_StartCast;
 end;
 
+//==============================================================================
+//
+// F_Init
+//
+//==============================================================================
 procedure F_Init;
 begin
   C_AddCmd('startcast', @F_CmdStartCast);

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2020 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Vissprite sort (Selection sort, Quick sort & Radix sort variant)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -33,14 +33,32 @@ unit r_things_sortvissprites;
 
 interface
 
+//==============================================================================
+//
+// R_SortVisSprites
+//
+//==============================================================================
 procedure R_SortVisSprites;
 
+//==============================================================================
+//
+// R_SortVisSpritesMT
+//
+//==============================================================================
 procedure R_SortVisSpritesMT;
 
-procedure R_WaitSortVisSpritesMT;
-
+//==============================================================================
+//
+// R_InitSpriteSort
+//
+//==============================================================================
 procedure R_InitSpriteSort;
 
+//==============================================================================
+//
+// R_ShutDownSpriteSort
+//
+//==============================================================================
 procedure R_ShutDownSpriteSort;
 
 implementation
@@ -50,30 +68,34 @@ uses
 {$IFDEF DEBUG}
   i_system,
 {$ENDIF}
-  i_threads,
   m_fixed,
   p_mobj_h,
   r_defs,
   r_things;
 
+//==============================================================================
+// getvissortscale
 //
 // R_SortVisSprites
 //
+//==============================================================================
 function getvissortscale(const vis: Pvissprite_t): integer;
 begin
   result := vis.scale;
   {$IFDEF HEXEN}
-  if vis.mobjflags2 and MF2_DROPPED <> 0 then
+  if vis.mo.flags2 and MF2_DROPPED <> 0 then
   {$ELSE}
   if vis.mobjflags and MF_DROPPED <> 0 then
   {$ENDIF}
     inc(result);
 end;
 
+//==============================================================================
 //
 // R_SortVisSprites_SelectionSort
 // Same execution speed or faster than quicksort for small vissprite_p values
 //
+//==============================================================================
 procedure R_SortVisSprites_SelectionSort;
 var
   i, j: integer;
@@ -89,9 +111,11 @@ begin
       end;
 end;
 
+//==============================================================================
 //
 // R_SortVisSprites_QSort
 //
+//==============================================================================
 procedure R_SortVisSprites_QSort;
 
   procedure qsortvs(l, r: Integer);
@@ -155,6 +179,11 @@ var
   vis_buf_size1: integer = 0;
   vis_buf_size2: integer = 0;
 
+//==============================================================================
+//
+// R_SortVisSprites_RadixSort
+//
+//==============================================================================
 procedure R_SortVisSprites_RadixSort;
 var
   i, j: integer;
@@ -191,7 +220,7 @@ begin
     for j := 0 to RADIX_BASE - 1 do
     begin
       pi := @idx1[j];
-      tot  := pi^ + n1;
+      tot := pi^ + n1;
       pi^ := n1 - 1;
       n1 := tot;
 
@@ -236,7 +265,7 @@ begin
     for j := 0 to RADIX_BASE div 2 - 1 do
     begin
       pi := @idx1[j];
-      tot  := pi^ + n1;
+      tot := pi^ + n1;
       pi^ := n1 - 1;
       n1 := tot;
 
@@ -254,7 +283,7 @@ begin
     for j := RADIX_BASE div 2 to RADIX_BASE - 1 do
     begin
       pi := @idx1[j];
-      tot  := pi^ + n1;
+      tot := pi^ + n1;
       pi^ := n1 - 1;
       n1 := tot;
 
@@ -303,10 +332,13 @@ begin
 
 end;
 
+//==============================================================================
 //
 // R_SortVisSprites_MergeSort
 //
 // Algorithm from http://alexandrecmachado.blogspot.com.br/2015/02/merge-sort-for-delphi.html
+//
+//==============================================================================
 procedure R_SortVisSprites_MergeSort;
 var
   xTempListSize: Integer;
@@ -407,7 +439,11 @@ begin
   DoMergeSort(vissprites, 0, vissprite_p - 1);
 end;
 
-
+//==============================================================================
+//
+// R_SortVisSprites
+//
+//==============================================================================
 procedure R_SortVisSprites;
 begin
   if vissprite_p > 1024 then
@@ -424,15 +460,12 @@ end;
 // Sorting while the engine does other things, using a separate thread (idea by zokum)
 // https://www.doomworld.com/forum/topic/102482-potential-for-improvement-in-vissprites-sorting/?do=findComment&comment=1920806
 //
-var
-  sortthread: TDThread;
 
-function R_SortVisSprites_thr(p: pointer): integer; stdcall;
-begin
-  R_SortVisSprites;
-  Result := 0;
-end;
-
+//==============================================================================
+//
+// R_SortVisSpritesMT
+//
+//==============================================================================
 procedure R_SortVisSpritesMT;
 begin
   // Allocating temp space before activating the thread.
@@ -450,23 +483,26 @@ begin
       vissprite_p) * SizeOf(Pvissprite_t));
     vis_buf_size2 := vissprite_p + 128;
   end;
-  sortthread.Activate(nil);
 end;
 
-procedure R_WaitSortVisSpritesMT;
-begin
-  sortthread.Wait;
-end;
-
+//==============================================================================
+//
+// R_InitSpriteSort
+//
+//==============================================================================
 procedure R_InitSpriteSort;
 begin
   vis_buf1 := nil;
   vis_buf2 := nil;
   vis_buf_size1 := 0;
   vis_buf_size2 := 0;
-  sortthread := TDThread.Create(@R_SortVisSprites_thr);
 end;
 
+//==============================================================================
+//
+// R_ShutDownSpriteSort
+//
+//==============================================================================
 procedure R_ShutDownSpriteSort;
 begin
   if vis_buf_size1 > 0 then
@@ -479,7 +515,6 @@ begin
     realloc(pointer(vis_buf2), vis_buf_size2 * SizeOf(Pvissprite_t), 0);
     vis_buf_size2 := 0;
   end;
-  sortthread.Free;
 end;
 
 end.

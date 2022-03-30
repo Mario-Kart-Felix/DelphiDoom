@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  Functions to blit a block to the screen.
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -43,33 +43,84 @@ uses
   r_defs,
   v_data;
 
-
+//==============================================================================
+//
+// V_GetScreenWidth
+//
+//==============================================================================
 function V_GetScreenWidth(scrn: integer): integer;
 
+//==============================================================================
+//
+// V_GetScreenHeight
+//
+//==============================================================================
 function V_GetScreenHeight(scrn: integer): integer;
 
+//==============================================================================
+//
+// V_SetPalette
+//
+//==============================================================================
 procedure V_SetPalette(const palette: PByteArray);
 
 {$IFNDEF OPENGL}
 {$IFDEF DOOM_OR_STRIFE}
+
+//==============================================================================
+//
+// V_CalcColorMapPalette
+//
+//==============================================================================
 procedure V_CalcColorMapPalette;
 {$ENDIF}
 {$ENDIF}
 
+//==============================================================================
+// V_Init
+//
 // Allocates buffer screens, call before R_Init.
+//
+//==============================================================================
 procedure V_Init;
+
+//==============================================================================
+//
+// V_ReInit
+//
+//==============================================================================
 procedure V_ReInit;
 
+//==============================================================================
+//
+// V_ShutDown
+//
+//==============================================================================
 procedure V_ShutDown;
 
+//==============================================================================
+//
+// V_ScreensSize
+//
+//==============================================================================
 function V_ScreensSize(const scrn: integer = -1): integer;
 
+//==============================================================================
+//
+// V_CopyCustomScreen
+//
+//==============================================================================
 procedure V_CopyCustomScreen(
   src: PByteArray;
   width: integer;
   height: integer;
   destscrn: integer);
 
+//==============================================================================
+//
+// V_CopyRect
+//
+//==============================================================================
 procedure V_CopyRect(
   srcx: integer;
   srcy: integer;
@@ -81,6 +132,11 @@ procedure V_CopyRect(
   destscrn: integer;
   preserve: boolean);
 
+//==============================================================================
+//
+// V_CopyAddRect
+//
+//==============================================================================
 procedure V_CopyAddRect(
   srcx: integer;
   srcy: integer;
@@ -93,6 +149,11 @@ procedure V_CopyAddRect(
   preserve: boolean;
   addfactor: fixed_t);
 
+//==============================================================================
+//
+// V_CopyRectTransparent
+//
+//==============================================================================
 procedure V_CopyRectTransparent(
   srcx: integer;
   srcy: integer;
@@ -104,74 +165,260 @@ procedure V_CopyRectTransparent(
   destscrn: integer;
   preserve: boolean);
 
+//==============================================================================
+//
+// V_CopyScreenTransparent
+//
+//==============================================================================
 procedure V_CopyScreenTransparent(
   srcscrn: integer;
   destscrn: integer; srcoffs: integer = 0; destoffs: integer = 0; size: integer = -1);
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// V_ShadeBackground
+//
+//==============================================================================
 procedure V_ShadeBackground(const ofs: integer = 0;
   const count: integer = -1);
 {$ELSE}
+
+//==============================================================================
+//
+// V_ShadeScreen
+//
+//==============================================================================
 procedure V_ShadeScreen(const scn: integer; const ofs: integer = 0;
   const count: integer = -1);
 {$ENDIF}
 
+//==============================================================================
+//
+// V_CopyRawDataToScreen
+//
+//==============================================================================
 procedure V_CopyRawDataToScreen(scrn: integer; const lumpname: string);
 
+//==============================================================================
+//
+// V_RemoveTransparency
+//
+//==============================================================================
 procedure V_RemoveTransparency(const scn: integer; const ofs: integer;
   const count: integer = -1);
 
+//==============================================================================
+//
+// V_DrawPatch
+//
+//==============================================================================
 procedure V_DrawPatch(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean); overload;
 
+//==============================================================================
+//
+// V_DrawPatch
+//
+//==============================================================================
 procedure V_DrawPatch(x, y: integer; scrn: integer; const patchname: string; preserve: boolean); overload;
 
+//==============================================================================
+//
+// V_DrawPatch
+//
+//==============================================================================
 procedure V_DrawPatch(x, y: integer; scrn: integer; const lump: integer; preserve: boolean); overload;
 
+//==============================================================================
+//
+// V_DrawPatchTransparent
+//
+//==============================================================================
 procedure V_DrawPatchTransparent(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// V_DrawPatchTransparentMT
+//
+//==============================================================================
 procedure V_DrawPatchTransparentMT(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 {$ENDIF}
 
+//==============================================================================
+//
+// V_DrawPatchZoomed
+//
+//==============================================================================
 procedure V_DrawPatchZoomed(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean; fraczoom: fixed_t);
 
+//==============================================================================
+//
+// V_DrawPatchFlipped
+//
+//==============================================================================
 procedure V_DrawPatchFlipped(x, y: integer; scrn: integer; patch: Ppatch_t);
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP320x200
+//
+//==============================================================================
 procedure V_DrawPatchFullScreenTMP320x200(p: Ppatch_t); overload;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP320x200
+//
+//==============================================================================
 procedure V_DrawPatchFullScreenTMP320x200(const pname: string); overload;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP320x200
+//
+//==============================================================================
 procedure V_DrawPatchFullScreenTMP320x200(const lump: integer); overload;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP426x200
+//
+//==============================================================================
+procedure V_DrawPatchFullScreenTMP426x200(p: Ppatch_t); overload;
+
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP426x200
+//
+//==============================================================================
+procedure V_DrawPatchFullScreenTMP426x200(const pname: string); overload;
+
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP426x200
+//
+//==============================================================================
+procedure V_DrawPatchFullScreenTMP426x200(const lump: integer); overload;
+
+//==============================================================================
+//
+// V_PageDrawer
+//
+//==============================================================================
 procedure V_PageDrawer(const pagename: string);
 
+//==============================================================================
+// V_DrawBlock
+//
 // Draw a linear block of pixels into the view buffer.
+//
+//==============================================================================
 procedure V_DrawBlock(x, y: integer; scrn: integer; width, height: integer; src: PByteArray);
 
+//==============================================================================
+//
+// V_DrawLongBlock
+//
+//==============================================================================
 procedure V_DrawLongBlock(x, y: integer; width, height: integer; src: PLongWordArray);
 
+//==============================================================================
+// V_GetBlock
+//
 // Reads a linear block of pixels into the view buffer.
+//
+//==============================================================================
 procedure V_GetBlock(x, y: integer; scrn: integer; width, height: integer; dest: PByteArray);
 
-function V_PreserveX(const x: integer): integer;
+//==============================================================================
+//
+// V_PreserveX
+//
+//==============================================================================
+function V_PreserveX(const x: integer): integer; overload;
 
+//==============================================================================
+//
+// V_PreserveX
+//
+//==============================================================================
+function V_PreserveX(const SCN: integer; const x: integer): integer; overload;
+
+//==============================================================================
+//
+// V_PreserveY
+//
+//==============================================================================
 function V_PreserveY(const y: integer): integer;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// V_PreserveGLX
+//
+//==============================================================================
 function V_PreserveGLX(const x: integer): integer;
 
+//==============================================================================
+//
+// V_PreserveGLY
+//
+//==============================================================================
 function V_PreserveGLY(const y: integer): integer;
 {$ENDIF}
 
-function V_PreserveW(const x: integer; const w: integer): integer;
+//==============================================================================
+//
+// V_PreserveW
+//
+//==============================================================================
+function V_PreserveW(const x: integer; const w: integer): integer; overload;
 
+//==============================================================================
+//
+// V_PreserveW
+//
+//==============================================================================
+function V_PreserveW(const SCN: integer; const x: integer; const w: integer): integer; overload;
+
+//==============================================================================
+//
+// V_PreserveH
+//
+//==============================================================================
 function V_PreserveH(const y: integer; const h: integer): integer;
 
+//==============================================================================
+//
+// V_NeedsPreserve
+//
+//==============================================================================
 function V_NeedsPreserve(const destscrn, srcscrn: integer): boolean; overload;
 
+//==============================================================================
+//
+// V_NeedsPreserve
+//
+//==============================================================================
 function V_NeedsPreserve(const destscrn, srcscrn: integer; preserve: boolean): boolean; overload;
 
+//==============================================================================
+//
+// V_CalcPreserveTables
+//
+//==============================================================================
 procedure V_CalcPreserveTables;
+
+//==============================================================================
+//
+// V_TileScreen8
+//
+//==============================================================================
+function V_TileScreen8(const lumpname: string; const dstscn: integer): boolean;
 
 const
   GAMMASIZE = 5;
@@ -276,12 +523,27 @@ var
   {$ENDIF}
 {$ENDIF}
 
+//==============================================================================
+//
+// V_FindAproxColorIndex
+//
+//==============================================================================
 function V_FindAproxColorIndex(const pal: PLongWordArray; const c: LongWord;
   const start: integer = 0; const finish: integer = 255): integer;
 
+//==============================================================================
+//
+// V_FindAproxColorIndexExcluding
+//
+//==============================================================================
 function V_FindAproxColorIndexExcluding(const pal: PLongWordArray; const c: LongWord;
   const start: integer = 0; const finish: integer = 255; const exclude: integer = -1): integer;
 
+//==============================================================================
+//
+// V_FullScreenStretch
+//
+//==============================================================================
 procedure V_FullScreenStretch;
 
 var
@@ -294,20 +556,23 @@ var
 implementation
 
 uses
+  i_system,
   mt_utils,
+  psi_overlay,
   r_hires,
   r_precalc,
+  r_data,
   {$IFNDEF OPENGL}
   r_mmx,
   r_trans8,
-  r_data,
   {$IFDEF DOOM_OR_STRIFE}
   r_colormaps,
   st_stuff,
   {$ENDIF}
   {$ENDIF}
+  r_flatinfo,
   r_aspect,
-  i_system,
+  t_patch,
   t_draw,
   w_wad,
   z_zone;
@@ -315,22 +580,38 @@ uses
 // x and y translation tables for stretcing
 var
   preserveX: array[0..319] of integer;
+  preserveX426: array[0..425] of integer;
   preserveY: array[0..199] of integer;
   widthintmultiplier: Integer = 0;
   heightintmultiplier: Integer = 0;
 
+//==============================================================================
+//
+// V_NeedsPreserve
+//
+//==============================================================================
 function V_NeedsPreserve(const destscrn, srcscrn: integer): boolean; overload;
 begin
   result := (V_GetScreenWidth(srcscrn) <> V_GetScreenWidth(destscrn)) or
             (V_GetScreenHeight(srcscrn) <> V_GetScreenHeight(destscrn));
 end;
 
+//==============================================================================
+//
+// V_NeedsPreserve
+//
+//==============================================================================
 function V_NeedsPreserve(const destscrn, srcscrn: integer; preserve: boolean): boolean; overload;
 begin
   result := preserve and V_NeedsPreserve(destscrn, srcscrn);
 end;
 
+//==============================================================================
+// V_PreserveX
+//
 // preserve x coordinates
+//
+//==============================================================================
 function V_PreserveX(const x: integer): integer;
 begin
   if x <= 0 then
@@ -345,7 +626,64 @@ begin
     result := preserveX[x];
 end;
 
+//==============================================================================
+// V_PreserveX
+//
+// preserve x coordinates
+//
+//==============================================================================
+function V_PreserveX(const SCN: integer; const x: integer): integer;
+var
+  swidth: integer;
+begin
+  swidth := V_GetScreenWidth(SCN);
+  if swidth = 320 then
+  begin
+    if x <= 0 then
+      result := 0
+    else if x >= 320 then
+      result := {$IFDEF OPENGL}V_GetScreenWidth(SCN_FG){$ELSE}SCREENWIDTH{$ENDIF}
+  {$IFNDEF OPENGL}
+    else if SCREENWIDTH = 320 then
+      result := x
+  {$ENDIF}
+    else
+      result := preserveX[x];
+  end
+  else if swidth = 426 then
+  begin
+    if x <= 0 then
+      result := 0
+    else if x >= 426 then
+      result := {$IFDEF OPENGL}V_GetScreenWidth(SCN_FG){$ELSE}SCREENWIDTH{$ENDIF}
+  {$IFNDEF OPENGL}
+    else if SCREENWIDTH = 426 then
+      result := x
+  {$ENDIF}
+    else
+      result := preserveX426[x];
+  end
+  else
+  begin
+    if x <= 0 then
+      result := 0
+    else if x >= swidth then
+      result := {$IFDEF OPENGL}V_GetScreenWidth(SCN_FG){$ELSE}SCREENWIDTH{$ENDIF}
+  {$IFNDEF OPENGL}
+    else if SCREENWIDTH = swidth then
+      result := x
+  {$ENDIF}
+    else
+      result := trunc(x * {$IFDEF OPENGL}V_GetScreenWidth(SCN_FG){$ELSE}SCREENWIDTH{$ENDIF} / swidth);
+  end
+end;
+
+//==============================================================================
+// V_PreserveY
+//
 // preserve y coordinates
+//
+//==============================================================================
 function V_PreserveY(const y: integer): integer;
 begin
   if y <= 0 then
@@ -361,30 +699,66 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// V_PreserveGLX
+//
+//==============================================================================
 function V_PreserveGLX(const x: integer): integer;
 begin
   result := Round(x * GLDRAWWIDTH / SCREENWIDTH);
 end;
 
+//==============================================================================
+//
+// V_PreserveGLY
+//
+//==============================================================================
 function V_PreserveGLY(const y: integer): integer;
 begin
   result := Round(y * GLDRAWHEIGHT / SCREENHEIGHT);
 end;
 {$ENDIF}
 
-
+//==============================================================================
+// V_PreserveW
+//
 // preserve width coordinates
+//
+//==============================================================================
 function V_PreserveW(const x: integer; const w: integer): integer;
 begin
   result := V_PreserveX(x + w) - V_PreserveX(x);
 end;
 
+//==============================================================================
+// V_PreserveW
+//
+// preserve width coordinates
+//
+//==============================================================================
+function V_PreserveW(const SCN: integer; const x: integer; const w: integer): integer;
+begin
+  result := V_PreserveX(SCN, x + w) - V_PreserveX(SCN, x);
+end;
+
+//==============================================================================
+// V_PreserveH
+//
 // preserve height coordinates
+//
+//==============================================================================
 function V_PreserveH(const y: integer; const h: integer): integer;
 begin
   result := V_PreserveY(y + h) - V_PreserveY(y);
 end;
 
+//==============================================================================
+//
+// V_CopyCustomScreen8
+//
+//==============================================================================
 procedure V_CopyCustomScreen8(
   scrA: PByteArray;
   width: integer;
@@ -424,6 +798,11 @@ begin
   end
 end;
 
+//==============================================================================
+//
+// V_CopyCustomScreen32
+//
+//==============================================================================
 procedure V_CopyCustomScreen32(
   scrA: PByteArray;
   width: integer;
@@ -462,6 +841,11 @@ begin
   end
 end;
 
+//==============================================================================
+//
+// V_CopyCustomScreen
+//
+//==============================================================================
 procedure V_CopyCustomScreen(
   src: PByteArray;
   width: integer;
@@ -474,9 +858,11 @@ begin
     V_CopyCustomScreen8(src, width, height, destscrn)
 end;
 
+//==============================================================================
 //
-// V_CopyRect
+// V_CopyRect8
 //
+//==============================================================================
 procedure V_CopyRect8(
   srcx: integer;
   srcy: integer;
@@ -508,127 +894,128 @@ begin
   dwidth := V_GetScreenWidth(destscrn);
   if V_NeedsPreserve(destscrn, srcscrn, preserve) then
   begin
-    destw := V_PreserveW(destx, width);
+    destw := V_PreserveW(srcscrn, destx, width);
 
     desth := V_PreserveH(desty, height);
 
     if (destw <> 0) and (desth <> 0) then
     begin
-      destx := V_PreserveX(destx);
+      destx := V_PreserveX(srcscrn, destx);
 
       desty := V_PreserveY(desty);
 
       fracy := srcy * FRACUNIT;
       fracystep := FRACUNIT * height div desth;
 
-      case widthintmultiplier of
-        2: // Width: 640
-          begin
-            destw := destw div 2;
-            for row := desty to desty + desth - 1 do
+      if swidth = 320 then
+        case widthintmultiplier of
+          2: // Width: 640
             begin
-              dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-              src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-              col := 0;
-              while col < destw do
+              destw := destw div 2;
+              for row := desty to desty + desth - 1 do
               begin
-                b := src[col];
-                PWord(dest)^ := precal8_toword[b];
-                inc(dest, 2);
-                inc(col);
+                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                col := 0;
+                while col < destw do
+                begin
+                  b := src[col];
+                  PWord(dest)^ := precal8_toword[b];
+                  inc(dest, 2);
+                  inc(col);
+                end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-        4: // Width: 1280
-          begin
-            destw := destw div 4;
-            for row := desty to desty + desth - 1 do
+          4: // Width: 1280
             begin
-              dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-              src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-              col := 0;
-              while col < destw do
+              destw := destw div 4;
+              for row := desty to desty + desth - 1 do
               begin
-                b := src[col];
-                PLongWord(dest)^ := precal8_tolong[b];
-                inc(dest, 4);
-                inc(col);
+                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                col := 0;
+                while col < destw do
+                begin
+                  b := src[col];
+                  PLongWord(dest)^ := precal8_tolong[b];
+                  inc(dest, 4);
+                  inc(col);
+                end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-        6: // Width: 1920
-          begin
-            destw := destw div 6;
-            for row := desty to desty + desth - 1 do
+          6: // Width: 1920
             begin
-              dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-              src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-              col := 0;
-              while col < destw do
+              destw := destw div 6;
+              for row := desty to desty + desth - 1 do
               begin
-                b := src[col];
-                PLongWord(dest)^ := precal8_tolong[b];
-                inc(dest, 4);
-                PWord(dest)^ := precal8_toword[b];
-                inc(dest, 2);
-                inc(col);
+                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                col := 0;
+                while col < destw do
+                begin
+                  b := src[col];
+                  PLongWord(dest)^ := precal8_tolong[b];
+                  inc(dest, 4);
+                  PWord(dest)^ := precal8_toword[b];
+                  inc(dest, 2);
+                  inc(col);
+                end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-        8: // Width: 2560
-          begin
-            destw := destw div 8;
-            for row := desty to desty + desth - 1 do
+          8: // Width: 2560
             begin
-              dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-              src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-              col := 0;
-              while col < destw do
+              destw := destw div 8;
+              for row := desty to desty + desth - 1 do
               begin
-                b := src[col];
-                l := precal8_tolong[b];
-                PLongWord(dest)^ := l;
-                inc(dest, 4);
-                PLongWord(dest)^ := l;
-                inc(dest, 4);
-                inc(col);
+                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                col := 0;
+                while col < destw do
+                begin
+                  b := src[col];
+                  l := precal8_tolong[b];
+                  PLongWord(dest)^ := l;
+                  inc(dest, 4);
+                  PLongWord(dest)^ := l;
+                  inc(dest, 4);
+                  inc(col);
+                end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-       12: // Width: 3840
-          begin
-            destw := destw div 12;
-            for row := desty to desty + desth - 1 do
+         12: // Width: 3840
             begin
-              dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-              src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-              col := 0;
-              while col < destw do
+              destw := destw div 12;
+              for row := desty to desty + desth - 1 do
               begin
-                b := src[col];
-                l := precal8_tolong[b];
-                PLongWord(dest)^ := l;
-                inc(dest, 4);
-                PLongWord(dest)^ := l;
-                inc(dest, 4);
-                PLongWord(dest)^ := l;
-                inc(dest, 4);
-                inc(col);
+                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                col := 0;
+                while col < destw do
+                begin
+                  b := src[col];
+                  l := precal8_tolong[b];
+                  PLongWord(dest)^ := l;
+                  inc(dest, 4);
+                  PLongWord(dest)^ := l;
+                  inc(dest, 4);
+                  PLongWord(dest)^ := l;
+                  inc(dest, 4);
+                  inc(col);
+                end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
 
-      end;
+        end;
 
       fracxstep := FRACUNIT * width div destw;
 
@@ -663,6 +1050,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyRect8_MT
+//
+//==============================================================================
 procedure V_CopyRect8_MT(
   idx, numidxs: integer;
   srcx: integer;
@@ -695,142 +1087,143 @@ begin
   dwidth := V_GetScreenWidth(destscrn);
   if V_NeedsPreserve(destscrn, srcscrn, preserve) then
   begin
-    destw := V_PreserveW(destx, width);
+    destw := V_PreserveW(srcscrn, destx, width);
 
     desth := V_PreserveH(desty, height);
 
     if (destw <> 0) and (desth <> 0) then
     begin
-      destx := V_PreserveX(destx);
+      destx := V_PreserveX(srcscrn, destx);
 
       desty := V_PreserveY(desty);
 
       fracy := srcy * FRACUNIT;
       fracystep := FRACUNIT * height div desth;
 
-      case widthintmultiplier of
-        2: // Width: 640
-          begin
-            destw := destw div 2;
-            for row := desty to desty + desth - 1 do
+      if swidth = 320 then
+        case widthintmultiplier of
+          2: // Width: 640
             begin
-              if row mod numidxs = idx then
+              destw := destw div 2;
+              for row := desty to desty + desth - 1 do
               begin
-                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-                col := 0;
-                while col < destw do
+                if row mod numidxs = idx then
                 begin
-                  b := src[col];
-                  PWord(dest)^ := precal8_toword[b];
-                  inc(dest, 2);
-                  inc(col);
+                  dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                  src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                  col := 0;
+                  while col < destw do
+                  begin
+                    b := src[col];
+                    PWord(dest)^ := precal8_toword[b];
+                    inc(dest, 2);
+                    inc(col);
+                  end;
                 end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-        4: // Width: 1280
-          begin
-            destw := destw div 4;
-            for row := desty to desty + desth - 1 do
+          4: // Width: 1280
             begin
-              if row mod numidxs = idx then
+              destw := destw div 4;
+              for row := desty to desty + desth - 1 do
               begin
-                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-                col := 0;
-                while col < destw do
+                if row mod numidxs = idx then
                 begin
-                  b := src[col];
-                  PLongWord(dest)^ := precal8_tolong[b];
-                  inc(dest, 4);
-                  inc(col);
+                  dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                  src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                  col := 0;
+                  while col < destw do
+                  begin
+                    b := src[col];
+                    PLongWord(dest)^ := precal8_tolong[b];
+                    inc(dest, 4);
+                    inc(col);
+                  end;
                 end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-        6: // Width: 1920
-          begin
-            destw := destw div 6;
-            for row := desty to desty + desth - 1 do
+          6: // Width: 1920
             begin
-              if row mod numidxs = idx then
+              destw := destw div 6;
+              for row := desty to desty + desth - 1 do
               begin
-                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-                col := 0;
-                while col < destw do
+                if row mod numidxs = idx then
                 begin
-                  b := src[col];
-                  PLongWord(dest)^ := precal8_tolong[b];
-                  inc(dest, 4);
-                  PWord(dest)^ := precal8_toword[b];
-                  inc(dest, 2);
-                  inc(col);
+                  dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                  src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                  col := 0;
+                  while col < destw do
+                  begin
+                    b := src[col];
+                    PLongWord(dest)^ := precal8_tolong[b];
+                    inc(dest, 4);
+                    PWord(dest)^ := precal8_toword[b];
+                    inc(dest, 2);
+                    inc(col);
+                  end;
                 end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-        8: // Width: 2560
-          begin
-            destw := destw div 8;
-            for row := desty to desty + desth - 1 do
+          8: // Width: 2560
             begin
-              if row mod numidxs = idx then
+              destw := destw div 8;
+              for row := desty to desty + desth - 1 do
               begin
-                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-                col := 0;
-                while col < destw do
+                if row mod numidxs = idx then
                 begin
-                  b := src[col];
-                  l := precal8_tolong[b];
-                  PLongWord(dest)^ := l;
-                  inc(dest, 4);
-                  PLongWord(dest)^ := l;
-                  inc(dest, 4);
-                  inc(col);
+                  dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                  src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                  col := 0;
+                  while col < destw do
+                  begin
+                    b := src[col];
+                    l := precal8_tolong[b];
+                    PLongWord(dest)^ := l;
+                    inc(dest, 4);
+                    PLongWord(dest)^ := l;
+                    inc(dest, 4);
+                    inc(col);
+                  end;
                 end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
-       12: // Width: 3840
-          begin
-            destw := destw div 12;
-            for row := desty to desty + desth - 1 do
+         12: // Width: 3840
             begin
-              if row mod numidxs = idx then
+              destw := destw div 12;
+              for row := desty to desty + desth - 1 do
               begin
-                dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
-                src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
-                col := 0;
-                while col < destw do
+                if row mod numidxs = idx then
                 begin
-                  b := src[col];
-                  l := precal8_tolong[b];
-                  PLongWord(dest)^ := l;
-                  inc(dest, 4);
-                  PLongWord(dest)^ := l;
-                  inc(dest, 4);
-                  PLongWord(dest)^ := l;
-                  inc(dest, 4);
-                  inc(col);
+                  dest := PByte(integer(screens[destscrn]) + dwidth * row + destx);
+                  src := PByteArray(integer(screens[srcscrn]) + swidth * (fracy div FRACUNIT) + srcx);
+                  col := 0;
+                  while col < destw do
+                  begin
+                    b := src[col];
+                    l := precal8_tolong[b];
+                    PLongWord(dest)^ := l;
+                    inc(dest, 4);
+                    PLongWord(dest)^ := l;
+                    inc(dest, 4);
+                    PLongWord(dest)^ := l;
+                    inc(dest, 4);
+                    inc(col);
+                  end;
                 end;
+                fracy := fracy + fracystep;
               end;
-              fracy := fracy + fracystep;
+              Exit;
             end;
-            Exit;
-          end;
 
-      end;
+        end;
 
       fracxstep := FRACUNIT * width div destw;
 
@@ -869,6 +1262,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyRect32
+//
+//==============================================================================
 procedure V_CopyRect32(
   srcx: integer;
   srcy: integer;
@@ -901,7 +1299,7 @@ begin
   pv := V_NeedsPreserve(SCN_FG, srcscrn, preserve);
   if pv then
   begin
-    destw := V_PreserveW(destx, width);
+    destw := V_PreserveW(srcscrn, destx, width);
     desth := V_PreserveH(desty, height);
   end
   else
@@ -914,7 +1312,7 @@ begin
   begin
     if pv then
     begin
-      destx := V_PreserveX(destx);
+      destx := V_PreserveX(srcscrn, destx);
       desty := V_PreserveY(desty);
       fracxstep := FRACUNIT * width div destw;
       fracystep := FRACUNIT * height div desth;
@@ -927,7 +1325,7 @@ begin
 
     fracy := srcy * FRACUNIT;
 
-    if pv then
+    if pv and (swidth = 320) then
       case widthintmultiplier of
         2: // Width: 640
           begin
@@ -1095,6 +1493,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyRect32_MT
+//
+//==============================================================================
 procedure V_CopyRect32_MT(
   idx, numidxs: integer;
   srcx: integer;
@@ -1128,7 +1531,7 @@ begin
   pv := V_NeedsPreserve(SCN_FG, srcscrn, preserve);
   if pv then
   begin
-    destw := V_PreserveW(destx, width);
+    destw := V_PreserveW(srcscrn, destx, width);
     desth := V_PreserveH(desty, height);
   end
   else
@@ -1141,7 +1544,7 @@ begin
   begin
     if pv then
     begin
-      destx := V_PreserveX(destx);
+      destx := V_PreserveX(srcscrn, destx);
       desty := V_PreserveY(desty);
       fracxstep := FRACUNIT * width div destw;
       fracystep := FRACUNIT * height div desth;
@@ -1154,7 +1557,7 @@ begin
 
     fracy := srcy * FRACUNIT;
 
-    if pv then
+    if pv and (swidth = 320) then
       case widthintmultiplier of
         2: // Width: 640
           begin
@@ -1357,6 +1760,11 @@ type
   end;
   th_copyrect_p = ^th_copyrect_t;
 
+//==============================================================================
+//
+// V_CopyRect8_thr
+//
+//==============================================================================
 function V_CopyRect8_thr(p: iterator_p): integer; stdcall;
 var
   crp: th_copyrect_p;
@@ -1377,6 +1785,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// V_CopyRect32_thr
+//
+//==============================================================================
 function V_CopyRect32_thr(p: iterator_p): integer; stdcall;
 var
   crp: th_copyrect_p;
@@ -1396,6 +1809,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// V_CopyRect
+//
+//==============================================================================
 procedure V_CopyRect(
   srcx: integer;
   srcy: integer;
@@ -1451,6 +1869,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyAddRect
+//
+//==============================================================================
 procedure V_CopyAddRect(
   srcx: integer;
   srcy: integer;
@@ -1549,9 +1972,11 @@ begin
     V_CopyRect8(srcx, srcy, srcscrn, width, height, destx, desty, destscrn, preserve);
 end;
 
+//==============================================================================
 //
 // V_CopyRectTransparent
 //
+//==============================================================================
 procedure V_CopyRectTransparent8(
   srcx: integer;
   srcy: integer;
@@ -1633,6 +2058,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyRectTransparent8_MT
+//
+//==============================================================================
 procedure V_CopyRectTransparent8_MT(
   idx, numidxs: integer;
   srcx: integer;
@@ -1721,7 +2151,11 @@ begin
   end;
 end;
 
-
+//==============================================================================
+//
+// V_CopyRectTransparent32
+//
+//==============================================================================
 procedure V_CopyRectTransparent32(
   srcx: integer;
   srcy: integer;
@@ -1820,6 +2254,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyRectTransparent32_MT
+//
+//==============================================================================
 procedure V_CopyRectTransparent32_MT(
   idx, numidxs: integer;
   srcx: integer;
@@ -1948,6 +2387,11 @@ type
   end;
   th_copyrecttransparent32_p = ^th_copyrecttransparent32_t;
 
+//==============================================================================
+//
+// V_CopyRectTransparent8_thr
+//
+//==============================================================================
 function V_CopyRectTransparent8_thr(it: iterator_p): integer; stdcall;
 var
   p8: th_copyrecttransparent8_p;
@@ -1959,6 +2403,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// V_CopyRectTransparent32_thr
+//
+//==============================================================================
 function V_CopyRectTransparent32_thr(it: iterator_p): integer; stdcall;
 var
   p32: th_copyrecttransparent32_p;
@@ -1970,6 +2419,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// V_CopyRectTransparent
+//
+//==============================================================================
 procedure V_CopyRectTransparent(
   srcx: integer;
   srcy: integer;
@@ -2022,6 +2476,12 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// V_ShadeBackground
+//
+//==============================================================================
 procedure V_ShadeBackground(const ofs: integer = 0;
   const count: integer = -1);
 var
@@ -2047,6 +2507,12 @@ begin
   end;
 end;
 {$ELSE}
+
+//==============================================================================
+//
+// V_ShadeScreen
+//
+//==============================================================================
 procedure V_ShadeScreen(const scn: integer; const ofs: integer = 0;
   const count: integer = -1);
 var
@@ -2147,6 +2613,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// V_CopyScreenTransparent8
+//
+//==============================================================================
 procedure V_CopyScreenTransparent8(
   srcscrn: integer;
   destscrn: integer; srcoffs: integer = 0; destoffs: integer = 0; size: integer = -1);
@@ -2189,6 +2660,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyScreenTransparent32
+//
+//==============================================================================
 procedure V_CopyScreenTransparent32(
   srcscrn: integer;
   srcoffs: integer = 0; destoffs: integer = 0; size: integer = -1);
@@ -2214,6 +2690,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CopyScreenTransparent
+//
+//==============================================================================
 procedure V_CopyScreenTransparent(
   srcscrn: integer;
   destscrn: integer; srcoffs: integer = 0; destoffs: integer = 0; size: integer = -1);
@@ -2224,6 +2705,11 @@ begin
     V_CopyScreenTransparent8(srcscrn, destscrn, srcoffs, destoffs, size);
 end;
 
+//==============================================================================
+//
+// V_CopyRawDataToScreen
+//
+//==============================================================================
 procedure V_CopyRawDataToScreen(scrn: integer; const lumpname: string);
 var
   len: integer;
@@ -2253,6 +2739,11 @@ begin
 {$ENDIF}
 end;
 
+//==============================================================================
+//
+// V_RemoveTransparency
+//
+//==============================================================================
 procedure V_RemoveTransparency(const scn: integer; const ofs: integer;
   const count: integer = -1);
 var
@@ -2277,16 +2768,31 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_GetScreenWidth
+//
+//==============================================================================
 function V_GetScreenWidth(scrn: integer): integer;
 begin
   result := screendimentions[scrn].width;
 end;
 
+//==============================================================================
+//
+// V_GetScreenHeight
+//
+//==============================================================================
 function V_GetScreenHeight(scrn: integer): integer;
 begin
   result := screendimentions[scrn].height;
 end;
 
+//==============================================================================
+//
+// V_DrawPatch8
+//
+//==============================================================================
 procedure V_DrawPatch8(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 var
   count: integer;
@@ -2437,6 +2943,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_DrawPatch32
+//
+//==============================================================================
 procedure V_DrawPatch32(x, y: integer; patch: Ppatch_t; preserve: boolean);
 var
   count: integer;
@@ -2532,7 +3043,7 @@ begin
       col := 0;
       desttop := @screen32[y * swidth + x];
 
-      sheight := SCREENHEIGHT;
+      sheight := {$IFDEF OPENGL}V_GetScreenHeight(SCN_FG){$ELSE}SCREENHEIGHT{$ENDIF};
 
       while col < pw do
       begin
@@ -2585,9 +3096,11 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // V_DrawPatch
 //
+//==============================================================================
 procedure V_DrawPatch(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 begin
   if {$IFNDEF OPENGL}(videomode = vm32bit) and{$ENDIF} (scrn = SCN_FG) then
@@ -2596,6 +3109,11 @@ begin
     V_DrawPatch8(x, y, scrn, patch, preserve);
 end;
 
+//==============================================================================
+//
+// V_DrawPatch
+//
+//==============================================================================
 procedure V_DrawPatch(x, y: integer; scrn: integer; const patchname: string; preserve: boolean);
 var
   patch: Ppatch_t;
@@ -2605,6 +3123,11 @@ begin
   Z_ChangeTag(patch, PU_CACHE);
 end;
 
+//==============================================================================
+//
+// V_DrawPatch
+//
+//==============================================================================
 procedure V_DrawPatch(x, y: integer; scrn: integer; const lump: integer; preserve: boolean); overload;
 var
   patch: Ppatch_t;
@@ -2618,6 +3141,12 @@ end;
 // V_DrawPatchTransparent
 //
 {$IFNDEF OPENGL}
+
+//==============================================================================
+//
+// V_DrawPatchTransparent8
+//
+//==============================================================================
 procedure V_DrawPatchTransparent8(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 var
   count: integer;
@@ -2770,6 +3299,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_DrawPatchTransparent8_MT
+//
+//==============================================================================
 procedure V_DrawPatchTransparent8_MT(
   idx, numidxs: integer;
   x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
@@ -2931,6 +3465,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// V_DrawPatchTransparent32
+//
+//==============================================================================
 procedure V_DrawPatchTransparent32(x, y: integer; patch: Ppatch_t; preserve: boolean);
 var
   count: integer;
@@ -3033,7 +3572,7 @@ begin
       col := 0;
       desttop := @screen32[y * swidth + x];
 
-      sheight := SCREENHEIGHT;
+      sheight := {$IFDEF OPENGL}V_GetScreenHeight(SCN_FG){$ELSE}SCREENHEIGHT{$ENDIF};
 
       while col < pw do
       begin
@@ -3091,6 +3630,11 @@ begin
 end;
 
 {$IFNDEF OPENGL}
+//==============================================================================
+//
+// V_DrawPatchTransparent32_MT
+//
+//==============================================================================
 procedure V_DrawPatchTransparent32_MT(
   idx, numidxs: integer;
   x, y: integer; patch: Ppatch_t; preserve: boolean);
@@ -3198,7 +3742,7 @@ begin
       col := 0;
       desttop := @screen32[y * swidth + x];
 
-      sheight := SCREENHEIGHT;
+      sheight := {$IFDEF OPENGL}V_GetScreenHeight(SCN_FG){$ELSE}SCREENHEIGHT{$ENDIF};;
 
       while col < pw do
       begin
@@ -3259,6 +3803,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// V_DrawPatchTransparent
+//
+//==============================================================================
 procedure V_DrawPatchTransparent(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 begin
   {$IFDEF OPENGL}
@@ -3284,6 +3833,11 @@ type
   end;
   th_drawpathctransparent_p = ^th_drawpathctransparent_t;
 
+//==============================================================================
+//
+// V_DrawPatchTransparent8_thr
+//
+//==============================================================================
 function V_DrawPatchTransparent8_thr(p: iterator_p): integer; stdcall;
 var
   param: th_drawpathctransparent_p;
@@ -3294,6 +3848,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// V_DrawPatchTransparent32_thr
+//
+//==============================================================================
 function V_DrawPatchTransparent32_thr(p: iterator_p): integer; stdcall;
 var
   param: th_drawpathctransparent_p;
@@ -3304,6 +3863,11 @@ begin
   result := 0;
 end;
 
+//==============================================================================
+//
+// V_DrawPatchTransparentMT
+//
+//==============================================================================
 procedure V_DrawPatchTransparentMT(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean);
 var
   parm: th_drawpathctransparent_t;
@@ -3323,9 +3887,12 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+// V_DrawPatchZoomed8
 //
 // V_DrawPatchZoomed
 //
+//==============================================================================
 procedure V_DrawPatchZoomed8(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean; fraczoom: fixed_t);
 var
   count: integer;
@@ -3435,6 +4002,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// V_DrawPatchZoomed32
+//
+//==============================================================================
 procedure V_DrawPatchZoomed32(x, y: integer; patch: Ppatch_t; preserve: boolean; fraczoom: fixed_t);
 var
   count: integer;
@@ -3544,6 +4116,11 @@ begin
 
 end;
 
+//==============================================================================
+//
+// V_DrawPatchZoomed
+//
+//==============================================================================
 procedure V_DrawPatchZoomed(x, y: integer; scrn: integer; patch: Ppatch_t; preserve: boolean; fraczoom: fixed_t);
 begin
   if {$IFNDEF OPENGL}(videomode = vm32bit) and{$ENDIF} (scrn = SCN_FG) then
@@ -3552,11 +4129,13 @@ begin
     V_DrawPatchZoomed8(x, y, scrn, patch, preserve, fraczoom);
 end;
 
+//==============================================================================
 //
 // V_DrawPatchFlipped
 // Masks a column based masked pic to the screen.
 // Flips horizontally, e.g. to mirror face.
 //
+//==============================================================================
 procedure V_DrawPatchFlipped(x, y: integer; scrn: integer; patch: Ppatch_t);
 var
   count: integer;
@@ -3615,6 +4194,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_ScaleBuffer8
+//
+//==============================================================================
 procedure V_ScaleBuffer8(var FData: pointer; const FWidth, FHeight: integer; const AWidth, AHeight: integer);
 var
   xs, ys, xi, yi, x, y: integer;
@@ -3645,6 +4229,11 @@ begin
   FData := newimage;
 end;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP320x200
+//
+//==============================================================================
 procedure V_DrawPatchFullScreenTMP320x200(p: Ppatch_t);
 var
   oldscreen, newscreen: PByteArray;
@@ -3667,12 +4256,17 @@ begin
   V_ScaleBuffer8(pointer(screens[SCN_TMP]), p.width, p.height, 320, 200);
   memcpy(oldscreen, screens[SCN_TMP], 320 * 200);
 
-  memfree(pointer(screens[SCN_TMP]), 320 * 200);
+  memfree(pointer(screens[SCN_TMP]), p.width * p.height);
   screens[SCN_TMP] := oldscreen;
   screendimentions[SCN_TMP].width := 320;
   screendimentions[SCN_TMP].height := 200;
 end;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP320x200
+//
+//==============================================================================
 procedure V_DrawPatchFullScreenTMP320x200(const pname: string); overload;
 var
   p: Ppatch_t;
@@ -3682,6 +4276,11 @@ begin
   Z_ChangeTag(p, PU_CACHE);
 end;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP320x200
+//
+//==============================================================================
 procedure V_DrawPatchFullScreenTMP320x200(const lump: integer); overload;
 var
   p: Ppatch_t;
@@ -3691,7 +4290,74 @@ begin
   Z_ChangeTag(p, PU_CACHE);
 end;
 
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP426x200
+//
+//==============================================================================
+procedure V_DrawPatchFullScreenTMP426x200(p: Ppatch_t);
+var
+  oldscreen, newscreen: PByteArray;
+begin
+  if (p.width = 426) and (p.height = 200) then
+  begin
+    V_DrawPatch8(0, 0, SCN_TMP426, p, false);
+    exit;
+  end;
+
+  oldscreen := screens[SCN_TMP426];
+  screendimentions[SCN_TMP426].width := p.width;
+  screendimentions[SCN_TMP426].height := p.height;
+
+  newscreen := mallocz(p.width * p.height);
+  screens[SCN_TMP426] := newscreen;
+
+  V_DrawPatch(0, 0, SCN_TMP426, p, false);
+
+  V_ScaleBuffer8(pointer(screens[SCN_TMP426]), p.width, p.height, 426, 200);
+  memcpy(oldscreen, screens[SCN_TMP426], 426 * 200);
+
+  memfree(pointer(screens[SCN_TMP426]), p.width * p.height);
+  screens[SCN_TMP426] := oldscreen;
+  screendimentions[SCN_TMP426].width := 426;
+  screendimentions[SCN_TMP426].height := 200;
+end;
+
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP426x200
+//
+//==============================================================================
+procedure V_DrawPatchFullScreenTMP426x200(const pname: string); overload;
+var
+  p: Ppatch_t;
+begin
+  p := W_CacheLumpName(pname, PU_STATIC);
+  V_DrawPatchFullScreenTMP426x200(p);
+  Z_ChangeTag(p, PU_CACHE);
+end;
+
+//==============================================================================
+//
+// V_DrawPatchFullScreenTMP426x200
+//
+//==============================================================================
+procedure V_DrawPatchFullScreenTMP426x200(const lump: integer); overload;
+var
+  p: Ppatch_t;
+begin
+  p := W_CacheLumpNum(lump, PU_STATIC);
+  V_DrawPatchFullScreenTMP426x200(p);
+  Z_ChangeTag(p, PU_CACHE);
+end;
+
 {$IFDEF DOOM_OR_STRIFE}
+
+//==============================================================================
+//
+// V_PageDrawer
+//
+//==============================================================================
 procedure V_PageDrawer(const pagename: string);
 var
   p: Ppatch_t;
@@ -3739,10 +4405,19 @@ begin
     V_DrawPatch(0, 0, SCN_TMP, p, false);
     V_CopyRect(0, 0, SCN_TMP, 320, 200, 0, 0, SCN_FG, true);
   end;
-  Z_ChangeTag(p, PU_CACHE);
+  {$IFDEF DOOM}
+  if (p.width <> 426) or (p.height <> 200) then
+  {$ENDIF}
   V_FullScreenStretch;
+  Z_ChangeTag(p, PU_CACHE);
 end;
 {$ELSE}
+
+//==============================================================================
+//
+// V_PageDrawer
+//
+//==============================================================================
 procedure V_PageDrawer(const pagename: string);
 {$IFDEF OPENGL}
 var
@@ -3782,10 +4457,13 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+// V_DrawBlock8
 //
 // V_DrawBlock
 // Draw a linear block of pixels into the view buffer.
 //
+//==============================================================================
 procedure V_DrawBlock8(x, y: integer; scrn: integer; width, height: integer; src: PByteArray);
 var
   dest: PByteArray;
@@ -3803,6 +4481,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_DrawBlock32
+//
+//==============================================================================
 procedure V_DrawBlock32(x, y: integer; width, height: integer; src: PByteArray);
 var
   dest: PLongWordArray;
@@ -3822,6 +4505,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_DrawBlock
+//
+//==============================================================================
 procedure V_DrawBlock(x, y: integer; scrn: integer; width, height: integer; src: PByteArray);
 begin
   if {$IFNDEF OPENGL}(videomode = vm32bit) and{$ENDIF} (scrn = SCN_FG) then
@@ -3830,6 +4518,11 @@ begin
     V_DrawBlock8(x, y, scrn, width, height, src)
 end;
 
+//==============================================================================
+//
+// V_DrawLongBlock
+//
+//==============================================================================
 procedure V_DrawLongBlock(x, y: integer; width, height: integer; src: PLongWordArray);
 var
   dest: PLongWordArray;
@@ -3847,10 +4540,12 @@ begin
   end;
 end;
 
+//==============================================================================
 //
 // V_GetBlock
 // Gets a linear block of pixels from the view buffer.
 //
+//==============================================================================
 procedure V_GetBlock(x, y: integer; scrn: integer; width, height: integer; dest: PByteArray);
 var
   src: PByteArray;
@@ -3869,6 +4564,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_CalcPreserveTables
+//
+//==============================================================================
 procedure V_CalcPreserveTables;
 var
   i: integer;
@@ -3876,6 +4576,9 @@ begin
   // initialize translation tables
   for i := 0 to 319 do
     preserveX[i] := trunc(i * {$IFDEF OPENGL}V_GetScreenWidth(SCN_FG){$ELSE}SCREENWIDTH{$ENDIF} / 320);
+
+  for i := 0 to 425 do
+    preserveX426[i] := trunc(i * {$IFDEF OPENGL}V_GetScreenWidth(SCN_FG){$ELSE}SCREENWIDTH{$ENDIF} / 426);
 
   for i := 0 to 199 do
     preserveY[i] := trunc(i * {$IFDEF OPENGL}V_GetScreenHeight(SCN_FG){$ELSE}SCREENHEIGHT{$ENDIF} / 200);
@@ -3892,13 +4595,13 @@ begin
 
 end;
 
+//==============================================================================
 //
 // V_Init
 //
-
-//
 // V_SetPalette
 //
+//==============================================================================
 procedure V_SetPalette(const palette: PByteArray);
 var
   dest: PLongWord;
@@ -3951,6 +4654,12 @@ end;
 
 {$IFNDEF OPENGL}
 {$IFDEF DOOM_OR_STRIFE}
+
+//==============================================================================
+//
+// V_CalcColorMapPalette
+//
+//==============================================================================
 procedure V_CalcColorMapPalette;
 var
   p: pointer;
@@ -3991,6 +4700,11 @@ end;
 {$ENDIF}
 {$ENDIF}
 
+//==============================================================================
+//
+// V_InitDefaultPalette
+//
+//==============================================================================
 procedure V_InitDefaultPalette;
 var
   playpal: PByteArray;
@@ -4009,6 +4723,11 @@ end;
 var
   vsize: integer = 0;
 
+//==============================================================================
+//
+// V_Init
+//
+//==============================================================================
 procedure V_Init;
 var
   i: integer;
@@ -4095,12 +4814,22 @@ begin
 
 end;
 
+//==============================================================================
+//
+// V_ReInit
+//
+//==============================================================================
 procedure V_ReInit;
 begin
   V_ShutDown;
   V_Init;
 end;
 
+//==============================================================================
+//
+// V_ShutDown
+//
+//==============================================================================
 procedure V_ShutDown;
 var
   base: pointer;
@@ -4109,6 +4838,11 @@ begin
   memfree(base, vsize);
 end;
 
+//==============================================================================
+//
+// V_ScreensSize
+//
+//==============================================================================
 function V_ScreensSize(const scrn: integer = -1): integer;
 var
   i: integer;
@@ -4139,11 +4873,101 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_TileScreen8
+//  Global use screen filler with patch or flat
+//
+//==============================================================================
+function V_TileScreen8(const lumpname: string; const dstscn: integer): boolean;
+var
+  lump: integer;
+  sz: integer;
+  flat: Pointer;
+  isflat: boolean;
+  src: packed array[0..4095] of byte;
+  dest: integer;
+  ovr: TOverlayDrawer;
+  x, y: integer;
+  xstart, ystart: integer;
+  p: Ppatch_t;
+begin
+  result := false;
+  lump := W_CheckNumForName(lumpname);
+  if lump >= 0 then
+  begin
+    sz := W_LumpLength(lump);
+    flat := W_CacheLumpNum(R_GetLumpForFlat(R_FlatNumForName(lumpname)), PU_STATIC);
+    isflat := R_ShrinkFlatTo64x64(flat, sz, @src);
+    Z_ChangeTag(flat, PU_CACHE);
+    if isflat then
+    begin
+      dest := 0;
+
+      for y := 0 to 200 - 1 do
+      begin
+        for x := 0 to (320 div 64) - 1 do
+        begin
+          memcpy(@screens[dstscn, dest], @src[_SHL(y and 63, 6)], 64);
+          dest := dest + 64;
+        end;
+
+        if 320 and 63 <> 0 then
+        begin
+          memcpy(@screens[dstscn, dest], @src[_SHL(y and 63, 6)], 320 and 63);
+          dest := dest + (320 and 63);
+        end;
+
+        result := true;
+      end;
+    end
+    else
+    begin
+      p := W_CacheLumpNum(lump, PU_STATIC);
+      if T_IsValidPatchImage(p, sz) then
+        if (p.width > 0) and (p.height > 0) then
+        begin
+          ovr := TOverlayDrawer.Create;
+
+          if p.leftoffset = 0 then
+            xstart := 0
+          else
+            xstart := -p.width;
+          if p.topoffset = 0 then
+            ystart := 0
+          else
+            ystart := -p.height;
+
+          x := xstart;
+          while x < 320 do
+          begin
+            y := ystart;
+            while y < 200 do
+            begin
+              ovr.AddPatch($FF, lumpname, x, y);
+              y := y + p.height;
+            end;
+            x := x + p.width;
+          end;
+
+          ovr.DrawDrawers;
+          memcpy(@screens[dstscn, 0], ovr.overlayscreen, 320 * 200);
+          ovr.Free;
+
+          result := true;
+        end;
+    end;
+  end;
+end;
+
+//==============================================================================
 //
 // V_FindAproxColorIndex
 //
 // JVAL: Calculates the euclidian square distance of a given color from all
 //       pal items and return the nearest
+//
+//==============================================================================
 function V_FindAproxColorIndex(const pal: PLongWordArray; const c: LongWord;
   const start: integer = 0; const finish: integer = 255): integer;
 var
@@ -4181,6 +5005,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// V_FindAproxColorIndexExcluding
+//
+//==============================================================================
 function V_FindAproxColorIndexExcluding(const pal: PLongWordArray; const c: LongWord;
   const start: integer = 0; const finish: integer = 255; const exclude: integer = -1): integer;
 var
@@ -4221,6 +5050,12 @@ begin
 end;
 
 {$IFDEF OPENGL}
+
+//==============================================================================
+//
+// V_FullScreenStretch
+//
+//==============================================================================
 procedure V_FullScreenStretch;
 var
   x, y: integer;
@@ -4260,6 +5095,12 @@ begin
 end;
 
 {$ELSE}
+
+//==============================================================================
+//
+// V_FullScreenStretch
+//
+//==============================================================================
 procedure V_FullScreenStretch;
 var
   x, y: integer;

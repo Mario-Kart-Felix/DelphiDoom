@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 //  Smart pointer list
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -56,7 +56,12 @@ type
 
 implementation
 
+//==============================================================================
+// TSmartPointerList.Create
+//
 // TSmartPointerList
+//
+//==============================================================================
 constructor TSmartPointerList.Create;
 begin
   fList := nil;
@@ -65,12 +70,22 @@ begin
   inherited;
 end;
 
+//==============================================================================
+//
+// TSmartPointerList.Destroy
+//
+//==============================================================================
 destructor TSmartPointerList.Destroy;
 begin
   Clear;
   inherited;
 end;
 
+//==============================================================================
+//
+// TSmartPointerList.AddItem
+//
+//==============================================================================
 procedure TSmartPointerList.AddItem(const value: pointer);
 var
   newsize: integer;
@@ -92,6 +107,11 @@ begin
   Inc(fNumItems);
 end;
 
+//==============================================================================
+//
+// TSmartPointerList.DeleteItem
+//
+//==============================================================================
 function TSmartPointerList.DeleteItem(const item: pointer): boolean;
 var
   i: integer;
@@ -108,6 +128,11 @@ begin
   Result := False;
 end;
 
+//==============================================================================
+//
+// TSmartPointerList.ItemExists
+//
+//==============================================================================
 function TSmartPointerList.ItemExists(const value: pointer): boolean;
 var
   i: integer;
@@ -128,6 +153,11 @@ begin
   Result := False;
 end;
 
+//==============================================================================
+//
+// TSmartPointerList.Clear
+//
+//==============================================================================
 procedure TSmartPointerList.Clear;
 begin
   realloc(pointer(fList), fNumItems * SizeOf(pointer), 0);
@@ -136,6 +166,11 @@ begin
   fRealSize := 0;
 end;
 
+//==============================================================================
+//
+// TSmartPointerList.Priority
+//
+//==============================================================================
 procedure TSmartPointerList.Priority(const index: integer);
 var
   newindex: integer;

@@ -1,9 +1,9 @@
 //------------------------------------------------------------------------------
 //
-//  DelphiDoom: A modified and improved DOOM engine for Windows
+//  DelphiDoom is a source port of the game Doom and it is
 //  based on original Linux Doom as published by "id Software"
 //  Copyright (C) 1993-1996 by id Software, Inc.
-//  Copyright (C) 2004-2021 by Jim Valavanis
+//  Copyright (C) 2004-2022 by Jim Valavanis
 //
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@
 //  SNDINFO lump parser (Sound aliases)
 //
 //------------------------------------------------------------------------------
-//  Site  : http://sourceforge.net/projects/delphidoom/
+//  Site  : https://sourceforge.net/projects/delphidoom/
 //------------------------------------------------------------------------------
 
 {$I Doom32.inc}
@@ -39,20 +39,60 @@ uses
   d_delphi,
   info_h;
 
+//==============================================================================
+//
+// SC_ParseSndInfoLumps
+//
+//==============================================================================
 procedure SC_ParseSndInfoLumps;
 
+//==============================================================================
+//
+// SC_ParseActordefLumps
+//
+//==============================================================================
 procedure SC_ParseActordefLumps;
 
+//==============================================================================
+//
+// SC_ParseActordefLump
+//
+//==============================================================================
 procedure SC_ParseActordefLump(const in_text: string);
 
+//==============================================================================
+//
+// SC_Init
+//
+//==============================================================================
 procedure SC_Init;
 
+//==============================================================================
+//
+// SC_ShutDown
+//
+//==============================================================================
 procedure SC_ShutDown;
 
+//==============================================================================
+//
+// SC_SoundAlias
+//
+//==============================================================================
 function SC_SoundAlias(const snd: string): string;
 
+//==============================================================================
+//
+// SC_GetActordefDeclaration
+//
+//==============================================================================
 function SC_GetActordefDeclaration(const m: Pmobjinfo_t): string;
 
+//==============================================================================
+//
+// SC_GetWeapondefDeclaration
+//
+//==============================================================================
 function SC_GetWeapondefDeclaration(const wid: integer{$IFDEF HERETIC}; const lvl: integer{$ENDIF}{$IFDEF HEXEN}; const pcl: integer{$ENDIF}): string;
 
 var
@@ -81,7 +121,11 @@ uses
   info,
   info_common,
   r_renderstyle,
+  r_translations,
   rtl_types,
+  {$IFDEF HEXEN}
+  sounddata,
+  {$ENDIF}
   sounds,
   sc_consts,
   sc_engine,
@@ -102,8 +146,13 @@ var
   soundaliases: TDStringList;
 
 const
-  MAXSTATES = 512;
+  MAXSTATES = 1024;
 
+//==============================================================================
+//
+// fixsndaliasstr
+//
+//==============================================================================
 function fixsndaliasstr(const src: string): string;
 var
   i: integer;
@@ -120,6 +169,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_SoundAlias
+//
+//==============================================================================
 function SC_SoundAlias(const snd: string): string;
 var
   check: string;
@@ -132,7 +186,7 @@ begin
   end;
 
   check := fixsndaliasstr(snd);
-  if firstword(check) = '$RANDOM' then
+  if firstword_ch(check) = '$RANDOM' then
     check := secondword(check);
   id := soundaliases.IndexOfName(check);
   if id >= 0 then
@@ -152,7 +206,7 @@ begin
     exit;
   end;
 
-  if Pos('/', snd) > 0 then
+  if CharPos('/', snd) > 0 then
   begin
     I_Warning('SC_SoundAlias(): Sound %s does not have a corresponding alias.'#13#10, [snd]);
     result := '0';
@@ -182,8 +236,16 @@ type
     function MatchFlag2Ex(const flag2_ex: string): boolean;
     function MatchFlag3Ex(const flag3_ex: string): boolean;
     function MatchFlag4Ex(const flag4_ex: string): boolean;
+    function MatchFlag5Ex(const flag5_ex: string): boolean;
+    function MatchFlag6Ex(const flag6_ex: string): boolean;
+    function MatchWeaponFlag(const wflag: string): boolean;
   end;
 
+//==============================================================================
+//
+// TActordefScriptEngine.AddFlagAliases
+//
+//==============================================================================
 procedure TActordefScriptEngine.AddFlagAliases;
 begin
   AddAlias('CANPASS', 'PASSMOBJ');
@@ -195,8 +257,25 @@ begin
   AddAlias('FRIENDLY', 'FRIEND');
   AddAlias('+FRIENDLY', 'FRIEND');
   AddAlias('-FRIENDLY', '-FRIEND');
+  AddAlias('ACTIVATEIMPACT', 'IMPACT');
+  AddAlias('+ACTIVATEIMPACT', '+IMPACT');
+  AddAlias('-ACTIVATEIMPACT', '-IMPACT');
+  AddAlias('CANPUSHWALLS', 'PUSHWALL');
+  AddAlias('+CANPUSHWALLS', '+PUSHWALL');
+  AddAlias('-CANPUSHWALLS', '-PUSHWALL');
+  AddAlias('ACTIVATEPCROSS', 'PCROSS');
+  AddAlias('+ACTIVATEPCROSS', '+PCROSS');
+  AddAlias('-ACTIVATEPCROSS', '-PCROSS');
+  AddAlias('ACTIVATEMCROSS', 'MCROSS');
+  AddAlias('+ACTIVATEMCROSS', '+MCROSS');
+  AddAlias('-ACTIVATEMCROSS', '-MCROSS');
 end;
 
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag
+//
+//==============================================================================
 function TActordefScriptEngine.MatchFlag(const flag: string): boolean;
 begin
   AddFlagAliases;
@@ -209,6 +288,12 @@ begin
 end;
 
 {$IFDEF HERETIC_OR_HEXEN}
+
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag2
+//
+//==============================================================================
 function TActordefScriptEngine.MatchFlag2(const flag: string): boolean;
 begin
   AddFlagAliases;
@@ -223,6 +308,11 @@ begin
 end;
 {$ENDIF}
 
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlagEx
+//
+//==============================================================================
 function TActordefScriptEngine.MatchFlagEx(const flag_ex: string): boolean;
 begin
   AddFlagAliases;
@@ -236,6 +326,11 @@ begin
   ClearAliases;
 end;
 
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag2Ex
+//
+//==============================================================================
 function TActordefScriptEngine.MatchFlag2Ex(const flag2_ex: string): boolean;
 begin
   AddFlagAliases;
@@ -249,6 +344,11 @@ begin
   ClearAliases;
 end;
 
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag3Ex
+//
+//==============================================================================
 function TActordefScriptEngine.MatchFlag3Ex(const flag3_ex: string): boolean;
 begin
   AddFlagAliases;
@@ -262,6 +362,11 @@ begin
   ClearAliases;
 end;
 
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag4Ex
+//
+//==============================================================================
 function TActordefScriptEngine.MatchFlag4Ex(const flag4_ex: string): boolean;
 begin
   AddFlagAliases;
@@ -275,12 +380,67 @@ begin
   ClearAliases;
 end;
 
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag5Ex
+//
+//==============================================================================
+function TActordefScriptEngine.MatchFlag5Ex(const flag5_ex: string): boolean;
+begin
+  AddFlagAliases;
+  result :=
+    MatchString(flag5_ex) or
+    MatchString('+' + flag5_ex) or
+    MatchString('MF5_' + flag5_ex) or
+    MatchString('MF5_EX_' + flag5_ex) or
+    MatchString('+MF5_' + flag5_ex) or
+    MatchString('+MF5_EX_' + flag5_ex);
+  ClearAliases;
+end;
+
+//==============================================================================
+//
+// TActordefScriptEngine.MatchFlag6Ex
+//
+//==============================================================================
+function TActordefScriptEngine.MatchFlag6Ex(const flag6_ex: string): boolean;
+begin
+  AddFlagAliases;
+  result :=
+    MatchString(flag6_ex) or
+    MatchString('+' + flag6_ex) or
+    MatchString('MF6_' + flag6_ex) or
+    MatchString('MF6_EX_' + flag6_ex) or
+    MatchString('+MF6_' + flag6_ex) or
+    MatchString('+MF6_EX_' + flag6_ex);
+  ClearAliases;
+end;
+
+//==============================================================================
+//
+// TActordefScriptEngine.MatchWeaponFlag
+//
+//==============================================================================
+function TActordefScriptEngine.MatchWeaponFlag(const wflag: string): boolean;
+begin
+  result :=
+    MatchString(wflag) or
+    MatchString('+' + wflag) or
+    MatchString('WPF_' + wflag) or
+    MatchString('+WPF_' + wflag);
+end;
+
 const
   ORIGINALSTATEMARKER = $FFFFF;
   ACTORDEFLUMPNAME = 'ACTORDEF';
   DECORATELUMPNAME = 'DECORATE';
   SNDINFOLUMPNAME = 'SNDINFO';
 
+//==============================================================================
+//
+// SC_DoParseActordefLump
+//
+//==============================================================================
 procedure SC_DoParseActordefLump(const in_text: string);
 var
   mobj: rtl_mobjinfo_t;
@@ -332,25 +492,46 @@ var
   begin
     result := '';
     acheck := strupper(aflag);
-    if Pos('MF2_EX_', acheck) = 1 then
-      acheck := Copy(acheck, 8, length(acheck) - 7)
-    else if Pos('MF_EX_', acheck) = 1 then
-      acheck := Copy(acheck, 7, length(acheck) - 6)
-    {$IFDEF HERETIC_OR_HEXEN}
-    else if Pos('MF2_', acheck) = 1 then
-      acheck := Copy(acheck, 5, length(acheck) - 4)
-    {$ENDIF}
-    else if Pos('MF_', acheck) = 1 then
-      acheck := Copy(acheck, 4, length(acheck) - 3);
+    if acheck = '' then
+    begin
+      result := inp;
+      exit;
+    end;
+    if acheck[1] = 'M' then
+    begin
+      if Pos('MF6_EX_', acheck) = 1 then
+        acheck := Copy(acheck, 8, length(acheck) - 7)
+      else if Pos('MF5_EX_', acheck) = 1 then
+        acheck := Copy(acheck, 8, length(acheck) - 7)
+      else if Pos('MF4_EX_', acheck) = 1 then
+        acheck := Copy(acheck, 8, length(acheck) - 7)
+      else if Pos('MF3_EX_', acheck) = 1 then
+        acheck := Copy(acheck, 8, length(acheck) - 7)
+      else if Pos('MF2_EX_', acheck) = 1 then
+        acheck := Copy(acheck, 8, length(acheck) - 7)
+      else if Pos('MF_EX_', acheck) = 1 then
+        acheck := Copy(acheck, 7, length(acheck) - 6)
+      {$IFDEF HERETIC_OR_HEXEN}
+      else if Pos('MF2_', acheck) = 1 then
+        acheck := Copy(acheck, 5, length(acheck) - 4)
+      {$ENDIF}
+      else if Pos('MF_', acheck) = 1 then
+        acheck := Copy(acheck, 4, length(acheck) - 3);
+    end;
     sctmp := TScriptEngine.Create(inp);
     while sctmp.GetString do
     begin
       icheck := strupper(sctmp._String);
-      if (icheck <> acheck) and
-         (icheck <> 'MF_' + acheck) and
+      if (icheck <> acheck) and (icheck[1] <> 'M') then
+        result := result + icheck + ' '
+      else if (icheck <> 'MF_' + acheck) and
          (icheck <> 'MF2_' + acheck) and
          (icheck <> 'MF_EX_' + acheck) and
-         (icheck <> 'MF2_EX_' + acheck) then
+         (icheck <> 'MF2_EX_' + acheck) and
+         (icheck <> 'MF3_EX_' + acheck) and
+         (icheck <> 'MF4_EX_' + acheck) and
+         (icheck <> 'MF5_EX_' + acheck) and
+         (icheck <> 'MF6_EX_' + acheck) then
         result := result + icheck + ' ';
     end;
     sctmp.Free;
@@ -363,12 +544,12 @@ var
     check: string;
   begin
     check := sc._String;
-    if Pos('-', check) <> 1 then
+    if CharPos('-', check) <> 1 then
     begin
       result := false;
       exit;
     end;
-    if Pos('+', check) = 1 then
+    if CharPos('+', check) = 1 then
     begin
       result := false;
       exit;
@@ -421,12 +602,12 @@ var
     check: string;
   begin
     check := sc._String;
-    if Pos('-', check) <> 1 then
+    if CharPos('-', check) <> 1 then
     begin
       result := false;
       exit;
     end;
-    if Pos('+', check) = 1 then
+    if CharPos('+', check) = 1 then
     begin
       result := false;
       exit;
@@ -481,12 +662,12 @@ var
     check: string;
   begin
     check := sc._String;
-    if Pos('-', check) <> 1 then
+    if CharPos('-', check) <> 1 then
     begin
       result := false;
       exit;
     end;
-    if Pos('+', check) = 1 then
+    if CharPos('+', check) = 1 then
     begin
       result := false;
       exit;
@@ -544,12 +725,12 @@ var
     check: string;
   begin
     check := sc._String;
-    if Pos('-', check) <> 1 then
+    if CharPos('-', check) <> 1 then
     begin
       result := false;
       exit;
     end;
-    if Pos('+', check) = 1 then
+    if CharPos('+', check) = 1 then
     begin
       result := false;
       exit;
@@ -613,12 +794,12 @@ var
     check: string;
   begin
     check := sc._String;
-    if Pos('-', check) <> 1 then
+    if CharPos('-', check) <> 1 then
     begin
       result := false;
       exit;
     end;
-    if Pos('+', check) = 1 then
+    if CharPos('+', check) = 1 then
     begin
       result := false;
       exit;
@@ -686,12 +867,12 @@ var
     check: string;
   begin
     check := sc._String;
-    if Pos('-', check) <> 1 then
+    if CharPos('-', check) <> 1 then
     begin
       result := false;
       exit;
     end;
-    if Pos('+', check) = 1 then
+    if CharPos('+', check) = 1 then
     begin
       result := false;
       exit;
@@ -699,7 +880,7 @@ var
 
     for i := 0 to mobj_flags4_ex.Count - 1 do
     begin
-      flag := mobj_flags3_ex[i];
+      flag := mobj_flags4_ex[i];
       if Pos('MF4_EX_', flag) = 1 then
         flag := Copy(flag, 8, length(flag) - 7)
       else if Pos('MF3_EX_', flag) = 1 then
@@ -715,6 +896,243 @@ var
       if sc.MatchFlag4Ex('-' + flag) then
       begin
         mobj.flags4_ex := RemoveFlag(mobj.flags4_ex, flag);
+        result := true;
+        exit;
+      end;
+    end;
+
+    result := false;
+  end;
+
+  function MatchFlags5Ex: boolean;
+  var
+    i: integer;
+    flag: string;
+  begin
+    for i := 0 to mobj_flags5_ex.Count - 1 do
+    begin
+      flag := mobj_flags5_ex[i];
+      if Pos('MF5_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF4_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF3_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF2_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF_EX_', flag) = 1 then
+        flag := Copy(flag, 7, length(flag) - 6)
+      else if Pos('MF2_', flag) = 1 then
+        flag := Copy(flag, 5, length(flag) - 4)
+      else if Pos('MF_', flag) = 1 then
+        flag := Copy(flag, 4, length(flag) - 3);
+      if sc.MatchFlag5Ex(flag) then
+      begin
+        mobj.flags5_ex := mobj.flags5_ex + flag + ' ';
+        result := true;
+        exit;
+      end;
+    end;
+
+    result := false;
+  end;
+
+  function MatchFlags5Ex_Delete: boolean;
+  var
+    i: integer;
+    flag: string;
+    check: string;
+  begin
+    check := sc._String;
+    if CharPos('-', check) <> 1 then
+    begin
+      result := false;
+      exit;
+    end;
+    if CharPos('+', check) = 1 then
+    begin
+      result := false;
+      exit;
+    end;
+
+    for i := 0 to mobj_flags5_ex.Count - 1 do
+    begin
+      flag := mobj_flags5_ex[i];
+      if Pos('MF5_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF4_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF3_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF2_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF_EX_', flag) = 1 then
+        flag := Copy(flag, 7, length(flag) - 6)
+      else if Pos('MF2_', flag) = 1 then
+        flag := Copy(flag, 5, length(flag) - 4)
+      else if Pos('MF_', flag) = 1 then
+        flag := Copy(flag, 4, length(flag) - 3);
+      if sc.MatchFlag5Ex('-' + flag) then
+      begin
+        mobj.flags5_ex := RemoveFlag(mobj.flags5_ex, flag);
+        result := true;
+        exit;
+      end;
+    end;
+
+    result := false;
+  end;
+
+  function MatchFlags6Ex: boolean;
+  var
+    i: integer;
+    flag: string;
+  begin
+    for i := 0 to mobj_flags6_ex.Count - 1 do
+    begin
+      flag := mobj_flags6_ex[i];
+      if Pos('MF6_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF5_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF4_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF3_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF2_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF_EX_', flag) = 1 then
+        flag := Copy(flag, 7, length(flag) - 6)
+      else if Pos('MF2_', flag) = 1 then
+        flag := Copy(flag, 5, length(flag) - 4)
+      else if Pos('MF_', flag) = 1 then
+        flag := Copy(flag, 4, length(flag) - 3);
+      if sc.MatchFlag6Ex(flag) then
+      begin
+        mobj.flags6_ex := mobj.flags6_ex + flag + ' ';
+        result := true;
+        exit;
+      end;
+    end;
+
+    result := false;
+  end;
+
+  function MatchFlags6Ex_Delete: boolean;
+  var
+    i: integer;
+    flag: string;
+    check: string;
+  begin
+    check := sc._String;
+    if CharPos('-', check) <> 1 then
+    begin
+      result := false;
+      exit;
+    end;
+    if CharPos('+', check) = 1 then
+    begin
+      result := false;
+      exit;
+    end;
+
+    for i := 0 to mobj_flags6_ex.Count - 1 do
+    begin
+      flag := mobj_flags6_ex[i];
+      if Pos('MF6_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF5_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF4_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF3_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF2_EX_', flag) = 1 then
+        flag := Copy(flag, 8, length(flag) - 7)
+      else if Pos('MF_EX_', flag) = 1 then
+        flag := Copy(flag, 7, length(flag) - 6)
+      else if Pos('MF2_', flag) = 1 then
+        flag := Copy(flag, 5, length(flag) - 4)
+      else if Pos('MF_', flag) = 1 then
+        flag := Copy(flag, 4, length(flag) - 3);
+      if sc.MatchFlag6Ex('-' + flag) then
+      begin
+        mobj.flags6_ex := RemoveFlag(mobj.flags6_ex, flag);
+        result := true;
+        exit;
+      end;
+    end;
+
+    result := false;
+  end;
+
+  function MatchWeaponFlags: boolean;
+  var
+    i: integer;
+    flag: string;
+  begin
+    for i := 0 to weapon_flags_mbf21.Count - 1 do
+    begin
+      flag := mobj_flags[i];
+      if sc.MatchWeaponFlag(flag) then
+      begin
+        wpn.flags := wpn.flags + flag + ' ';
+        result := true;
+        exit;
+      end;
+    end;
+
+    result := false;
+  end;
+
+  function RemoveWeaponFlag(const inp: string; const wflag: string): string;
+  var
+    sctmp: TScriptEngine;
+    acheck, icheck: string;
+  begin
+    result := '';
+    acheck := strupper(wflag);
+    if acheck = '' then
+    begin
+      result := inp;
+      exit;
+    end;
+    if Pos('WPN_', acheck) = 1 then
+      acheck := Copy(acheck, 5, length(acheck) - 4);
+    sctmp := TScriptEngine.Create(inp);
+    while sctmp.GetString do
+    begin
+      icheck := strupper(sctmp._String);
+      if icheck <> acheck then
+        result := result + icheck + ' ';
+    end;
+    sctmp.Free;
+  end;
+
+  function MatchWeaponFlags_Delete: boolean;
+  var
+    i: integer;
+    flag: string;
+    check: string;
+  begin
+    check := sc._String;
+    if CharPos('-', check) <> 1 then
+    begin
+      result := false;
+      exit;
+    end;
+    if CharPos('+', check) = 1 then
+    begin
+      result := false;
+      exit;
+    end;
+
+    for i := 0 to weapon_flags_mbf21.Count - 1 do
+    begin
+      flag := weapon_flags_mbf21[i];
+      if sc.MatchWeaponFlag('-' + flag) then
+      begin
+        wpn.flags := RemoveFlag(wpn.flags, flag);
         result := true;
         exit;
       end;
@@ -760,6 +1178,7 @@ var
     gotostr: string;
     offs: integer;
     bright: boolean;
+    fast: boolean;
     stmp: string;
     p: integer;
     alias: string;
@@ -785,7 +1204,7 @@ var
       if sc.GetString then
       begin
         if blevel = sc.BracketLevel then
-          if Pos(':', sc._String) < 1 then
+          if CharPos(':', sc._String) < 1 then
             result := true; // ACTOR definition not finished - same bracket level and not a new state
         sc.UnGet;
       end;
@@ -795,6 +1214,12 @@ var
     begin
       if numstates > 0 then
         m_states[numstates - 1].nextstate := -1; // S_NULL
+      exit;
+    end
+    else if sc.MatchString('wait') then
+    begin
+      if numstates > 0 then
+        m_states[numstates - 1].nextstate := numstates - 1; // Same state
       exit;
     end
     else if sc.MatchString('ACTOR') or
@@ -912,6 +1337,15 @@ var
           else
             offs := 0;
           m_states[numstates - 1].nextstate := mobj.crashstate + offs;
+          m_states[numstates - 1].has_goto := true;
+        end
+        else if (mobj.statesdefined and RTL_ST_CRUSH <> 0) and statecheckPos('CRUSH', gotostr) then
+        begin
+          if length(gotostr) > 5 then
+            offs := atoi(strremovespaces(Copy(gotostr, 6, Length(gotostr) - 5)))
+          else
+            offs := 0;
+          m_states[numstates - 1].nextstate := mobj.crushstate + offs;
           m_states[numstates - 1].has_goto := true;
         end
         else if (mobj.statesdefined and RTL_ST_INTERACT <> 0) and statecheckPos('INTERACT', gotostr) then
@@ -1035,7 +1469,7 @@ var
         else if actorpending then
           alias := 'S_' + strupper(mobj.name + '_' + alias)
         else
-          alias := strupper(alias);
+          strupperproc(alias);
         sc.GetString;
       end
       else
@@ -1071,6 +1505,7 @@ var
     end;
 
     bright := false;
+    fast := false;
     action := '';
     sc.GetString;
     if sc.NewLine then
@@ -1078,6 +1513,8 @@ var
     else
     begin
       if strupper(sc._String) = 'BRIGHT' then
+        stmp := sc._String + ' ' + SC_RemoveLineComments(sc.GetStringEOLUnChanged)
+      else if strupper(sc._String) = 'FAST' then
         stmp := sc._String + ' ' + SC_RemoveLineComments(sc.GetStringEOLUnChanged)
       else
       begin
@@ -1093,8 +1530,10 @@ var
       end;
 
       bright := false;
-      stmp := strtrim(stmp);
-      if strupper(firstword(stmp)) = 'BRIGHT' then
+      fast := false;
+
+      trimproc(stmp);
+      if strupper(firstword_ch(stmp)) = 'BRIGHT' then
       begin
         bright := true;
         action := strtrim(Copy(stmp, 7, length(stmp) - 6));
@@ -1106,6 +1545,39 @@ var
       end
       else
         action := stmp;
+
+      // MBF21 - Fast keyword
+      stmp := strtrim(action);
+      if strupper(firstword_ch(stmp)) = 'FAST' then
+      begin
+        fast := true;
+        action := strtrim(Copy(stmp, 6, length(stmp) - 6));
+      end
+      else if strupper(lastword(stmp)) = 'FAST' then
+      begin
+        fast := true;
+        action := strtrim(Copy(stmp, 1, length(stmp) - 5));
+      end
+      else
+        action := stmp;
+
+      // The fast keywork was first or last word
+      if not bright and fast then
+      begin
+        stmp := strtrim(action);
+        if strupper(firstword_ch(stmp)) = 'BRIGHT' then
+        begin
+          bright := true;
+          action := strtrim(Copy(stmp, 7, length(stmp) - 6));
+        end
+        else if strupper(lastword(stmp)) = 'BRIGHT' then
+        begin
+          bright := true;
+          action := strtrim(Copy(stmp, 1, length(stmp) - 6));
+        end
+        else
+          action := stmp;
+      end;
     end;
 
     if action = '' then
@@ -1116,6 +1588,7 @@ var
       if numstates = MAXSTATES then
       begin
         I_Warning('SC_ActordefToDEH(): Object has more than %d states'#13#10, [MAXSTATES]);
+        Break;
       end
       else
       begin
@@ -1128,6 +1601,7 @@ var
         pm_state.action := action;
         pm_state.nextstate := numstates + 1;
         pm_state.bright := bright;
+        pm_state.fast := fast;
         pm_state.alias := alias;
         pm_state.savealias := savealias;
         alias := ''; // Alias only for the first state
@@ -1252,6 +1726,11 @@ var
           result := ORIGINALSTATEMARKER + inf.crashstate;
           exit;
         end
+        else if sss1 = 'CRUSH' then
+        begin
+          result := ORIGINALSTATEMARKER + inf.crushstate;
+          exit;
+        end
         else if sss1 = 'INTERACT' then
         begin
           result := ORIGINALSTATEMARKER + inf.interactstate;
@@ -1320,6 +1799,11 @@ var
           result := mobj.crashstate;
           exit;
         end
+        else if sss1 = 'CRUSH' then
+        begin
+          result := mobj.crushstate;
+          exit;
+        end
         else if sss1 = 'INTERACT' then
         begin
           result := mobj.interactstate;
@@ -1341,10 +1825,10 @@ var
     end;
 
   begin
-    st := strtrim(strupper(strtrim(s)));
-    pps := Pos('+', st);
-    ppp := Pos('-', st);
-    ppb := Pos(' ', st);
+    st := strupper(strtrim(s));
+    pps := CharPos('+', st);
+    ppp := CharPos('-', st);
+    ppb := CharPos(' ', st);
     ret := -1;
     if (ppb = 0) and (ppp = 0) and (pps = 0) then
     begin
@@ -1355,16 +1839,16 @@ var
     //       20191003 rewritten, fixed
     begin
       st := strremovespaces(st);
-      pps := Pos('+', st);
-      ppp := Pos('-', st);
+      pps := CharPos('+', st);
+      ppp := CharPos('-', st);
       if pps > 0 then
       begin
-        splitstring(st, fw, sw, '+');
+        splitstring_ch(st, fw, sw, '+');
         ret := _stindex(fw) + atoi(sw, 0);
       end
       else if ppp > 0 then
       begin
-        splitstring(st, fw, sw, '-');
+        splitstring_ch(st, fw, sw, '-');
         ret := _stindex(fw) - atoi(sw, 0);
       end;
     end;
@@ -1421,6 +1905,7 @@ var
     AddStateRes(mobj.xdeathstate, 'Exploding');
     AddStateRes(mobj.healstate, 'Heal');
     AddStateRes(mobj.crashstate, 'Crash');
+    AddStateRes(mobj.crushstate, 'Crush');
     AddStateRes(mobj.interactstate, 'Interact');
     AddRes('Death Sound = ' + SC_SoundAlias(mobj.deathsound));
     ismissile := Pos('MF_MISSILE', mobj.flags) > 0;
@@ -1457,9 +1942,8 @@ var
     AddRes('flags2_ex = ' + mobj.flags2_ex);
     AddRes('flags3_ex = ' + mobj.flags3_ex);
     AddRes('flags4_ex = ' + mobj.flags4_ex);
-    {$IFDEF DOOM_OR_STRIFE}
     AddRes('missileheight = ' + itoa(mobj.missileheight));
-    {$ENDIF}
+    AddRes('melee threshold = ' + itoa(mobj.meleethreshold));
     AddRes('Scale = ' + itoa(round(mobj.scale * FRACUNIT)));
     AddRes('Gravity = ' + itoa(round(mobj.gravity * FRACUNIT)));
     Addres('Float Speed = ' + itoa(mobj.floatspeed));
@@ -1480,6 +1964,11 @@ var
     AddRes('Weave Index Z = ' + itoa(mobj.WeaveIndexZ));
     AddRes('Sprite DX = ' + itoa(round(mobj.spriteDX * FRACUNIT)));
     AddRes('Sprite DY = ' + itoa(round(mobj.spriteDY * FRACUNIT)));
+    AddRes('flags5_ex = ' + mobj.flags5_ex);
+    AddRes('flags6_ex = ' + mobj.flags6_ex);
+    AddRes('Rip Sound = ' + SC_SoundAlias(mobj.ripsound));
+    AddRes('Blood Color = ' + mobj.bloodcolor);
+    AddRes('Translation = ' + mobj.translation);
 
     AddRes('');
 
@@ -1517,6 +2006,11 @@ var
         AddRes('Unknown 2 = 0');
         AddRes('Flags_ex = ' + itoa(m_states[cnt].flags_ex));
         AddRes('Owner = ' + mobj.name);
+
+        // MBF21
+        if m_states[cnt].fast then
+          AddRes('MBF21 BITS = STATEF_SKILL5FAST');
+
         AddRes('');
       end;
       AddRes('');
@@ -1601,10 +2095,10 @@ var
     end;
 
   begin
-    st := strtrim(strupper(strtrim(s)));
-    pps := Pos('+', st);
-    ppp := Pos('-', st);
-    ppb := Pos(' ', st);
+    st := strupper(strtrim(s));
+    pps := CharPos('+', st);
+    ppp := CharPos('-', st);
+    ppb := CharPos(' ', st);
     ret := -1;
     if (ppb = 0) and (ppp = 0) and (pps = 0) then
     begin
@@ -1615,16 +2109,16 @@ var
     //       20191003 rewritten, fixed
     begin
       st := strremovespaces(st);
-      pps := Pos('+', st);
-      ppp := Pos('-', st);
+      pps := CharPos('+', st);
+      ppp := CharPos('-', st);
       if pps > 0 then
       begin
-        splitstring(st, fw, sw, '+');
+        splitstring_ch(st, fw, sw, '+');
         ret := _stindex(fw) + atoi(sw, 0);
       end
       else if ppp > 0 then
       begin
-        splitstring(st, fw, sw, '-');
+        splitstring_ch(st, fw, sw, '-');
         ret := _stindex(fw) - atoi(sw, 0);
       end;
     end;
@@ -1650,7 +2144,7 @@ var
     weaponpending := false;
     res := '';
 
-    AddRes('WEAPON ' + itoa(wpn.weaponno) {$IFDEF  HEXEN} + ' ' + itoa(wpn.pclass){$ENDIF});
+    AddRes('WEAPON ' + itoa(wpn.weaponno) {$IFDEF HEXEN} + ' ' + itoa(wpn.pclass){$ENDIF});
     {$IFDEF HERETIC}
     AddRes('Level ' + itoa(wpn.level));
     {$ENDIF}
@@ -1661,6 +2155,8 @@ var
     AddStateRes(wpn.attackstate, 'SHOOTING');
     AddStateRes(wpn.holdattackstate, 'HOLD SHOOTING');
     AddStateRes(wpn.flashstate, 'FIRING');
+    AddRes('MBF21 BITS = ' + wpn.flags);
+    AddRes('AMMO PER SHOT = ' + itoa(wpn.ammopershot));
 
     AddRes('');
 
@@ -1699,6 +2195,11 @@ var
         {$IFNDEF STRIFE}
         AddRes('Flags_ex = ' + itoa(m_states[cnt].flags_ex));
         {$ENDIF}
+
+        // MBF21
+        if m_states[cnt].fast then
+          AddRes('MBF21 BITS = STATEF_SKILL5FAST');
+
         AddRes('');
       end;
       AddRes('');
@@ -1734,7 +2235,7 @@ var
           passcriptline := sc.GetStringEOLUnChanged;
           if passcriptline = '' then
             passcriptline := sc.GetStringEOLUnChanged;
-          while (strupper(firstword(passcriptline, [Chr(9), ' ', ';', '.'])) <> 'ENDSCRIPT') and (not sc._Finished) do
+          while (strupper(firstword(passcriptline, [Chr(9), ' ', ';', '.'])) <> 'ENDSCRIPT') and not sc._Finished do
           begin
             if passcript = '' then
               passcript := passcriptline
@@ -1827,6 +2328,7 @@ begin
   m_state_tokens.Add('heal:');
   m_state_tokens.Add('crash:');
   m_state_tokens.Add('interact:');
+  m_state_tokens.Add('crush:');
 
   w_state_tokens := TDStringList.Create;
   w_state_tokens.Add('up:');
@@ -2004,6 +2506,7 @@ begin
       wpn.attackstate := -1;
       wpn.holdattackstate := -1;
       wpn.flashstate := -1;
+      wpn.flags := '';
 
       if not sc.GetString then
         break;
@@ -2047,6 +2550,16 @@ begin
           sc.GetString;
         end
         {$ENDIF}
+        else if sc.MatchString('ammopershot') then
+        begin
+          sc.MustGetInteger;
+          wpn.ammopershot := sc._Integer;
+          sc.GetString;
+        end
+        else if MatchWeaponFlags then
+          sc.GetString
+        else if MatchWeaponFlags_Delete then
+          sc.GetString
         else if sc.MatchString('states') then
         begin
           foundstates := true;
@@ -2153,6 +2666,7 @@ begin
       mobj.raisestate := -1;
       mobj.healstate := -1;
       mobj.crashstate := -1;
+      mobj.crushstate := -1;
       mobj.interactstate := -1;
       mobj.flags := '';
       {$IFDEF HERETIC_OR_HEXEN}
@@ -2162,6 +2676,8 @@ begin
       mobj.flags2_ex := '';
       mobj.flags3_ex := '';
       mobj.flags4_ex := '';
+      mobj.flags5_ex := '';
+      mobj.flags6_ex := '';
       {$IFDEF STRIFE}
       mobj.name2 := '';
       {$ENDIF}
@@ -2170,13 +2686,16 @@ begin
       mobj.friction := 0.90625; {ORIG_FRICTION / FRACUNIT;}
       mobj.gravity := 1.0;
       mobj.replacesid := -1;
+      mobj.infighting_group := IG_DEFAULT;
+      mobj.projectile_group := PG_DEFAULT;
+      mobj.splash_group := SG_DEFAULT;
       ismissile := false;
       FillChar(m_states, SizeOf(m_states), 0);
       sc.GetString;
       mobj.name := sc._String;
       isreplace := false;
       isinherit := false;
-      if Pos(':', mobj.name) = Length(mobj.name) then
+      if CharPos(':', mobj.name) = Length(mobj.name) then
       begin
         SetLength(mobj.name, Length(mobj.name) - 1);
         sc.GetString;
@@ -2244,6 +2763,12 @@ begin
           for i := 0 to 31 do
             if pinf.flags4_ex and _SHL(1, i) <> 0 then
               mobj.flags4_ex := mobj.flags4_ex + mobj_flags4_ex[i] + ' ';
+          for i := 0 to 31 do
+            if pinf.flags5_ex and _SHL(1, i) <> 0 then
+              mobj.flags5_ex := mobj.flags5_ex + mobj_flags5_ex[i] + ' ';
+          for i := 0 to 31 do
+            if pinf.flags6_ex and _SHL(1, i) <> 0 then
+              mobj.flags6_ex := mobj.flags6_ex + mobj_flags6_ex[i] + ' ';
           mobj.customsound1 := itoa(pinf.customsound1);
           mobj.customsound2 := itoa(pinf.customsound2);
           mobj.customsound3 := itoa(pinf.customsound3);
@@ -2255,12 +2780,12 @@ begin
           mobj.meleesound := itoa(pinf.meleesound);
           mobj.renderstyle := itoa(Ord(pinf.renderstyle));
           mobj.alpha := pinf.alpha;
-          {$IFDEF DOOM_OR_STRIFE}
           mobj.missileheight := pinf.missileheight;
-          {$ENDIF}
+          mobj.meleethreshold := pinf.meleethreshold;
           mobj.vspeed := pinf.vspeed / FRACUNIT;
           mobj.pushfactor := pinf.pushfactor / FRACUNIT;
           mobj.scale := pinf.scale / FRACUNIT;
+          mobj.gravity := pinf.gravity / FRACUNIT;
           mobj.minmissilechance := pinf.minmissilechance;
           mobj.floatspeed := pinf.floatspeed;
           mobj.normalspeed := pinf.normalspeed;
@@ -2277,6 +2802,13 @@ begin
           mobj.WeaveIndexZ := pinf.WeaveIndexZ;
           mobj.spriteDX := pinf.spriteDX;
           mobj.spriteDY := pinf.spriteDY;
+          mobj.infighting_group := pinf.infighting_group;
+          mobj.projectile_group := pinf.projectile_group;
+          mobj.splash_group := pinf.splash_group;
+          mobj.mbf21bits := pinf.mbf21bits;
+          mobj.ripsound := itoa(pinf.ripsound);
+          mobj.bloodcolor := itoa(pinf.bloodcolor);
+          mobj.translation := pinf.translationname;
 
           mobj.spawnstate := ORIGINALSTATEMARKER + pinf.spawnstate;
           mobj.seestate := ORIGINALSTATEMARKER + pinf.seestate;
@@ -2288,6 +2820,7 @@ begin
           mobj.raisestate := ORIGINALSTATEMARKER + pinf.raisestate;
           mobj.healstate := ORIGINALSTATEMARKER + pinf.healstate;
           mobj.crashstate := ORIGINALSTATEMARKER + pinf.crashstate;
+          mobj.crushstate := ORIGINALSTATEMARKER + pinf.crushstate;
           mobj.interactstate := ORIGINALSTATEMARKER + pinf.interactstate;
           if mobj.spawnstate > ORIGINALSTATEMARKER then
             mobj.statesdefined := mobj.statesdefined or RTL_ST_SPAWN;
@@ -2309,6 +2842,8 @@ begin
             mobj.statesdefined := mobj.statesdefined or RTL_ST_HEAL;
           if mobj.crashstate > ORIGINALSTATEMARKER then
             mobj.statesdefined := mobj.statesdefined or RTL_ST_CRASH;
+          if mobj.crushstate > ORIGINALSTATEMARKER then
+            mobj.statesdefined := mobj.statesdefined or RTL_ST_CRUSH;
           if mobj.interactstate > ORIGINALSTATEMARKER then
             mobj.statesdefined := mobj.statesdefined or RTL_ST_INTERACT;
         end;
@@ -2378,11 +2913,21 @@ begin
         else if sc.MatchString('monster') or sc.MatchString('+monster') then
         begin
            mobj.flags := mobj.flags + 'MF_SOLID MF_SHOOTABLE MF_COUNTKILL ';
+           {$IFDEF HEXEN}
+           mobj.flags2 := mobj.flags2 + 'MF2_PUSHWALL MF2_MCROSS ';
+           {$ELSE}
+           mobj.flags5_ex := mobj.flags5_ex + 'MF5_EX_PUSHWALL MF5_EX_MCROSS ';
+           {$ENDIF}
            sc.GetString;
         end
         else if sc.MatchString('projectile') or sc.MatchString('+projectile') then
         begin
            mobj.flags := mobj.flags + 'MF_NOGRAVITY MF_DROPOFF MF_MISSILE ';
+           {$IFDEF HEXEN}
+           mobj.flags2 := mobj.flags2 + 'MF2_IMPACT MF2_PCROSS ';
+           {$ELSE}
+           mobj.flags5_ex := mobj.flags5_ex + 'MF5_EX_IMPACT MF5_EX_PCROSS ';
+           {$ENDIF}
            sc.GetString;
         end
 
@@ -2469,6 +3014,20 @@ begin
           sc.GetString;
         end
 
+        else if sc.MatchString('BLOODCOLOR') then
+        begin
+          sc.GetString;
+          mobj.bloodcolor := sc._String;
+          sc.GetString;
+        end
+
+        else if sc.MatchString('TRANSLATION') then
+        begin
+          sc.GetString;
+          mobj.translation := sc._String;
+          sc.GetString;
+        end
+
         else if sc.MatchString('ALPHA') then
         begin
           sc.GetFloat;
@@ -2490,6 +3049,10 @@ begin
           sc.GetString
         else if MatchFlags4Ex then
           sc.GetString
+        else if MatchFlags5Ex then
+          sc.GetString
+        else if MatchFlags6Ex then
+          sc.GetString
 
         else if MatchFlags_Delete then
           sc.GetString
@@ -2505,10 +3068,19 @@ begin
           sc.GetString
         else if MatchFlags4Ex_Delete then
           sc.GetString
+        else if MatchFlags5Ex_Delete then
+          sc.GetString
+        else if MatchFlags6Ex_Delete then
+          sc.GetString
 
         else if sc.MatchString('DEFAULTMISSILE') or sc.MatchString('+DEFAULTMISSILE') then // JVAL: DelphiDoom specific
         begin
           mobj.flags := mobj.flags + 'NOGRAVITY MISSILE NOBLOCKMAP DROPOFF ';
+          {$IFDEF HEXEN}
+          mobj.flags2 := mobj.flags2 + 'MF2_IMPACT MF2_PCROSS ';
+          {$ELSE}
+          mobj.flags5_ex := mobj.flags5_ex + 'MF5_EX_IMPACT MF5_EX_PCROSS ';
+          {$ENDIF}
           sc.GetString;
         end
         else if sc.MatchString('DEFAULTTRANSPARENT') or sc.MatchString('+DEFAULTTRANSPARENT') then // JVAL: DelphiDoom specific
@@ -2527,7 +3099,7 @@ begin
         else if sc.MatchString('FULLVOLSOUND') or sc.MatchString('FULLVOLSOUNDS') or
                 sc.MatchString('+FULLVOLSOUND') or sc.MatchString('+FULLVOLSOUNDS') then
         begin
-          mobj.flags2_ex := mobj.flags2_ex + 'FULLVOLACTIVE FULLVOLDEATH FULLVOLSEE FULLVOLPAIN FULLVOLATTACK ';
+          mobj.flags2_ex := mobj.flags2_ex + 'FULLVOLDEATH FULLVOLSEE ';
           sc.GetString;
         end
 
@@ -2701,6 +3273,12 @@ begin
           mobj.customsound3 := sc._String;
           sc.GetString;
         end
+        else if sc.MatchString('ripsound') then
+        begin
+          sc.GetString;
+          mobj.ripsound := sc._String;
+          sc.GetString;
+        end
         else if sc.MatchString('meleesound') then
         begin
           sc.GetString;
@@ -2737,14 +3315,18 @@ begin
           mobj.hitobituary := sc._String;
           sc.GetString;
         end
-        {$IFDEF DOOM_OR_STRIFE}
         else if sc.MatchString('missileheight') then
         begin
           sc.GetInteger;
           mobj.missileheight := sc._Integer;
           sc.GetString;
         end
-        {$ENDIF}
+        else if sc.MatchString('meleethreshold') then
+        begin
+          sc.GetInteger;
+          mobj.meleethreshold := sc._Integer;
+          sc.GetString;
+        end
         else if sc.MatchString('states') then
         begin
           foundstates := true;
@@ -2794,6 +3376,10 @@ begin
         mobj.flags3_ex := '0';
       if strtrim(mobj.flags4_ex) = '' then
         mobj.flags4_ex := '0';
+      if strtrim(mobj.flags5_ex) = '' then
+        mobj.flags5_ex := '0';
+      if strtrim(mobj.flags6_ex) = '' then
+        mobj.flags6_ex := '0';
 
       numstates := 0;
 
@@ -2839,6 +3425,12 @@ begin
           mobj.statesdefined := mobj.statesdefined or RTL_ST_CRASH;
           mobj.crashstate := numstates;
           repeat until not ParseState(mobj.crashstate);
+        end
+        else if sc.MatchString('crush:') then
+        begin
+          mobj.statesdefined := mobj.statesdefined or RTL_ST_CRUSH;
+          mobj.crushstate := numstates;
+          repeat until not ParseState(mobj.crushstate);
         end
         else if sc.MatchString('interact:') then
         begin
@@ -2896,6 +3488,11 @@ begin
   w_state_tokens.Free;
 end;
 
+//==============================================================================
+//
+// SC_ParseActordefLump
+//
+//==============================================================================
 procedure SC_ParseActordefLump(const in_text: string);
 begin
   SC_DoParseActordefLump(SC_Preprocess(in_text, false));
@@ -2904,6 +3501,11 @@ end;
 var
   sound_tx: string;
 
+//==============================================================================
+//
+// SC_DoRetrieveSndInfo
+//
+//==============================================================================
 procedure SC_DoRetrieveSndInfo(const in_text: string);
 begin
   if sound_tx = '' then
@@ -2912,11 +3514,21 @@ begin
     sound_tx := sound_tx + #13#10 + in_text;
 end;
 
+//==============================================================================
+//
+// SC_RetrieveSndInfo
+//
+//==============================================================================
 procedure SC_RetrieveSndInfo(const in_text: string);
 begin
   SC_DoRetrieveSndInfo(SC_Preprocess(in_text, false));
 end;
 
+//==============================================================================
+//
+// SC_ParseSndInfoLumps
+//
+//==============================================================================
 procedure SC_ParseSndInfoLumps;
 var
   i, p: integer;
@@ -2952,13 +3564,13 @@ begin
       p := Pos('//', stmp);
       if p > 0 then
         stmp := Copy(stmp, 1, p - 1);
-      p := Pos(';', stmp);
+      p := CharPos(';', stmp);
       if p > 0 then
         stmp := Copy(stmp, 1, p - 1);
       if stmp <> '' then
       begin
         splitstring(stmp, str1, str2, [' ', '=', Chr($09)]);
-        str2 := strtrim(str2);
+        trimproc(str2);
         if str2 <> '' then
         begin
           {$IFDEF HEXEN}
@@ -2978,7 +3590,7 @@ begin
           else
           begin
           {$ENDIF}
-          str1 := strtrim(str1);
+          trimproc(str1);
           soundaliases.Add('%s=%s', [str1, str2]);
           {$IFDEF HEXEN}
             for j := 1 to Ord(DO_NUMSFX) - 1 do
@@ -2994,6 +3606,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// SC_ParseActordefLumps
+//
+//==============================================================================
 procedure SC_ParseActordefLumps;
 var
   i: integer;
@@ -3047,6 +3664,11 @@ begin
   {$ENDIF}
 end;
 
+//==============================================================================
+//
+// SC_Init
+//
+//==============================================================================
 procedure SC_Init;
 begin
   soundaliases := TDStringList.Create;
@@ -3060,6 +3682,11 @@ begin
   C_AddCmd('DEH_SaveStateOwners, SaveStateOwners', @DEH_SaveStateOwners);
 end;
 
+//==============================================================================
+//
+// SC_ShutDown
+//
+//==============================================================================
 procedure SC_ShutDown;
 begin
   soundaliases.Free;
@@ -3068,6 +3695,11 @@ begin
   SC_ShutDownActorEvaluator;
 end;
 
+//==============================================================================
+//
+// SC_GetActordefDeclaration
+//
+//==============================================================================
 function SC_GetActordefDeclaration(const m: Pmobjinfo_t): string;
 var
   ret: string;
@@ -3153,6 +3785,12 @@ var
       exit;
     end;
 
+    if st = m.crushstate then
+    begin
+      AddLn('Goto Crush');
+      exit;
+    end;
+
     if st = m.interactstate then
     begin
       AddLn('Goto Interact');
@@ -3219,7 +3857,8 @@ var
         Chr(Ord('A') + sst.frame and FF_FRAMEMASK) + ' ' +
         stics +
         act +
-        decide(sst.frame and FF_FULLBRIGHT <> 0, ' BRIGHT', '')
+        decide(sst.frame and FF_FULLBRIGHT <> 0, ' BRIGHT', '') +
+        decide(sst.mbf21bits and STATEF_SKILL5FAST <> 0, ' FAST', '')
       );
 
       if sst.tics < 0 then
@@ -3313,6 +3952,8 @@ begin
     AddLn('Customsound3 ' + S_GetSoundNameForNum(m.customsound3));
   if m.meleesound > 0 then
     AddLn('Meleesound ' + S_GetSoundNameForNum(m.meleesound));
+  if m.ripsound > 0 then
+    AddLn('Ripsound ' + S_GetSoundNameForNum(m.ripsound));
   if m.floatspeed > 0 then
     AddLn('Floatspeed ' + itoa(m.floatspeed));
   if m.normalspeed > 0 then
@@ -3323,10 +3964,10 @@ begin
     AddLn('Obituary ' + '"' + m.obituary + '"');
   if m.hitobituary <> '' then
     AddLn('HitObituary ' + '"' + m.hitobituary + '"');
-  {$IFDEF DOOM_OR_STRIFE}
   if m.missileheight > 0 then
-    AddLn('Missileheight ' + S_GetSoundNameForNum(m.missileheight));
-  {$ENDIF}
+    AddLn('MissileHeight ' + itoa(m.missileheight));
+  if m.meleethreshold > 0 then
+    AddLn('MeleeThreshold ' + itoa(m.meleethreshold));
   if m.renderstyle <> mrs_normal then
   begin
     AddLn('Renderstyle ' + renderstyle_tokens[Ord(m.renderstyle)]);
@@ -3353,6 +3994,16 @@ begin
     AddLn('spriteDX ' + itoa(m.spriteDX));
   if m.spriteDY <> 0 then
     AddLn('spriteDY ' + itoa(m.spriteDY));
+  if m.infighting_group <> IG_DEFAULT then
+    AddLn('InfightingGroup ' + Info_InfightingGroupToString(m.infighting_group));
+  if m.projectile_group <> PG_DEFAULT then
+    AddLn('ProjectileGroup ' + Info_ProjectileGroupToString(m.projectile_group));
+  if m.splash_group <> SG_DEFAULT then
+    AddLn('SplashGroup ' + Info_SplashGroupToString(m.splash_group));
+  if R_GetBloodName(m.bloodcolor) <> '' then
+    AddLn('Bloodcolor ' + R_GetBloodName(m.bloodcolor));
+  if m.translationname <> '' then
+    AddLn('Translation "' + m.translationname + '"');
 
   for i := 0 to mobj_flags.Count - 1 do
     if m.flags and (1 shl i) <> 0 then
@@ -3369,6 +4020,12 @@ begin
   for i := 0 to mobj_flags4_ex.Count - 1 do
     if m.flags4_ex and (1 shl i) <> 0 then
       AddLn('+' + mobj_flags4_ex[i]);
+  for i := 0 to mobj_flags5_ex.Count - 1 do
+    if m.flags5_ex and (1 shl i) <> 0 then
+      AddLn('+' + mobj_flags5_ex[i]);
+  for i := 0 to mobj_flags6_ex.Count - 1 do
+    if m.flags6_ex and (1 shl i) <> 0 then
+      AddLn('+' + mobj_flags6_ex[i]);
 
   // States
   AddLn('States');
@@ -3383,6 +4040,7 @@ begin
   AddState('Raise', m.raisestate);
   AddState('Heal', m.healstate);
   AddState('Crash', m.crashstate);
+  AddState('Crush', m.crashstate);
   AddState('Interact', m.interactstate);
   AddLn('}');
   AddLn('}');
@@ -3390,6 +4048,11 @@ begin
   result := ret;
 end;
 
+//==============================================================================
+//
+// SC_GetWeapondefDeclaration
+//
+//==============================================================================
 function SC_GetWeapondefDeclaration(const wid: integer{$IFDEF HERETIC}; const lvl: integer{$ENDIF}{$IFDEF HEXEN}; const pcl: integer{$ENDIF}): string;
 var
   ret: string;
@@ -3397,6 +4060,7 @@ var
   aid: integer; // weapon & ammo ids
   w: Pweaponinfo_t;
   mxammo: integer;
+  fl: integer;
 
   procedure AddLn(const s: string);
   var
@@ -3512,7 +4176,8 @@ var
         Chr(Ord('A') + sst.frame and FF_FRAMEMASK) + ' ' +
         stics +
         act +
-        decide(sst.frame and FF_FULLBRIGHT <> 0, ' BRIGHT', '')
+        decide(sst.frame and FF_FULLBRIGHT <> 0, ' BRIGHT', '') +
+        decide(sst.mbf21bits and STATEF_SKILL5FAST <> 0, ' FAST', '')
       );
 
       if sst.tics < 0 then
@@ -3555,6 +4220,14 @@ begin
   end;
   {$ENDIF}
 
+  {$IFDEF HEXEN}
+  if not IsIntegerInRange(pcl, 0, Ord(NUMCLASSES)) then
+  begin
+    result := '';
+    exit;
+  end;
+  {$ENDIF}
+
   ret := '';
   plevel := 0;
 
@@ -3590,6 +4263,23 @@ begin
   {$ENDIF}
 
   AddLn('Ammo ' + decide(IsIntegerInRange(aid, 0, mxammo), strupper(GetENumName(TypeInfo({$IFDEF HEXEN}manatype_t{$ELSE}ammotype_t{$ENDIF}), Ord(aid))), itoa(aid)));
+
+  {$IFDEF DOOM_OR_STRIFE}
+  AddLn('AmmoPerShot ' + itoa(w.ammopershot));
+  {$ENDIF}
+  {$IFDEF HERETIC}
+  if lvl = 1 then
+    AddLn('AmmoPerShot ' + itoa(WeaponAmmoUsePL1[wid]))
+  else
+    AddLn('AmmoPerShot ' + itoa(WeaponAmmoUsePL2[wid]));
+  {$ENDIF}
+  {$IFDEF HEXEN}
+  AddLn('AmmoPerShot ' + itoa(WeaponManaUse[pcl, wid]));
+  {$ENDIF}
+
+  for fl := 0 to weapon_flags_mbf21.Count - 1 do
+    if w.mbf21bits and (1 shl fl) <> 0 then
+      AddLn('+' + weapon_flags_mbf21[fl]);
 
   // States
   AddLn('States');

@@ -170,12 +170,40 @@ const
 
 { TPSLineInfoList }
 
+//==============================================================================
+//
+// CharPos
+//
+//==============================================================================
+function CharPos(const ch: Char; const s: string): integer;
+var
+  i: integer;
+begin
+  for i := 1 to Length(s) do
+    if s[i] = ch then
+    begin
+      result := i;
+      exit;
+    end;
+  result := 0;
+end;
+
+//==============================================================================
+//
+// TPSLineInfoList.Add
+//
+//==============================================================================
 function TPSLineInfoList.Add: TPSLineInfo;
 begin
   Result := TPSLineInfo.Create;
   FItems.Add(Result);
 end;
 
+//==============================================================================
+//
+// TPSLineInfoList.Clear
+//
+//==============================================================================
 procedure TPSLineInfoList.Clear;
 var
   i: Longint;
@@ -185,12 +213,22 @@ begin
   FItems.Clear;
 end;
 
+//==============================================================================
+//
+// TPSLineInfoList.Create
+//
+//==============================================================================
 constructor TPSLineInfoList.Create;
 begin
   inherited Create;
   FItems := TIfList.Create;
 end;
 
+//==============================================================================
+//
+// TPSLineInfoList.Destroy
+//
+//==============================================================================
 destructor TPSLineInfoList.Destroy;
 begin
   Clear;
@@ -198,16 +236,31 @@ begin
   inherited Destroy;
 end;
 
+//==============================================================================
+//
+// TPSLineInfoList.GetCount
+//
+//==============================================================================
 function TPSLineInfoList.GetCount: Longint;
 begin
   Result := FItems.Count;
 end;
 
+//==============================================================================
+//
+// TPSLineInfoList.GetItem
+//
+//==============================================================================
 function TPSLineInfoList.GetItem(I: Integer): TPSLineInfo;
 begin
   Result := TPSLineInfo(FItems[i]);
 end;
 
+//==============================================================================
+//
+// TPSLineInfoList.GetLineInfo
+//
+//==============================================================================
 function TPSLineInfoList.GetLineInfo(const ModuleName: TbtString; Pos: Cardinal; var Res: TPSLineInfoResults): Boolean;
 var
   i,j: Longint;
@@ -251,24 +304,43 @@ end;
 
 { TPSLineInfo }
 
+//==============================================================================
+//
+// TPSLineInfo.Create
+//
+//==============================================================================
 constructor TPSLineInfo.Create;
 begin
   inherited Create;
   FLineOffsets := TIfList.Create;
 end;
 
+//==============================================================================
+//
+// TPSLineInfo.Destroy
+//
+//==============================================================================
 destructor TPSLineInfo.Destroy;
 begin
   FLineOffsets.Free;
   inherited Destroy;
 end;
 
-
+//==============================================================================
+//
+// TPSLineInfo.GetLineOffset
+//
+//==============================================================================
 function TPSLineInfo.GetLineOffset(I: Integer): Cardinal;
 begin
   Result := Longint(FLineOffsets[I]);
 end;
 
+//==============================================================================
+//
+// TPSLineInfo.GetLineOffsetCount
+//
+//==============================================================================
 function TPSLineInfo.GetLineOffsetCount: Longint;
 begin
   Result := FLineOffsets.Count;
@@ -276,6 +348,11 @@ end;
 
 { TPSPascalPreProcessorParser }
 
+//==============================================================================
+//
+// TPSPascalPreProcessorParser.Next
+//
+//==============================================================================
 procedure TPSPascalPreProcessorParser.Next;
 var
   ci: Cardinal;
@@ -441,6 +518,11 @@ begin
   FToken := Copy(FData, FPos + 1, FLen);
 end;
 
+//==============================================================================
+//
+// TPSPascalPreProcessorParser.SetText
+//
+//==============================================================================
 procedure TPSPascalPreProcessorParser.SetText(const dta: TbtString);
 begin
   FData := dta;
@@ -457,6 +539,11 @@ end;
 
 { TPSPreProcessor }
 
+//==============================================================================
+//
+// TPSPreProcessor.AdjustMessage
+//
+//==============================================================================
 procedure TPSPreProcessor.AdjustMessage(Msg: TPSPascalCompilerMessage);
 var
   Res: TPSLineInfoResults;
@@ -468,6 +555,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.AdjustMessages
+//
+//==============================================================================
 procedure TPSPreProcessor.AdjustMessages(Comp: TPSPascalCompiler);
 var
   i: Longint;
@@ -476,6 +568,11 @@ begin
     AdjustMessage (Comp.Msg[i]);
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.Clear
+//
+//==============================================================================
 procedure TPSPreProcessor.Clear;
 begin
   FDefineState.Clear;
@@ -485,6 +582,11 @@ begin
   FMainFile := '';
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.Create
+//
+//==============================================================================
 constructor TPSPreProcessor.Create;
 begin
   inherited Create;
@@ -499,6 +601,11 @@ begin
   doAddStdPredefines;
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.Destroy
+//
+//==============================================================================
 destructor TPSPreProcessor.Destroy;
 begin
   FDefineState.Free;
@@ -508,6 +615,11 @@ begin
   inherited Destroy;
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.doAddStdPredefines
+//
+//==============================================================================
 procedure TPSPreProcessor.doAddStdPredefines;
 begin
   //--- 20050708_jgv
@@ -524,6 +636,11 @@ begin
   {$ENDIF }
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.IntPreProcess
+//
+//==============================================================================
 procedure TPSPreProcessor.IntPreProcess(Level: Integer; const OrgFileName: TbtString; FileName: TbtString; Dest: TStream);
 var
   Parser: TPSPascalPreProcessorParser;
@@ -576,8 +693,8 @@ begin
         end
         else
         begin
-          Name := uppercase(Copy(s, 1, Pos(' ', s) - 1));
-          Delete(s, 1, pos(' ', s));
+          Name := uppercase(Copy(s, 1, CharPos(' ', s) - 1));
+          Delete(s, 1, CharPos(' ', s));
         end;
 
         //-- 20050707_jgv - ask the application
@@ -601,7 +718,7 @@ begin
           begin
             if FDefineState.DoWrite then
             begin
-              if pos(' ', s) <> 0 then
+              if CharPos(' ', s) <> 0 then
                 raise EPSPreProcessor.CreateFmt(RPS_DefineTooManyParameters, [Parser.Row, Parser.Col]);
               FCurrentDefines.Add(Uppercase(S));
             end;
@@ -610,7 +727,7 @@ begin
           begin
             if FDefineState.DoWrite then
             begin
-              if pos(' ', s) <> 0 then
+              if CharPos(' ', s) <> 0 then
                 raise EPSPreProcessor.CreateFmt(RPS_DefineTooManyParameters, [Parser.Row, Parser.Col]);
               i := FCurrentDefines.IndexOf(Uppercase(s));
               if i <> - 1 then
@@ -619,7 +736,7 @@ begin
           end
           else if (Name = 'IFDEF') then
           begin
-            if pos(' ', s) <> 0 then
+            if CharPos(' ', s) <> 0 then
               raise EPSPreProcessor.CreateFmt(RPS_DefineTooManyParameters, [Parser.Row, Parser.Col]);
             //JeromeWelsh - nesting fix
             ADoWrite := (FCurrentDefines.IndexOf(Uppercase(s)) >= 0) and FDefineState.DoWrite;
@@ -627,7 +744,7 @@ begin
           end
           else if (Name = 'IFNDEF') then
           begin
-            if pos(' ', s) <> 0 then
+            if CharPos(' ', s) <> 0 then
               raise EPSPreProcessor.CreateFmt(RPS_DefineTooManyParameters, [Parser.Row, Parser.Col]);
             //JeromeWelsh - nesting fix
             ADoWrite := (FCurrentDefines.IndexOf(Uppercase(s)) < 0) and FDefineState.DoWrite;
@@ -684,6 +801,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.ParserNewLine
+//
+//==============================================================================
 procedure TPSPreProcessor.ParserNewLine(Sender: TPSPascalPreProcessorParser; Row, Col, Pos: Cardinal);
 begin
   if FCurrentLineInfo.Current >= FCurrentLineInfo.Count then
@@ -695,6 +817,11 @@ begin
   end;
 end;
 
+//==============================================================================
+//
+// TPSPreProcessor.PreProcess
+//
+//==============================================================================
 procedure TPSPreProcessor.PreProcess(const Filename: TbtString; var Output: TbtString);
 var
   Stream: TMemoryStream;
@@ -720,12 +847,22 @@ end;
 
 { TPSDefineStates }
 
+//==============================================================================
+//
+// TPSDefineStates.Add
+//
+//==============================================================================
 function TPSDefineStates.Add: TPSDefineState;
 begin
   Result := TPSDefineState.Create;
   FItems.Add(Result);
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.Clear
+//
+//==============================================================================
 procedure TPSDefineStates.Clear;
 var
   i: Longint;
@@ -735,18 +872,33 @@ begin
   FItems.Clear;
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.Create
+//
+//==============================================================================
 constructor TPSDefineStates.Create;
 begin
   inherited Create;
   FItems := TIfList.Create;
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.Delete
+//
+//==============================================================================
 procedure TPSDefineStates.Delete(I: Integer);
 begin
   TPSDefineState(FItems[i]).Free;
   FItems.Delete(i);
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.Destroy
+//
+//==============================================================================
 destructor TPSDefineStates.Destroy;
 var
   i: Longint;
@@ -757,16 +909,31 @@ begin
   inherited Destroy;
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.GetCount
+//
+//==============================================================================
 function TPSDefineStates.GetCount: Longint;
 begin
   Result := FItems.Count;
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.GetItem
+//
+//==============================================================================
 function TPSDefineStates.GetItem(I: Integer): TPSDefineState;
 begin
   Result := FItems[i];
 end;
 
+//==============================================================================
+//
+// TPSDefineStates.GetWrite
+//
+//==============================================================================
 function TPSDefineStates.GetWrite: Boolean;
 begin
   if FItems.Count = 0 then
@@ -775,7 +942,12 @@ begin
     Result := TPSDefineState(FItems[FItems.Count - 1]).DoWrite;
 end;
 
+//==============================================================================
+// TPSDefineStates.GetPrevWrite
+//
 //JeromeWelsh - nesting fix
+//
+//==============================================================================
 function TPSDefineStates.GetPrevWrite: Boolean;
 begin
   if FItems.Count < 2 then
